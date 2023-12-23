@@ -14,11 +14,11 @@ func UpdateMetric(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
-	if r.Header.Get("Content-Type") != "text/plain" ||
-		r.Header.Get("Content-Length") != "0" {
-		w.WriteHeader(http.StatusNotAcceptable)
-		return
-	}
+	//if r.Header.Get("Content-Type") != "text/plain" ||
+	//	r.Header.Get("Content-Length") != "0" {
+	//	w.WriteHeader(http.StatusNotAcceptable)
+	//	return
+	//}
 
 	params := strings.Split(
 		strings.Trim(
