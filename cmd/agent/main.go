@@ -27,7 +27,6 @@ func getMetrics(m *metricsCollects) {
 	runtime.ReadMemStats(&m.memStats)
 	m.pollCount++
 	m.randomValue = rand.Float64()
-	return
 }
 
 func sendOneMetric(t, k string, v interface{}) (err error) {
