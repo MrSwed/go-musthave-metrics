@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"github.com/MrSwed/go-musthave-metrics/internal/repository"
+	"github.com/MrSwed/go-musthave-metrics/internal/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
@@ -119,10 +121,12 @@ func TestUpdateMetric(t *testing.T) {
 			},
 		},
 	}
+	r := repository.NewRepository()
+	s := service.NewService(r)
 	for _, test := range tests {
 		request := httptest.NewRequest(test.args.method, test.args.path, nil)
 		w := httptest.NewRecorder()
-		UpdateMetric(w, request)
+		UpdateMetric(s)(w, request)
 
 		res := w.Result()
 		var (
