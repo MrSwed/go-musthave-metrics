@@ -30,6 +30,7 @@ func UpdateMetric(w http.ResponseWriter, r *http.Request) {
 	case constants.MetricTypeGauge:
 		if v, err := strconv.ParseFloat(metricValStr, 64); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
+			log.Printf("Error: %s", err)
 			return
 		} else {
 			storage.Store.SetGauge(metricKey, v)
@@ -38,14 +39,15 @@ func UpdateMetric(w http.ResponseWriter, r *http.Request) {
 	case constants.MetricTypeCounter:
 		if v, err := strconv.ParseInt(metricValStr, 10, 64); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
+			log.Printf("Error: %s", err)
 			return
 		} else {
 			storage.Store.IncreaseCounter(metricKey, v)
 			log.Printf("Counter updated %s = %d", metricKey, storage.Store.GetCounter(metricKey))
 		}
-
 	default:
 		w.WriteHeader(http.StatusBadRequest)
+		log.Printf("Error: unknown metric type '%s'", metricKey)
 		return
 	}
 
@@ -53,6 +55,6 @@ func UpdateMetric(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	if _, err := w.Write([]byte("Saved: Ok")); err != nil {
-		log.Println("error write response", err)
+		log.Printf("Error: %s", err)
 	}
 }
