@@ -124,33 +124,32 @@ func TestUpdateMetric(t *testing.T) {
 	r := repository.NewRepository()
 	s := service.NewService(r)
 	for _, test := range tests {
-		request := httptest.NewRequest(test.args.method, test.args.path, nil)
-		w := httptest.NewRecorder()
-		UpdateMetric(s)(w, request)
+		t.Run(test.name, func(t *testing.T) {
 
-		res := w.Result()
-		var (
-			err     error
-			resBody []byte
-		)
-		// проверяем код ответа
-		require.Equal(t, test.want.code, res.StatusCode)
-		func() {
-			defer func(Body io.ReadCloser) {
-				err := Body.Close()
+			request := httptest.NewRequest(test.args.method, test.args.path, nil)
+			w := httptest.NewRecorder()
+			UpdateMetric(s)(w, request)
+
+			res := w.Result()
+			var (
+				err     error
+				resBody []byte
+			)
+			// проверяем код ответа
+			require.Equal(t, test.want.code, res.StatusCode)
+			func() {
+				defer func(Body io.ReadCloser) {
+					err := Body.Close()
+					require.NoError(t, err)
+				}(res.Body)
+				resBody, err = io.ReadAll(res.Body)
 				require.NoError(t, err)
-			}(res.Body)
-			resBody, err = io.ReadAll(res.Body)
-			require.NoError(t, err)
-		}()
+			}()
 
-		if test.want.code == http.StatusOK {
-			assert.Equal(t, test.want.response, string(resBody))
-			assert.Equal(t, test.want.contentType, res.Header.Get("Content-Type"))
-		}
-
-		//t.Run(tt.name, func(t *testing.T) {
-		//	UpdateMetric(tt.args.w, tt.args.r)
-		//})
+			if test.want.code == http.StatusOK {
+				assert.Equal(t, test.want.response, string(resBody))
+				assert.Equal(t, test.want.contentType, res.Header.Get("Content-Type"))
+			}
+		})
 	}
 }
