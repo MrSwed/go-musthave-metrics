@@ -35,6 +35,7 @@ func sendOneMetric(t, k string, v interface{}) (err error) {
 	if res, err = http.Post(url, "text/plain", nil); err != nil {
 		return
 	}
+	defer func() { err = res.Body.Close() }()
 	if res.StatusCode != http.StatusOK {
 		err = fmt.Errorf("%v", res.StatusCode)
 	}
