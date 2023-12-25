@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"net/http"
 	"runtime"
+	"strings"
 	"time"
 )
 
@@ -16,7 +17,7 @@ const (
 )
 
 var (
-	baseURL        = flag.String("a", "http://localhost:8080/update", "Provide the address of the metrics collection server (with protocol)")
+	baseURL        = flag.String("a", "localhost:8080/update", "Provide the address of the metrics collection server")
 	reportInterval = flag.Int("r", 2, "Provide the interval in seconds for send report metrics")
 	pollInterval   = flag.Int("p", 10, "Provide the interval in seconds for update metrics")
 )
@@ -35,8 +36,8 @@ func getMetrics(m *metricsCollects) {
 
 func sendOneMetric(t, k string, v interface{}) (err error) {
 	var res *http.Response
-	url := fmt.Sprintf("%s/%s/%s/%v", *baseURL, t, k, v)
-	if res, err = http.Post(url, "text/plain", nil); err != nil {
+	urlStr := fmt.Sprintf("%s/%s/%s/%v", *baseURL, t, k, v)
+	if res, err = http.Post(urlStr, "text/plain", nil); err != nil {
 		return
 	}
 	defer func() { err = res.Body.Close() }()
@@ -141,6 +142,10 @@ func sendMetrics(m *metricsCollects) (err error) {
 
 func main() {
 	flag.Parse()
+	if !strings.HasPrefix(*baseURL, "http://") && !strings.HasPrefix(*baseURL, "https://") {
+		*baseURL = "http//" + *baseURL
+	}
+
 	lastSend := time.Now()
 	m := new(metricsCollects)
 	for {
