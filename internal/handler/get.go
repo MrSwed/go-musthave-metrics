@@ -58,7 +58,7 @@ func GetMetric(s *service.Service) func(w http.ResponseWriter, r *http.Request) 
 
 func GetListMetrics(s *service.Service) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		html, err := s.GetListHtmlPage()
+		html, err := s.GetListHTMLPage()
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			log.Printf("Error get html page %s", err)

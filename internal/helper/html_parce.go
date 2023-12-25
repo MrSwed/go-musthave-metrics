@@ -6,7 +6,7 @@ import (
 	"html/template"
 )
 
-func ParseEmailHtmlTemplate(tpl embed.FS, data interface{}) (buffBytes []byte, err error) {
+func ParseEmailHTMLTemplate(tpl embed.FS, data interface{}) (buffBytes []byte, err error) {
 	var body bytes.Buffer
 
 	tmpl := template.Must(template.ParseFS(tpl, "template/*.html"))

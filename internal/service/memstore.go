@@ -13,7 +13,7 @@ type Metrics interface {
 	IncreaseCounter(k string, v int64) error
 	GetGauge(k string) (float64, error)
 	GetCounter(k string) (int64, error)
-	GetListHtmlPage() ([]byte, error)
+	GetListHTMLPage() ([]byte, error)
 }
 
 type MetricsService struct {
@@ -46,7 +46,7 @@ func (m *MetricsService) GetCounter(k string) (v int64, err error) {
 	return
 }
 
-func (m *MetricsService) GetListHtmlPage() (html []byte, err error) {
+func (m *MetricsService) GetListHTMLPage() (html []byte, err error) {
 	type lItem struct {
 		MType  string
 		MValue interface{}
@@ -74,6 +74,6 @@ func (m *MetricsService) GetListHtmlPage() (html []byte, err error) {
 			MValue: v,
 		}
 	}
-	html, err = helper.ParseEmailHtmlTemplate(constants.MetricListTpl, list)
+	html, err = helper.ParseEmailHTMLTemplate(constants.MetricListTpl, list)
 	return
 }
