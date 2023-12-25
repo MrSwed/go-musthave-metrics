@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"github.com/MrSwed/go-musthave-metrics/internal/constants"
 	"github.com/MrSwed/go-musthave-metrics/internal/repository"
 	"github.com/MrSwed/go-musthave-metrics/internal/service"
@@ -126,7 +125,7 @@ func TestUpdateMetric(t *testing.T) {
 			},
 		},
 		{
-			name: "Bad counter 3 (digs by dots)",
+			name: "Bad counter 3 (separated by a dot)",
 			args: args{
 				method: http.MethodPost,
 				path:   "/update/counter/testCounter/1.1.1",
@@ -146,7 +145,7 @@ func TestUpdateMetric(t *testing.T) {
 			},
 		},
 		{
-			name: "Bad gauge 1 (digs by dots)",
+			name: "Bad gauge 1 (separated by a dot)",
 			args: args{
 				method: http.MethodPost,
 				path:   "/update/gauge/testGauge/1.1.1",
@@ -167,13 +166,12 @@ func TestUpdateMetric(t *testing.T) {
 		},
 	}
 	repo := repository.NewRepository()
-	serv := service.NewService(repo)
-	chiRoute := chi.NewRouter()
-	//chiRoute.Use(middleware.URLFormat)
-	chiRoute.Route(fmt.Sprintf(`%s/{metricType}/{metricName}/{metricValue}`, constants.UpdateRoute),
-		UpdateHandler(serv))
+	s := service.NewService(repo)
+	r := chi.NewRouter()
+	//r.Use(middleware.URLFormat) // causes an error in tests when numbers are separated by a dot
+	r.Route(constants.UpdateRoute+"/{metricType}/{metricName}/{metricValue}", UpdateHandler(s))
 
-	ts := httptest.NewServer(chiRoute)
+	ts := httptest.NewServer(r)
 	defer ts.Close()
 
 	for _, test := range tests {
