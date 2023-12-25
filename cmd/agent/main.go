@@ -143,7 +143,7 @@ func sendMetrics(m *metricsCollects) (err error) {
 func main() {
 	flag.Parse()
 	if !strings.HasPrefix(*baseURL, "http://") && !strings.HasPrefix(*baseURL, "https://") {
-		*baseURL = "http//" + *baseURL
+		*baseURL = "http://" + *baseURL
 	}
 
 	lastSend := time.Now()
