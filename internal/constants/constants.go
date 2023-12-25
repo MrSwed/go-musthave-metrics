@@ -1,7 +1,7 @@
 package constants
 
 const (
-	UpdateRoute = "/update/"
+	UpdateRoute = "/update"
 
 	MetricTypeGauge   = "gauge"
 	MetricTypeCounter = "counter"

@@ -3,30 +3,16 @@ package handler
 import (
 	"github.com/MrSwed/go-musthave-metrics/internal/constants"
 	"github.com/MrSwed/go-musthave-metrics/internal/service"
+	"github.com/go-chi/chi/v5"
 	"log"
 	"net/http"
 	"strconv"
-	"strings"
 )
 
 func UpdateMetric(s *service.Service) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
 
-		params := strings.Split(
-			strings.Trim(
-				strings.TrimPrefix(r.URL.Path, constants.UpdateRoute),
-				"/"),
-			"/")
-		if len(params) != 3 {
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
-
-		action, metricKey, metricValStr := params[0], params[1], params[2]
+		action, metricKey, metricValStr := chi.URLParam(r, "metricType"), chi.URLParam(r, "metricName"), chi.URLParam(r, "metricValue")
 		switch action {
 		case constants.MetricTypeGauge:
 			if v, err := strconv.ParseFloat(metricValStr, 64); err != nil {
