@@ -139,11 +139,8 @@ func sendMetrics(m *metricsCollects) (err error) {
 	return
 }
 
-func init() {
-	flag.Parse()
-}
-
 func main() {
+	flag.Parse()
 	lastSend := time.Now()
 	m := new(metricsCollects)
 	for {
