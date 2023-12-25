@@ -1,8 +1,11 @@
 package handler
 
 import (
+	"fmt"
+	"github.com/MrSwed/go-musthave-metrics/internal/constants"
 	"github.com/MrSwed/go-musthave-metrics/internal/repository"
 	"github.com/MrSwed/go-musthave-metrics/internal/service"
+	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
@@ -51,6 +54,18 @@ func TestUpdateMetric(t *testing.T) {
 			},
 		},
 		{
+			name: "Save gauge 2. Ok",
+			args: args{
+				method: http.MethodPost,
+				path:   "/update/gauge/testGauge/0.0001",
+			},
+			want: want{
+				code:        http.StatusOK,
+				response:    "Saved: Ok",
+				contentType: "text/plain; charset=utf-8",
+			},
+		},
+		{
 			name: "Bad method",
 			args: args{
 				method: http.MethodGet,
@@ -91,10 +106,30 @@ func TestUpdateMetric(t *testing.T) {
 			},
 		},
 		{
-			name: "Bad counter",
+			name: "Bad counter 1 (string)",
 			args: args{
 				method: http.MethodPost,
 				path:   "/update/counter/testCounter/ccc",
+			},
+			want: want{
+				code: http.StatusBadRequest,
+			},
+		},
+		{
+			name: "Bad counter 2 (float)",
+			args: args{
+				method: http.MethodPost,
+				path:   "/update/counter/testCounter/1.1",
+			},
+			want: want{
+				code: http.StatusBadRequest,
+			},
+		},
+		{
+			name: "Bad counter 3 (digs by dots)",
+			args: args{
+				method: http.MethodPost,
+				path:   "/update/counter/testCounter/1.1.1",
 			},
 			want: want{
 				code: http.StatusBadRequest,
@@ -111,7 +146,7 @@ func TestUpdateMetric(t *testing.T) {
 			},
 		},
 		{
-			name: "Bad gauge.",
+			name: "Bad gauge 1 (digs by dots)",
 			args: args{
 				method: http.MethodPost,
 				path:   "/update/gauge/testGauge/1.1.1",
@@ -120,21 +155,36 @@ func TestUpdateMetric(t *testing.T) {
 				code: http.StatusBadRequest,
 			},
 		},
+		{
+			name: "Bad gauge 2 (string)",
+			args: args{
+				method: http.MethodPost,
+				path:   "/update/gauge/testGauge/ddd",
+			},
+			want: want{
+				code: http.StatusBadRequest,
+			},
+		},
 	}
-	r := repository.NewRepository()
-	s := service.NewService(r)
+	repo := repository.NewRepository()
+	serv := service.NewService(repo)
+	chiRoute := chi.NewRouter()
+	//chiRoute.Use(middleware.URLFormat)
+	chiRoute.Route(fmt.Sprintf(`%s/{metricType}/{metricName}/{metricValue}`, constants.UpdateRoute),
+		UpdateHandler(serv))
+
+	ts := httptest.NewServer(chiRoute)
+	defer ts.Close()
+
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 
-			request := httptest.NewRequest(test.args.method, test.args.path, nil)
-			w := httptest.NewRecorder()
-			UpdateMetric(s)(w, request)
+			req, err := http.NewRequest(test.args.method, ts.URL+test.args.path, nil)
+			defer req.Context()
 
-			res := w.Result()
-			var (
-				err     error
-				resBody []byte
-			)
+			res, err := http.DefaultClient.Do(req)
+			var resBody []byte
+
 			// проверяем код ответа
 			require.Equal(t, test.want.code, res.StatusCode)
 			func() {
