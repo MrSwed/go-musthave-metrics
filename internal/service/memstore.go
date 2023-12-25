@@ -1,6 +1,10 @@
 package service
 
-import "github.com/MrSwed/go-musthave-metrics/internal/repository"
+import (
+	"errors"
+	myErr "github.com/MrSwed/go-musthave-metrics/internal/errors"
+	"github.com/MrSwed/go-musthave-metrics/internal/repository"
+)
 
 type Metrics interface {
 	SetGauge(k string, v float64) error
@@ -22,7 +26,7 @@ func (m *MetricsService) SetGauge(k string, v float64) error {
 }
 
 func (m *MetricsService) IncreaseCounter(k string, v int64) error {
-	if prev, err := m.r.GetCounter(k); err != nil {
+	if prev, err := m.r.GetCounter(k); err != nil && !errors.Is(err, myErr.ErrNotExist) {
 		return err
 	} else {
 		return m.r.SetCounter(k, prev+v)
