@@ -9,6 +9,8 @@ type MemStorage interface {
 	SetCounter(k string, v int64) error
 	GetGauge(k string) (float64, error)
 	GetCounter(k string) (int64, error)
+	GetCountersList() (map[string]int64, error)
+	GetGaugesList() (map[string]float64, error)
 }
 
 type MemStorageRepository struct {
@@ -43,5 +45,14 @@ func (m *MemStorageRepository) GetCounter(k string) (v int64, err error) {
 	if v, ok = m.counter[k]; !ok {
 		err = errors.ErrNotExist
 	}
+	return
+}
+
+func (m *MemStorageRepository) GetCountersList() (list map[string]int64, err error) {
+	list = m.counter
+	return
+}
+func (m *MemStorageRepository) GetGaugesList() (list map[string]float64, err error) {
+	list = m.gauge
 	return
 }

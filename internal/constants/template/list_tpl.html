@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<title>Metrics list</title>
+	<style>
+		h1 {
+			text-align: center;
+		}
+
+		table, td, th {
+			border: 1px solid;
+		}
+
+		table {
+			margin: 0 auto;
+		}
+
+		td, th {
+			padding: 0.1em 0.5em;
+		}
+	</style>
+</head>
+<body>
+<h1>Metrics list</h1>
+<table>
+	<tr>
+		<th>Metric name</th>
+		<th>Metric Value</th>
+	</tr>
+	{{ range $key, $value := . }}
+	<tr>
+		<td><a href="/value/{{$value.MType}}/{{ $key }}">{{ $key }}</a></td>
+		<td>{{ $value.MValue }}</td>
+	</tr>
+	{{ end }}
+</table>
+</body>
+</html>

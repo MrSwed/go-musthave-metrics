@@ -12,10 +12,12 @@ import (
 func Handler(s *service.Service) {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
+
+	r.Route("/", GetListValuesHandler(s))
+
 	//r.Use(middleware.URLFormat)
 	//r.Route(fmt.Sprintf(`%s/{metricType:%s|%s}/{metricName}/{metricValue}`,
 	//	constants.UpdateRoute, constants.MetricTypeCounter, constants.MetricTypeCounter),
-
 	r.Route(constants.UpdateRoute+"/{metricType}/{metricName}/{metricValue}", UpdateHandler(s))
 
 	r.Route(constants.ValueRoute+"/{metricType}/{metricName}", GetValueHandler(s))
@@ -32,5 +34,10 @@ func UpdateHandler(s *service.Service) func(r chi.Router) {
 func GetValueHandler(s *service.Service) func(r chi.Router) {
 	return func(r chi.Router) {
 		r.Get("/", GetMetric(s))
+	}
+}
+func GetListValuesHandler(s *service.Service) func(r chi.Router) {
+	return func(r chi.Router) {
+		r.Get("/", GetListMetrics(s))
 	}
 }
