@@ -123,9 +123,11 @@ func TestGetMetric(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 
 			req, err := http.NewRequest(test.args.method, ts.URL+test.args.path, nil)
+			require.NoError(t, err)
 			defer req.Context()
 
 			res, err := http.DefaultClient.Do(req)
+			require.NoError(t, err)
 			var resBody []byte
 
 			// проверяем код ответа
@@ -141,6 +143,92 @@ func TestGetMetric(t *testing.T) {
 
 			if test.want.code == http.StatusOK {
 				assert.Equal(t, test.want.response, string(resBody))
+				assert.Equal(t, test.want.contentType, res.Header.Get("Content-Type"))
+			}
+		})
+	}
+}
+
+func TestGetListMetrics(t *testing.T) {
+	testCounter := int64(1)
+	testGauge := 1.0001
+
+	type want struct {
+		code            int
+		responseContain string
+		contentType     string
+	}
+	type args struct {
+		method string
+		path   string
+	}
+	tests := []struct {
+		name string
+		args args
+		want want
+	}{
+		{
+			name: "Get main page",
+			args: args{
+				method: http.MethodGet,
+				path:   "/",
+			},
+			want: want{
+				code:            http.StatusOK,
+				responseContain: "testCounter",
+				contentType:     "text/html; charset=utf-8",
+			},
+		},
+		{
+			name: "No main page",
+			args: args{
+				method: http.MethodGet,
+				path:   "/somepage",
+			},
+			want: want{
+				code: http.StatusNotFound,
+			},
+		},
+	}
+	repo := repository.NewRepository()
+	s := service.NewService(repo)
+	r := chi.NewRouter()
+	r.Route("/", GetListValuesHandler(s))
+
+	ts := httptest.NewServer(r)
+	defer ts.Close()
+
+	// save some values
+	_ = s.SetGauge("testGauge", testGauge)
+	_ = s.IncreaseCounter("testCounter", testCounter)
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+
+			req, err := http.NewRequest(test.args.method, ts.URL+test.args.path, nil)
+			require.NoError(t, err)
+
+			defer req.Context()
+
+			res, err := http.DefaultClient.Do(req)
+
+			require.NoError(t, err)
+			var resBody []byte
+
+			// проверяем код ответа
+			require.Equal(t, test.want.code, res.StatusCode)
+			func() {
+				defer func(Body io.ReadCloser) {
+					err := Body.Close()
+					require.NoError(t, err)
+				}(res.Body)
+				resBody, err = io.ReadAll(res.Body)
+				require.NoError(t, err)
+			}()
+
+			if test.want.code == http.StatusOK {
+				assert.Contains(t, string(resBody), "<!doctype html>")
+				assert.Contains(t, string(resBody), test.want.responseContain)
 				assert.Equal(t, test.want.contentType, res.Header.Get("Content-Type"))
 			}
 		})

@@ -62,13 +62,11 @@ func GetListMetrics(s *service.Service) func(w http.ResponseWriter, r *http.Requ
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			log.Printf("Error get html page %s", err)
-
 		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
 		if _, err := w.Write(html); err != nil {
 			log.Printf("Error: %s", err)
 		}
-
 	}
 }
