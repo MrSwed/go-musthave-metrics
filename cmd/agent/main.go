@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"math/rand"
@@ -10,11 +11,14 @@ import (
 )
 
 const (
-	pollInterval   = 2 * time.Second
-	reportInterval = 10 * time.Second
-	baseURL        = "http://localhost:8080/update"
-	gaugeType      = "gauge"
-	counterType    = "counter"
+	gaugeType   = "gauge"
+	counterType = "counter"
+)
+
+var (
+	baseURL        = flag.String("a", "http://localhost:8080/update", "Provide the address of the metrics collection server (with protocol)")
+	reportInterval = flag.Int("r", 2, "Provide the interval in seconds for send report metrics")
+	pollInterval   = flag.Int("p", 10, "Provide the interval in seconds for update metrics")
 )
 
 type metricsCollects struct {
@@ -31,7 +35,7 @@ func getMetrics(m *metricsCollects) {
 
 func sendOneMetric(t, k string, v interface{}) (err error) {
 	var res *http.Response
-	url := fmt.Sprintf("%s/%s/%s/%v", baseURL, t, k, v)
+	url := fmt.Sprintf("%s/%s/%s/%v", *baseURL, t, k, v)
 	if res, err = http.Post(url, "text/plain", nil); err != nil {
 		return
 	}
@@ -135,12 +139,16 @@ func sendMetrics(m *metricsCollects) (err error) {
 	return
 }
 
+func init() {
+	flag.Parse()
+}
+
 func main() {
 	lastSend := time.Now()
 	m := new(metricsCollects)
 	for {
 		getMetrics(m)
-		if time.Now().After(lastSend.Add(reportInterval)) {
+		if time.Now().After(lastSend.Add(time.Duration(*reportInterval) * time.Second)) {
 			lastSend = time.Now()
 			if err := sendMetrics(m); err != nil {
 				log.Print(err)
@@ -148,6 +156,6 @@ func main() {
 				log.Print("metrics sent")
 			}
 		}
-		time.Sleep(pollInterval)
+		time.Sleep(time.Duration(*pollInterval) * time.Second)
 	}
 }

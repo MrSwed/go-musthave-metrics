@@ -9,7 +9,7 @@ import (
 	"net/http"
 )
 
-func Handler(s *service.Service) {
+func Handler(addr string, s *service.Service) {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 
@@ -22,7 +22,7 @@ func Handler(s *service.Service) {
 
 	r.Route(constants.ValueRoute+"/{metricType}/{metricName}", GetValueHandler(s))
 
-	log.Fatal(http.ListenAndServe(`:8080`, r))
+	log.Fatal(http.ListenAndServe(addr, r))
 }
 
 func UpdateHandler(s *service.Service) func(r chi.Router) {
