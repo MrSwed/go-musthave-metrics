@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	baseUrl     = "/update"
+	baseURL     = "/update"
 	gaugeType   = "gauge"
 	counterType = "counter"
 )
@@ -39,7 +39,7 @@ func getMetrics(m *metricsCollects) {
 
 func sendOneMetric(t, k string, v interface{}) (err error) {
 	var res *http.Response
-	urlStr := fmt.Sprintf("%s%s/%s/%s/%v", *serverAddress, baseUrl, t, k, v)
+	urlStr := fmt.Sprintf("%s%s/%s/%s/%v", *serverAddress, baseURL, t, k, v)
 	if res, err = http.Post(urlStr, "text/plain", nil); err != nil {
 		return
 	}
@@ -170,7 +170,7 @@ func main() {
   Url for collect metric: %s%s
   Report interval: %d
   Poll interval: %d
-`, *serverAddress, baseUrl, *reportInterval, *pollInterval)
+`, *serverAddress, baseURL, *reportInterval, *pollInterval)
 
 	lastSend := time.Now()
 	m := new(metricsCollects)
