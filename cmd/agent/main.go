@@ -6,18 +6,21 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"os"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 )
 
 const (
+	baseUrl     = "/update"
 	gaugeType   = "gauge"
 	counterType = "counter"
 )
 
 var (
-	baseURL        = flag.String("a", "localhost:8080/update", "Provide the address of the metrics collection server")
+	serverAddress  = flag.String("a", "localhost:8080/update", "Provide the address of the metrics collection server")
 	reportInterval = flag.Int("r", 2, "Provide the interval in seconds for send report metrics")
 	pollInterval   = flag.Int("p", 10, "Provide the interval in seconds for update metrics")
 )
@@ -36,7 +39,7 @@ func getMetrics(m *metricsCollects) {
 
 func sendOneMetric(t, k string, v interface{}) (err error) {
 	var res *http.Response
-	urlStr := fmt.Sprintf("%s/%s/%s/%v", *baseURL, t, k, v)
+	urlStr := fmt.Sprintf("%s%s/%s/%s/%v", *serverAddress, baseUrl, t, k, v)
 	if res, err = http.Post(urlStr, "text/plain", nil); err != nil {
 		return
 	}
@@ -140,11 +143,34 @@ func sendMetrics(m *metricsCollects) (err error) {
 	return
 }
 
+func getEnv() {
+	addressEnv, reportIntervalEnv, pollIntervalEnv := os.Getenv("ADDRESS"), os.Getenv("REPORT_INTERVAL"), os.Getenv("POLL_INTERVAL")
+	if addressEnv != "" {
+		*serverAddress = addressEnv
+	}
+	if reportIntervalEnv != "" {
+		if v, err := strconv.ParseInt(reportIntervalEnv, 10, 64); err != nil {
+			*reportInterval = int(v)
+		}
+	}
+	if pollIntervalEnv != "" {
+		if v, err := strconv.ParseInt(pollIntervalEnv, 10, 64); err != nil {
+			*pollInterval = int(v)
+		}
+	}
+}
+
 func main() {
 	flag.Parse()
-	if !strings.HasPrefix(*baseURL, "http://") && !strings.HasPrefix(*baseURL, "https://") {
-		*baseURL = "http://" + *baseURL
+	getEnv()
+	if !strings.HasPrefix(*serverAddress, "http://") && !strings.HasPrefix(*serverAddress, "https://") {
+		*serverAddress = "http://" + *serverAddress
 	}
+	log.Printf(`Started with config:
+  Url for collect metric: %s%s
+  Report interval: %d
+  Poll interval: %d
+`, *serverAddress, baseUrl, *reportInterval, *pollInterval)
 
 	lastSend := time.Now()
 	m := new(metricsCollects)
