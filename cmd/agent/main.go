@@ -2,12 +2,16 @@ package main
 
 import (
 	"log"
+	"strings"
 	"time"
 )
 
 func main() {
 	parseFlags()
 	getEnv()
+	if !strings.HasPrefix(serverAddress, "http://") && !strings.HasPrefix(serverAddress, "https://") {
+		serverAddress = "http://" + serverAddress
+	}
 
 	log.Printf(`Started with config:
   Url for collect metric: %s%s
