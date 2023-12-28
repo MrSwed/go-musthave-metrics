@@ -2,34 +2,32 @@ package main
 
 import (
 	"log"
-	"strings"
 	"time"
 )
 
 func main() {
-	parseFlags()
-	getEnv()
-	if !strings.HasPrefix(serverAddress, "http://") && !strings.HasPrefix(serverAddress, "https://") {
-		serverAddress = "http://" + serverAddress
-	}
+	var conf = new(config)
+
+	conf.getConfig()
 
 	log.Printf(`Started with config:
   Url for collect metric: %s%s
   Report interval: %d
   Poll interval: %d
-`, serverAddress, baseURL, reportInterval, pollInterval)
+`, conf.serverAddress, baseURL, conf.reportInterval, conf.pollInterval)
 
 	lastSend := time.Now()
+	m := new(metricsCollects)
 	for {
-		getMetrics(m)
-		if time.Now().After(lastSend.Add(time.Duration(reportInterval) * time.Second)) {
+		m.getMetrics()
+		if time.Now().After(lastSend.Add(time.Duration(conf.reportInterval) * time.Second)) {
 			lastSend = time.Now()
-			if err := sendMetrics(m); err != nil {
+			if err := m.sendMetrics(conf.serverAddress); err != nil {
 				log.Print(err)
 			} else {
 				log.Print("metrics sent")
 			}
 		}
-		time.Sleep(time.Duration(pollInterval) * time.Second)
+		time.Sleep(time.Duration(conf.pollInterval) * time.Second)
 	}
 }

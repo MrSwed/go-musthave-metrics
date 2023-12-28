@@ -18,7 +18,7 @@ func Test_getMetrics(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			getMetrics(tt.m)
+			tt.m.getMetrics()
 			assert.NotEmpty(t, tt.m)
 		})
 	}
