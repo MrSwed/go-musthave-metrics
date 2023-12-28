@@ -13,7 +13,7 @@ type Metrics interface {
 	IncreaseCounter(k string, v int64) error
 	GetGauge(k string) (float64, error)
 	GetCounter(k string) (int64, error)
-	GetListHTMLPage() ([]byte, error)
+	GetCountersHTMLPage() ([]byte, error)
 }
 
 type MetricsService struct {
@@ -46,7 +46,7 @@ func (m *MetricsService) GetCounter(k string) (v int64, err error) {
 	return
 }
 
-func (m *MetricsService) GetListHTMLPage() (html []byte, err error) {
+func (m *MetricsService) GetCountersHTMLPage() (html []byte, err error) {
 	type lItem struct {
 		MType  string
 		MValue interface{}
@@ -56,10 +56,10 @@ func (m *MetricsService) GetListHTMLPage() (html []byte, err error) {
 		gauge   map[string]float64
 		list    = map[string]lItem{}
 	)
-	if counter, err = m.r.GetCountersList(); err != nil {
+	if counter, err = m.r.GetAllCounters(); err != nil {
 		return
 	}
-	if gauge, err = m.r.GetGaugesList(); err != nil {
+	if gauge, err = m.r.GetAllGauges(); err != nil {
 		return
 	}
 	for k, v := range counter {
