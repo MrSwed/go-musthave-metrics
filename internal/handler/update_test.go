@@ -1,16 +1,19 @@
 package handler
 
 import (
-	"github.com/MrSwed/go-musthave-metrics/internal/constants"
-	"github.com/MrSwed/go-musthave-metrics/internal/repository"
-	"github.com/MrSwed/go-musthave-metrics/internal/service"
-	"github.com/go-chi/chi/v5"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/MrSwed/go-musthave-metrics/internal/constants"
+	"github.com/MrSwed/go-musthave-metrics/internal/repository"
+	"github.com/MrSwed/go-musthave-metrics/internal/service"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestUpdateMetric(t *testing.T) {
@@ -169,7 +172,8 @@ func TestUpdateMetric(t *testing.T) {
 	s := service.NewService(repo)
 	r := chi.NewRouter()
 	//r.Use(middleware.URLFormat) // causes an error in tests when numbers are separated by a dot
-	r.Route(constants.UpdateRoute+"/{metricType}/{metricName}/{metricValue}", UpdateHandler(s))
+	r.Route(fmt.Sprintf("%s/{%s}/{%s}/{%s}",
+		constants.UpdateRoute, constants.MetricTypeParam, constants.MetricNameParam, constants.MetricValueParam), UpdateHandler(s))
 
 	ts := httptest.NewServer(r)
 	defer ts.Close()

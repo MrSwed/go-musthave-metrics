@@ -3,17 +3,18 @@ package handler
 import (
 	"errors"
 	"fmt"
+	"log"
+	"net/http"
+
 	"github.com/MrSwed/go-musthave-metrics/internal/constants"
 	myErr "github.com/MrSwed/go-musthave-metrics/internal/errors"
 	"github.com/MrSwed/go-musthave-metrics/internal/service"
 	"github.com/go-chi/chi/v5"
-	"log"
-	"net/http"
 )
 
 func GetMetric(s *service.Service) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		action, metricKey := chi.URLParam(r, "metricType"), chi.URLParam(r, "metricName")
+		action, metricKey := chi.URLParam(r, constants.MetricTypeParam), chi.URLParam(r, constants.MetricNameParam)
 		var metricValue string
 		switch action {
 		case constants.MetricTypeGauge:

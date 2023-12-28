@@ -1,18 +1,19 @@
 package handler
 
 import (
-	"github.com/MrSwed/go-musthave-metrics/internal/constants"
-	"github.com/MrSwed/go-musthave-metrics/internal/service"
-	"github.com/go-chi/chi/v5"
 	"log"
 	"net/http"
 	"strconv"
+
+	"github.com/MrSwed/go-musthave-metrics/internal/constants"
+	"github.com/MrSwed/go-musthave-metrics/internal/service"
+
+	"github.com/go-chi/chi/v5"
 )
 
 func UpdateMetric(s *service.Service) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-
-		action, metricKey, metricValStr := chi.URLParam(r, "metricType"), chi.URLParam(r, "metricName"), chi.URLParam(r, "metricValue")
+		action, metricKey, metricValStr := chi.URLParam(r, constants.MetricTypeParam), chi.URLParam(r, constants.MetricNameParam), chi.URLParam(r, constants.MetricValueParam)
 		switch action {
 		case constants.MetricTypeGauge:
 			if v, err := strconv.ParseFloat(metricValStr, 64); err != nil {

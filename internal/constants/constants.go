@@ -3,8 +3,11 @@ package constants
 import "embed"
 
 const (
-	UpdateRoute = "/update"
-	ValueRoute  = "/value"
+	UpdateRoute      = "/update"
+	ValueRoute       = "/value"
+	MetricTypeParam  = "metricType"
+	MetricNameParam  = "metricName"
+	MetricValueParam = "metricValue"
 
 	MetricTypeGauge   = "gauge"
 	MetricTypeCounter = "counter"
