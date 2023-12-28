@@ -9,25 +9,20 @@ import (
 	"os"
 )
 
-var (
-	serverAddress = flag.String("a", "localhost:8080", "Provide the address of the metrics collection server (without protocol)")
-)
-
-func getEnv() {
-	addressEnv := os.Getenv("ADDRESS")
-	if addressEnv != "" {
-		*serverAddress = addressEnv
-	}
-}
-
 func main() {
+	var serverAddress string
+	flag.StringVar(&serverAddress, "a", "localhost:8080", "Provide the address of the metrics collection server (without protocol)")
 	flag.Parse()
-	getEnv()
+
+	if addressEnv := os.Getenv("ADDRESS"); addressEnv != "" {
+		serverAddress = addressEnv
+	}
+
 	log.Printf(`Started with config:
   serverAddress: %s
-`, *serverAddress)
+`, serverAddress)
 
 	r := repository.NewRepository()
 	s := service.NewService(r)
-	handler.Handler(*serverAddress, s)
+	handler.Handler(serverAddress, s)
 }
