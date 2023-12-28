@@ -8,7 +8,7 @@ import (
 func main() {
 	var conf = new(config)
 
-	conf.getConfig()
+	conf.Config()
 
 	log.Printf(`Started with config:
   Url for collect metric: %s%s
@@ -28,10 +28,15 @@ func main() {
 	for {
 		if time.Now().After(lastSend.Add(time.Duration(conf.reportInterval) * time.Second)) {
 			lastSend = time.Now()
-			if err := m.sendMetrics(conf.serverAddress); err != nil {
-				log.Print(err)
+			if errs := m.sendMetrics(conf.serverAddress, gaugeType, conf.gaugesList); errs != nil {
+				log.Print(errs)
 			} else {
-				log.Print("metrics sent")
+				log.Printf("%d Gauges metrics sent", len(conf.gaugesList))
+			}
+			if errs := m.sendMetrics(conf.serverAddress, counterType, conf.countersList); errs != nil {
+				log.Print(errs)
+			} else {
+				log.Printf("%d Counter metrics sent", len(conf.countersList))
 			}
 		}
 	}
