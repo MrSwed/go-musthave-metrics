@@ -5,15 +5,19 @@ import (
 	"math/rand"
 	"net/http"
 	"runtime"
+	"sync"
 )
 
 type metricsCollects struct {
 	memStats    runtime.MemStats
 	pollCount   int64
 	randomValue float64
+	m           sync.RWMutex
 }
 
 func (m *metricsCollects) getMetrics() {
+	m.m.Lock()
+	defer m.m.Unlock()
 	runtime.ReadMemStats(&m.memStats)
 	m.pollCount++
 	m.randomValue = rand.Float64()
