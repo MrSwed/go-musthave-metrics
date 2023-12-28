@@ -6,6 +6,6 @@ type Service struct {
 	Metrics
 }
 
-func NewService(r repository.Repository) *Service {
+func NewService(r repository.MemStorage) *Service {
 	return &Service{Metrics: NewMemStorage(r)}
 }

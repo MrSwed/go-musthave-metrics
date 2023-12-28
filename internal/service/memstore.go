@@ -20,7 +20,7 @@ type MetricsService struct {
 	r repository.MemStorage
 }
 
-func NewMemStorage(r repository.Repository) *MetricsService {
+func NewMemStorage(r repository.MemStorage) *MetricsService {
 	return &MetricsService{r: r}
 }
 
