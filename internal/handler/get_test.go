@@ -7,11 +7,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/constants"
 	"github.com/MrSwed/go-musthave-metrics/internal/repository"
 	"github.com/MrSwed/go-musthave-metrics/internal/service"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -111,11 +109,9 @@ func TestGetMetric(t *testing.T) {
 	}
 	repo := repository.NewRepository()
 	s := service.NewService(repo)
-	r := chi.NewRouter()
-	r.Route(fmt.Sprintf("%s/{%s}/{%s}",
-		constants.ValueRoute, constants.MetricTypeParam, constants.MetricNameParam), GetValueHandler(s))
+	h := NewHandler(s).InitRoutes()
 
-	ts := httptest.NewServer(r)
+	ts := httptest.NewServer(h.r)
 	defer ts.Close()
 
 	// save some values
@@ -195,10 +191,9 @@ func TestGetListMetrics(t *testing.T) {
 	}
 	repo := repository.NewRepository()
 	s := service.NewService(repo)
-	r := chi.NewRouter()
-	r.Route("/", GetListValuesHandler(s))
+	h := NewHandler(s).InitRoutes()
 
-	ts := httptest.NewServer(r)
+	ts := httptest.NewServer(h.r)
 	defer ts.Close()
 
 	// save some values

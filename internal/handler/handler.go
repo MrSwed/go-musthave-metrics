@@ -12,36 +12,36 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-func Handler(addr string, s *service.Service) {
-	r := chi.NewRouter()
-	r.Use(middleware.Logger)
+type Handler struct {
+	s *service.Service
+	r *chi.Mux
+}
 
-	r.Route("/", GetListValuesHandler(s))
+func NewHandler(s *service.Service) *Handler { return &Handler{s: s} }
 
-	r.Route(fmt.Sprintf("%s/{%s}/{%s}/{%s}",
+func (h *Handler) InitRoutes() *Handler {
+	h.r = chi.NewRouter()
+	h.r.Use(middleware.Logger)
+
+	h.r.Route("/", func(r chi.Router) {
+		r.Get("/", h.GetListMetrics())
+	})
+
+	h.r.Route(fmt.Sprintf("%s/{%s}/{%s}/{%s}",
 		constants.UpdateRoute, constants.MetricTypeParam, constants.MetricNameParam, constants.MetricValueParam),
-		UpdateHandler(s))
+		func(r chi.Router) { r.Post("/", h.UpdateMetric()) })
 
-	r.Route(fmt.Sprintf("%s/{%s}/{%s}",
+	h.r.Route(fmt.Sprintf("%s/{%s}/{%s}",
 		constants.ValueRoute, constants.MetricTypeParam, constants.MetricNameParam),
-		GetValueHandler(s))
-
-	log.Fatal(http.ListenAndServe(addr, r))
+		func(r chi.Router) {
+			r.Get("/", h.GetMetric())
+		})
+	return h
 }
 
-func UpdateHandler(s *service.Service) func(r chi.Router) {
-	return func(r chi.Router) {
-		r.Post("/", UpdateMetric(s))
+func (h *Handler) RunServer(addr string) {
+	if h.r == nil {
+		h.InitRoutes()
 	}
-}
-
-func GetValueHandler(s *service.Service) func(r chi.Router) {
-	return func(r chi.Router) {
-		r.Get("/", GetMetric(s))
-	}
-}
-func GetListValuesHandler(s *service.Service) func(r chi.Router) {
-	return func(r chi.Router) {
-		r.Get("/", GetListMetrics(s))
-	}
+	log.Fatal(http.ListenAndServe(addr, h.r))
 }

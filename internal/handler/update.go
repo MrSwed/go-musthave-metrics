@@ -6,12 +6,10 @@ import (
 	"strconv"
 
 	"github.com/MrSwed/go-musthave-metrics/internal/constants"
-	"github.com/MrSwed/go-musthave-metrics/internal/service"
-
 	"github.com/go-chi/chi/v5"
 )
 
-func UpdateMetric(s *service.Service) func(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) UpdateMetric() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		action, metricKey, metricValStr := chi.URLParam(r, constants.MetricTypeParam), chi.URLParam(r, constants.MetricNameParam), chi.URLParam(r, constants.MetricValueParam)
 		switch action {
@@ -21,11 +19,11 @@ func UpdateMetric(s *service.Service) func(w http.ResponseWriter, r *http.Reques
 				log.Printf("Error: %s", err)
 				return
 			} else {
-				if err = s.SetGauge(metricKey, v); err != nil {
+				if err = h.s.SetGauge(metricKey, v); err != nil {
 					w.WriteHeader(http.StatusInternalServerError)
 					log.Printf("Error set gauge %s", err)
 				} else {
-					newV, _ := s.GetGauge(metricKey)
+					newV, _ := h.s.GetGauge(metricKey)
 					log.Printf("Stored gauge %s = %f", metricKey, newV)
 				}
 			}
@@ -35,11 +33,11 @@ func UpdateMetric(s *service.Service) func(w http.ResponseWriter, r *http.Reques
 				log.Printf("Error: %s", err)
 				return
 			} else {
-				if err = s.IncreaseCounter(metricKey, v); err != nil {
+				if err = h.s.IncreaseCounter(metricKey, v); err != nil {
 					w.WriteHeader(http.StatusInternalServerError)
 					log.Printf("Error set counter %s", err)
 				} else {
-					newV, _ := s.GetCounter(metricKey)
+					newV, _ := h.s.GetCounter(metricKey)
 					log.Printf("Counter updated %s = %d", metricKey, newV)
 				}
 			}
