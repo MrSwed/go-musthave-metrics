@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"go.uber.org/zap"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -167,7 +168,8 @@ func TestUpdateMetric(t *testing.T) {
 	}
 	repo := repository.NewRepository()
 	s := service.NewService(repo)
-	h := NewHandler(s).InitRoutes()
+	logger, _ := zap.NewDevelopment()
+	h := NewHandler(s, logger).InitRoutes()
 
 	ts := httptest.NewServer(h.r)
 	defer ts.Close()
