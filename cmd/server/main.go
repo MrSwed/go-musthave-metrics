@@ -2,13 +2,15 @@ package main
 
 import (
 	"flag"
-	"github.com/MrSwed/go-musthave-metrics/internal/handler"
-	"github.com/MrSwed/go-musthave-metrics/internal/repository"
-	"github.com/MrSwed/go-musthave-metrics/internal/service"
-	"go.uber.org/zap"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/MrSwed/go-musthave-metrics/internal/handler"
+	"github.com/MrSwed/go-musthave-metrics/internal/repository"
+	"github.com/MrSwed/go-musthave-metrics/internal/service"
+
+	"go.uber.org/zap"
 )
 
 func main() {
