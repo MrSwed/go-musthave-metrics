@@ -3,12 +3,12 @@ package handler
 import (
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/MrSwed/go-musthave-metrics/internal/constants"
 	myErr "github.com/MrSwed/go-musthave-metrics/internal/errors"
 	"github.com/go-chi/chi/v5"
+	"go.uber.org/zap"
 )
 
 func (h *Handler) GetMetric() func(w http.ResponseWriter, r *http.Request) {
@@ -22,7 +22,7 @@ func (h *Handler) GetMetric() func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusNotFound)
 				} else {
 					w.WriteHeader(http.StatusInternalServerError)
-					log.Printf("Error get gauge %s", err)
+					h.log.Error("Error get gauge", zap.Error(err))
 				}
 				return
 			} else {
@@ -35,7 +35,7 @@ func (h *Handler) GetMetric() func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusNotFound)
 				} else {
 					w.WriteHeader(http.StatusInternalServerError)
-					log.Printf("Error get counter %s", err)
+					h.log.Error("Error get counter", zap.Error(err))
 				}
 				return
 			} else {
@@ -43,7 +43,6 @@ func (h *Handler) GetMetric() func(w http.ResponseWriter, r *http.Request) {
 			}
 		default:
 			w.WriteHeader(http.StatusNotFound)
-			log.Printf("Error: unknown metric type '%s'", metricKey)
 			return
 		}
 
@@ -51,7 +50,7 @@ func (h *Handler) GetMetric() func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
 		if _, err := w.Write([]byte(metricValue)); err != nil {
-			log.Printf("Error: %s", err)
+			h.log.Error("Error return answer", zap.Error(err))
 		}
 	}
 }
@@ -61,12 +60,12 @@ func (h *Handler) GetListMetrics() func(w http.ResponseWriter, r *http.Request) 
 		html, err := h.s.GetCountersHTMLPage()
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			log.Printf("Error get html page %s", err)
+			h.log.Error("Error get html page", zap.Error(err))
 		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
 		if _, err := w.Write(html); err != nil {
-			log.Printf("Error: %s", err)
+			h.log.Error("Error return answer", zap.Error(err))
 		}
 	}
 }

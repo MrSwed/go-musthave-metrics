@@ -1,12 +1,12 @@
 package handler
 
 import (
-	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/MrSwed/go-musthave-metrics/internal/constants"
 	"github.com/go-chi/chi/v5"
+	"go.uber.org/zap"
 )
 
 func (h *Handler) UpdateMetric() func(w http.ResponseWriter, r *http.Request) {
@@ -16,34 +16,25 @@ func (h *Handler) UpdateMetric() func(w http.ResponseWriter, r *http.Request) {
 		case constants.MetricTypeGauge:
 			if v, err := strconv.ParseFloat(metricValStr, 64); err != nil {
 				w.WriteHeader(http.StatusBadRequest)
-				log.Printf("Error: %s", err)
 				return
 			} else {
 				if err = h.s.SetGauge(metricKey, v); err != nil {
 					w.WriteHeader(http.StatusInternalServerError)
-					log.Printf("Error set gauge %s", err)
-				} else {
-					newV, _ := h.s.GetGauge(metricKey)
-					log.Printf("Stored gauge %s = %f", metricKey, newV)
+					h.log.Error("Error set gauge", zap.Error(err))
 				}
 			}
 		case constants.MetricTypeCounter:
 			if v, err := strconv.ParseInt(metricValStr, 10, 64); err != nil {
 				w.WriteHeader(http.StatusBadRequest)
-				log.Printf("Error: %s", err)
 				return
 			} else {
 				if err = h.s.IncreaseCounter(metricKey, v); err != nil {
 					w.WriteHeader(http.StatusInternalServerError)
-					log.Printf("Error set counter %s", err)
-				} else {
-					newV, _ := h.s.GetCounter(metricKey)
-					log.Printf("Counter updated %s = %d", metricKey, newV)
+					h.log.Error("Error set counter", zap.Error(err))
 				}
 			}
 		default:
 			w.WriteHeader(http.StatusBadRequest)
-			log.Printf("Error: unknown metric type '%s'", metricKey)
 			return
 		}
 
@@ -51,7 +42,7 @@ func (h *Handler) UpdateMetric() func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
 		if _, err := w.Write([]byte("Saved: Ok")); err != nil {
-			log.Printf("Error: %s", err)
+			h.log.Error("Error return answer", zap.Error(err))
 		}
 	}
 }
