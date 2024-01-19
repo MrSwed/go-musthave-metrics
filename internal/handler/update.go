@@ -77,6 +77,13 @@ func (h *Handler) UpdateMetricJson() func(w http.ResponseWriter, r *http.Request
 					w.WriteHeader(http.StatusInternalServerError)
 					h.log.Error("Error set counter", zap.Error(err))
 				}
+				if count, err := h.s.GetCounter(metric.ID); err != nil {
+					w.WriteHeader(http.StatusInternalServerError)
+					h.log.Error("Error get counter", zap.Error(err))
+					return
+				} else {
+					metric.Delta = &count
+				}
 			}
 		default:
 			w.WriteHeader(http.StatusBadRequest)
