@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -26,8 +28,9 @@ func (m *metricsCollects) getMetrics() {
 
 func (m *metricsCollects) sendOneMetric(serverAddress, t, k string) (err error) {
 	var (
-		res *http.Response
-		v   interface{}
+		res    *http.Response
+		v      interface{}
+		metric = map[string]interface{}{"id": k, "type": t}
 	)
 	dVal := reflect.Indirect(reflect.ValueOf(m))
 	if refV := dVal.FieldByName(k); refV.IsValid() {
@@ -38,8 +41,23 @@ func (m *metricsCollects) sendOneMetric(serverAddress, t, k string) (err error) 
 		err = fmt.Errorf("unknown metric name %s", k)
 		return
 	}
-	urlStr := fmt.Sprintf("%s%s/%s/%s/%v", serverAddress, baseURL, t, k, v)
-	if res, err = http.Post(urlStr, "text/plain", nil); err != nil {
+	urlStr := fmt.Sprintf("%s%s", serverAddress, baseURL)
+
+	switch t {
+	case gaugeType:
+		metric["value"] = v
+	case counterType:
+		metric["delta"] = v
+	default:
+		err = fmt.Errorf("unknown metric type %s", t)
+		return
+	}
+	body := new(bytes.Buffer)
+	if err = json.NewEncoder(body).Encode(metric); err != nil {
+		return
+	}
+
+	if res, err = http.Post(urlStr, "application/json; charset=utf-8", body); err != nil {
 		return
 	}
 	defer func() { err = res.Body.Close() }()
