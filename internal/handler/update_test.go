@@ -396,6 +396,7 @@ func TestHandler_UpdateMetricJson(t *testing.T) {
 			require.NoError(t, err)
 
 			req, err := http.NewRequest(test.args.method, ts.URL+constants.UpdateRoute, b)
+			require.NoError(t, err)
 			defer req.Context()
 
 			res, err := http.DefaultClient.Do(req)

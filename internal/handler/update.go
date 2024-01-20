@@ -49,7 +49,7 @@ func (h *Handler) UpdateMetric() func(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) UpdateMetricJson() func(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) UpdateMetricJSON() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var metric domain.Metric
 		err := json.NewDecoder(r.Body).Decode(&metric)

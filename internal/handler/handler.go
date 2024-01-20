@@ -32,13 +32,13 @@ func (h *Handler) InitRoutes() *Handler {
 		r.Post(fmt.Sprintf("/{%s}/{%s}/{%s}",
 			constants.MetricTypeParam, constants.MetricNameParam, constants.MetricValueParam),
 			h.UpdateMetric())
-		r.Post("/", h.UpdateMetricJson())
+		r.Post("/", h.UpdateMetricJSON())
 	})
 
 	h.r.Route(constants.ValueRoute, func(r chi.Router) {
 		r.Get(fmt.Sprintf("/{%s}/{%s}",
 			constants.MetricTypeParam, constants.MetricNameParam), h.GetMetric())
-		r.Post("/", h.GetMetricJson())
+		r.Post("/", h.GetMetricJSON())
 	})
 	return h
 }

@@ -58,7 +58,7 @@ func (h *Handler) GetMetric() func(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) GetMetricJson() func(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetMetricJSON() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var metric domain.Metric
 		err := json.NewDecoder(r.Body).Decode(&metric)
@@ -79,7 +79,6 @@ func (h *Handler) GetMetricJson() func(w http.ResponseWriter, r *http.Request) {
 			} else {
 				metric.Value = &gauge
 			}
-
 		case constants.MetricTypeCounter:
 			if count, err := h.s.GetCounter(metric.ID); err != nil {
 				if errors.Is(err, myErr.ErrNotExist) {
