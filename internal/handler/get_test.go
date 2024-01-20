@@ -83,17 +83,27 @@ func TestGetMetric(t *testing.T) {
 			},
 		},
 		{
-			name: "Not found 1",
+			name: "Not found Counter",
 			args: args{
 				method: http.MethodGet,
-				path:   "/value/counter/testCounters",
+				path:   "/value/counter/unknownCounter",
 			},
 			want: want{
 				code: http.StatusNotFound,
 			},
 		},
 		{
-			name: "Not found 2",
+			name: "Not found Gauge",
+			args: args{
+				method: http.MethodGet,
+				path:   "/value/gauge/unknownGauge",
+			},
+			want: want{
+				code: http.StatusNotFound,
+			},
+		},
+		{
+			name: "Not found - wrong path",
 			args: args{
 				method: http.MethodGet,
 				path:   "/value/counter",
