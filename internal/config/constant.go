@@ -10,7 +10,7 @@ const (
 	fileStoragePath = "/tmp/metrics-db.json"
 	storageRestore  = true
 
-	envNameServerAddress   = "SERVER_ADDRESS"
+	envNameServerAddress   = "ADDRESS"
 	envNameFileStoragePath = "FILE_STORAGE_PATH"
 	envNameStoreInterval   = "STORE_INTERVAL"
 	envNameRestore         = "RESTORE"
