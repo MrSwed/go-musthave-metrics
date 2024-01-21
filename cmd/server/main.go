@@ -23,7 +23,7 @@ func main() {
 		panic(err)
 	}
 
-	logger.Info("Start server", zap.String("serverAddress", conf.ServerAddress))
+	logger.Info("Start server", zap.Any("Config", conf))
 
 	defer func() {
 		logger.Info("Server stopped")
