@@ -20,10 +20,12 @@ import (
 )
 
 func TestGetMetric(t *testing.T) {
-	repo := repository.NewRepository()
+	conf := config.NewConfig()
+	repo, err := repository.NewRepository(&conf.StorageConfig)
+	require.NoError(t, err)
 	s := service.NewService(repo)
 	logger, _ := zap.NewDevelopment()
-	h := NewHandler(s, config.NewConfig(), logger).InitRoutes()
+	h := NewHandler(s, &conf.ServerConfig, logger).InitRoutes()
 	ts := httptest.NewServer(h.r)
 	defer ts.Close()
 
@@ -155,8 +157,21 @@ func TestGetMetric(t *testing.T) {
 }
 
 func TestGetListMetrics(t *testing.T) {
+	conf := config.NewConfig()
+	repo, err := repository.NewRepository(&conf.StorageConfig)
+	require.NoError(t, err)
+	s := service.NewService(repo)
+	logger, _ := zap.NewDevelopment()
+	h := NewHandler(s, &conf.ServerConfig, logger).InitRoutes()
+
+	ts := httptest.NewServer(h.r)
+	defer ts.Close()
+
 	testCounter := int64(1)
 	testGauge := 1.0001
+	// save some values
+	_ = s.SetGauge("testGauge", testGauge)
+	_ = s.IncreaseCounter("testCounter", testCounter)
 
 	type want struct {
 		code            int
@@ -195,17 +210,6 @@ func TestGetListMetrics(t *testing.T) {
 			},
 		},
 	}
-	repo := repository.NewRepository()
-	s := service.NewService(repo)
-	logger, _ := zap.NewDevelopment()
-	h := NewHandler(s, config.NewConfig(), logger).InitRoutes()
-
-	ts := httptest.NewServer(h.r)
-	defer ts.Close()
-
-	// save some values
-	_ = s.SetGauge("testGauge", testGauge)
-	_ = s.IncreaseCounter("testCounter", testCounter)
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -241,10 +245,12 @@ func TestGetListMetrics(t *testing.T) {
 }
 
 func TestGetMetricJson(t *testing.T) {
-	repo := repository.NewRepository()
+	conf := config.NewConfig()
+	repo, err := repository.NewRepository(&conf.StorageConfig)
+	require.NoError(t, err)
 	s := service.NewService(repo)
 	logger, _ := zap.NewDevelopment()
-	h := NewHandler(s, config.NewConfig(), logger).InitRoutes()
+	h := NewHandler(s, &conf.ServerConfig, logger).InitRoutes()
 	ts := httptest.NewServer(h.r)
 	defer ts.Close()
 

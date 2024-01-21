@@ -18,11 +18,11 @@ import (
 type Handler struct {
 	s   *service.Service
 	r   *chi.Mux
-	c   *config.Config
+	c   *config.ServerConfig
 	log *zap.Logger
 }
 
-func NewHandler(s *service.Service, c *config.Config, log *zap.Logger) *Handler {
+func NewHandler(s *service.Service, c *config.ServerConfig, log *zap.Logger) *Handler {
 	return &Handler{s: s, c: c, log: log}
 }
 

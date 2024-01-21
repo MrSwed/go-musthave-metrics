@@ -18,10 +18,13 @@ import (
 )
 
 func TestUpdateMetric(t *testing.T) {
-	repo := repository.NewRepository()
+	conf := config.NewConfig()
+	repo, err := repository.NewRepository(&conf.StorageConfig)
+	require.NoError(t, err)
 	s := service.NewService(repo)
 	logger, _ := zap.NewDevelopment()
-	h := NewHandler(s, config.NewConfig(), logger).InitRoutes()
+	h := NewHandler(s, &conf.ServerConfig, logger).InitRoutes()
+
 	ts := httptest.NewServer(h.r)
 	defer ts.Close()
 
@@ -206,10 +209,13 @@ func TestUpdateMetric(t *testing.T) {
 }
 
 func TestHandler_UpdateMetricJson(t *testing.T) {
-	repo := repository.NewRepository()
+	conf := config.NewConfig()
+	repo, err := repository.NewRepository(&conf.StorageConfig)
+	require.NoError(t, err)
 	s := service.NewService(repo)
 	logger, _ := zap.NewDevelopment()
-	h := NewHandler(s, config.NewConfig(), logger).InitRoutes()
+	h := NewHandler(s, &conf.ServerConfig, logger).InitRoutes()
+
 	ts := httptest.NewServer(h.r)
 	defer ts.Close()
 

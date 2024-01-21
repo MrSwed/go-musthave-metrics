@@ -7,15 +7,32 @@ import (
 	"strings"
 )
 
-type Config struct {
-	ServerAddress   string
+type StorageConfig struct {
 	StoreInterval   int
 	FileStoragePath string
 	StorageRestore  bool
 }
 
+type ServerConfig struct {
+	ServerAddress string
+}
+
+type Config struct {
+	ServerConfig
+	StorageConfig
+}
+
 func NewConfig(init ...bool) *Config {
-	c := &Config{ServerAddress: serverAddress}
+	c := &Config{
+		ServerConfig: ServerConfig{
+			ServerAddress: serverAddress,
+		},
+		StorageConfig: StorageConfig{
+			StoreInterval:   storeInterval,
+			FileStoragePath: fileStoragePath,
+			StorageRestore:  storageRestore,
+		},
+	}
 	if len(init) > 0 && init[0] {
 		return c.withFlags().withEnv().cleanSchemes()
 	}
