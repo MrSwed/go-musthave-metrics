@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/MrSwed/go-musthave-metrics/internal/config"
 	"github.com/MrSwed/go-musthave-metrics/internal/handler"
@@ -19,9 +20,23 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	r, err := repository.NewRepository(&conf.StorageConfig)
-	if err != nil {
-		panic(err)
+	r := repository.NewRepository(&conf.StorageConfig)
+	if conf.FileStoragePath != "" {
+		if conf.StorageRestore {
+			if err := r.Restore(); err != nil {
+				logger.Error("Storage restore", zap.Error(err))
+			}
+		}
+		if conf.StoreInterval > 0 {
+			go func() {
+				for {
+					time.Sleep(time.Duration(conf.StoreInterval) * time.Second)
+					if err := r.Save(); err != nil {
+						logger.Error("Storage save", zap.Error(err))
+					}
+				}
+			}()
+		}
 	}
 	s := service.NewService(r)
 

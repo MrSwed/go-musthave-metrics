@@ -3,12 +3,10 @@ package repository
 import (
 	"encoding/json"
 	"errors"
-	"os"
-	"sync"
-	"time"
-
 	"github.com/MrSwed/go-musthave-metrics/internal/config"
 	myErr "github.com/MrSwed/go-musthave-metrics/internal/errors"
+	"os"
+	"sync"
 )
 
 type MemStorage interface {
@@ -19,7 +17,7 @@ type MemStorage interface {
 	GetAllCounters() (map[string]int64, error)
 	GetAllGauges() (map[string]float64, error)
 	Save() error
-	restore() error
+	Restore() error
 }
 
 type MemStorageCounter struct {
@@ -38,28 +36,12 @@ type MemStorageRepository struct {
 	c *config.StorageConfig
 }
 
-func NewMemRepository(c *config.StorageConfig) (*MemStorageRepository, error) {
-	m := &MemStorageRepository{
+func NewMemRepository(c *config.StorageConfig) *MemStorageRepository {
+	return &MemStorageRepository{
 		c:                 c,
 		MemStorageCounter: MemStorageCounter{Counter: map[string]int64{}},
 		MemStorageGauge:   MemStorageGauge{Gauge: map[string]float64{}},
 	}
-	if c.FileStoragePath != "" {
-		if c.StorageRestore {
-			if err := m.restore(); err != nil {
-				return nil, err
-			}
-		}
-		if c.StoreInterval > 0 {
-			go func() {
-				for {
-					time.Sleep(time.Duration(c.StoreInterval) * time.Second)
-					_ = m.Save()
-				}
-			}()
-		}
-	}
-	return m, nil
 }
 
 func (m *MemStorageRepository) SetGauge(k string, v float64) (err error) {
@@ -112,7 +94,7 @@ func (m *MemStorageRepository) GetAllCounters() (map[string]int64, error) {
 	return m.Counter, err
 }
 
-func (m *MemStorageRepository) restore() (err error) {
+func (m *MemStorageRepository) Restore() (err error) {
 	if m.c.FileStoragePath == "" {
 		return nil
 	}

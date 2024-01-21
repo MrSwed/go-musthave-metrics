@@ -21,8 +21,7 @@ import (
 
 func TestGetMetric(t *testing.T) {
 	conf := config.NewConfig()
-	repo, err := repository.NewRepository(&conf.StorageConfig)
-	require.NoError(t, err)
+	repo := repository.NewRepository(&conf.StorageConfig)
 	s := service.NewService(repo)
 	logger, _ := zap.NewDevelopment()
 	h := NewHandler(s, &conf.ServerConfig, logger).InitRoutes()
@@ -158,8 +157,7 @@ func TestGetMetric(t *testing.T) {
 
 func TestGetListMetrics(t *testing.T) {
 	conf := config.NewConfig()
-	repo, err := repository.NewRepository(&conf.StorageConfig)
-	require.NoError(t, err)
+	repo := repository.NewRepository(&conf.StorageConfig)
 	s := service.NewService(repo)
 	logger, _ := zap.NewDevelopment()
 	h := NewHandler(s, &conf.ServerConfig, logger).InitRoutes()
@@ -246,8 +244,7 @@ func TestGetListMetrics(t *testing.T) {
 
 func TestGetMetricJson(t *testing.T) {
 	conf := config.NewConfig()
-	repo, err := repository.NewRepository(&conf.StorageConfig)
-	require.NoError(t, err)
+	repo := repository.NewRepository(&conf.StorageConfig)
 	s := service.NewService(repo)
 	logger, _ := zap.NewDevelopment()
 	h := NewHandler(s, &conf.ServerConfig, logger).InitRoutes()
