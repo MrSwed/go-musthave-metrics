@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"math/rand"
@@ -52,17 +53,35 @@ func (m *metricsCollects) sendOneMetric(serverAddress, t, k string) (err error) 
 		err = fmt.Errorf("unknown metric type %s", t)
 		return
 	}
-	body := new(bytes.Buffer)
-	if err = json.NewEncoder(body).Encode(metric); err != nil {
+	var body []byte
+	if body, err = json.Marshal(metric); err != nil {
 		return
 	}
+	compressedBody := new(bytes.Buffer)
 
-	if res, err = http.Post(urlStr, "application/json; charset=utf-8", body); err != nil {
+	zb := gzip.NewWriter(compressedBody)
+	if _, err = zb.Write(body); err != nil {
 		return
 	}
-	defer func() { err = res.Body.Close() }()
+	if err = zb.Close(); err != nil {
+		return
+	}
+	var req *http.Request
+	if req, err = http.NewRequest("POST", urlStr, compressedBody); err != nil {
+		return
+	}
+	//req.Header.Set("Accept-Encoding", "gzip")
+	req.Header.Set("Content-Encoding", "gzip")
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+
+	if res, err = http.DefaultClient.Do(req); err != nil {
+		return
+	}
+	if err = res.Body.Close(); err != nil {
+		return
+	}
 	if res.StatusCode != http.StatusOK {
-		err = fmt.Errorf("%v", res.StatusCode)
+		err = fmt.Errorf("post %s body %s: get StatusCode %d", urlStr, body, res.StatusCode)
 	}
 
 	return
