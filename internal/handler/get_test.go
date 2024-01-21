@@ -9,7 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/constants"
+	"github.com/MrSwed/go-musthave-metrics/internal/config"
 	"github.com/MrSwed/go-musthave-metrics/internal/repository"
 	"github.com/MrSwed/go-musthave-metrics/internal/service"
 
@@ -23,7 +23,7 @@ func TestGetMetric(t *testing.T) {
 	repo := repository.NewRepository()
 	s := service.NewService(repo)
 	logger, _ := zap.NewDevelopment()
-	h := NewHandler(s, logger).InitRoutes()
+	h := NewHandler(s, config.NewConfig(), logger).InitRoutes()
 	ts := httptest.NewServer(h.r)
 	defer ts.Close()
 
@@ -198,7 +198,7 @@ func TestGetListMetrics(t *testing.T) {
 	repo := repository.NewRepository()
 	s := service.NewService(repo)
 	logger, _ := zap.NewDevelopment()
-	h := NewHandler(s, logger).InitRoutes()
+	h := NewHandler(s, config.NewConfig(), logger).InitRoutes()
 
 	ts := httptest.NewServer(h.r)
 	defer ts.Close()
@@ -244,7 +244,7 @@ func TestGetMetricJson(t *testing.T) {
 	repo := repository.NewRepository()
 	s := service.NewService(repo)
 	logger, _ := zap.NewDevelopment()
-	h := NewHandler(s, logger).InitRoutes()
+	h := NewHandler(s, config.NewConfig(), logger).InitRoutes()
 	ts := httptest.NewServer(h.r)
 	defer ts.Close()
 
@@ -396,7 +396,7 @@ func TestGetMetricJson(t *testing.T) {
 			err := json.NewEncoder(b).Encode(test.args.body)
 			require.NoError(t, err)
 
-			req, err := http.NewRequest(test.args.method, ts.URL+constants.ValueRoute, b)
+			req, err := http.NewRequest(test.args.method, ts.URL+config.ValueRoute, b)
 			require.NoError(t, err)
 			defer req.Context()
 

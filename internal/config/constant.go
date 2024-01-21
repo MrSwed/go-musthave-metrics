@@ -1,8 +1,12 @@
-package constants
+package config
 
-import "embed"
+import (
+	"embed"
+)
 
 const (
+	ServerAddress = "localhost:8080"
+
 	UpdateRoute      = "/update"
 	ValueRoute       = "/value"
 	MetricTypeParam  = "metricType"

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/constants"
+	"github.com/MrSwed/go-musthave-metrics/internal/config"
 	"github.com/MrSwed/go-musthave-metrics/internal/domain"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
@@ -13,9 +13,9 @@ import (
 
 func (h *Handler) UpdateMetric() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		action, metricKey, metricValStr := chi.URLParam(r, constants.MetricTypeParam), chi.URLParam(r, constants.MetricNameParam), chi.URLParam(r, constants.MetricValueParam)
+		action, metricKey, metricValStr := chi.URLParam(r, config.MetricTypeParam), chi.URLParam(r, config.MetricNameParam), chi.URLParam(r, config.MetricValueParam)
 		switch action {
-		case constants.MetricTypeGauge:
+		case config.MetricTypeGauge:
 			if v, err := strconv.ParseFloat(metricValStr, 64); err != nil {
 				w.WriteHeader(http.StatusBadRequest)
 				return
@@ -25,7 +25,7 @@ func (h *Handler) UpdateMetric() func(w http.ResponseWriter, r *http.Request) {
 					h.log.Error("Error set gauge", zap.Error(err))
 				}
 			}
-		case constants.MetricTypeCounter:
+		case config.MetricTypeCounter:
 			if v, err := strconv.ParseInt(metricValStr, 10, 64); err != nil {
 				w.WriteHeader(http.StatusBadRequest)
 				return
@@ -58,7 +58,7 @@ func (h *Handler) UpdateMetricJSON() func(w http.ResponseWriter, r *http.Request
 			return
 		}
 		switch metric.MType {
-		case constants.MetricTypeGauge:
+		case config.MetricTypeGauge:
 			if metric.Value == nil {
 				w.WriteHeader(http.StatusBadRequest)
 				return
@@ -68,7 +68,7 @@ func (h *Handler) UpdateMetricJSON() func(w http.ResponseWriter, r *http.Request
 					h.log.Error("Error set gauge", zap.Error(err))
 				}
 			}
-		case constants.MetricTypeCounter:
+		case config.MetricTypeCounter:
 			if metric.Delta == nil {
 				w.WriteHeader(http.StatusBadRequest)
 				return

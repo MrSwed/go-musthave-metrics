@@ -1,11 +1,11 @@
 package main
 
 import (
-	"flag"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"github.com/MrSwed/go-musthave-metrics/internal/config"
 	"github.com/MrSwed/go-musthave-metrics/internal/handler"
 	"github.com/MrSwed/go-musthave-metrics/internal/repository"
 	"github.com/MrSwed/go-musthave-metrics/internal/service"
@@ -14,13 +14,7 @@ import (
 )
 
 func main() {
-	var serverAddress string
-	flag.StringVar(&serverAddress, "a", "localhost:8080", "Provide the address of the metrics collection server (without protocol)")
-	flag.Parse()
-
-	if addressEnv := os.Getenv("ADDRESS"); addressEnv != "" {
-		serverAddress = addressEnv
-	}
+	conf := config.NewConfig(true)
 
 	r := repository.NewRepository()
 	s := service.NewService(r)
@@ -29,7 +23,7 @@ func main() {
 		panic(err)
 	}
 
-	logger.Info("Start server", zap.String("serverAddress", serverAddress))
+	logger.Info("Start server", zap.String("serverAddress", conf.ServerAddress))
 
 	defer func() {
 		logger.Info("Server stopped")
@@ -37,7 +31,7 @@ func main() {
 	}()
 
 	go func() {
-		if err := handler.NewHandler(s, logger).RunServer(serverAddress); err != nil {
+		if err := handler.NewHandler(s, conf, logger).RunServer(); err != nil {
 			logger.Error("Can not start server", zap.Error(err))
 			os.Exit(1)
 		}

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/constants"
+	"github.com/MrSwed/go-musthave-metrics/internal/config"
 	"github.com/MrSwed/go-musthave-metrics/internal/domain"
 	myErr "github.com/MrSwed/go-musthave-metrics/internal/errors"
 
@@ -16,10 +16,10 @@ import (
 
 func (h *Handler) GetMetric() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		action, metricKey := chi.URLParam(r, constants.MetricTypeParam), chi.URLParam(r, constants.MetricNameParam)
+		action, metricKey := chi.URLParam(r, config.MetricTypeParam), chi.URLParam(r, config.MetricNameParam)
 		var metricValue string
 		switch action {
-		case constants.MetricTypeGauge:
+		case config.MetricTypeGauge:
 			if gauge, err := h.s.GetGauge(metricKey); err != nil {
 				if errors.Is(err, myErr.ErrNotExist) {
 					w.WriteHeader(http.StatusNotFound)
@@ -32,7 +32,7 @@ func (h *Handler) GetMetric() func(w http.ResponseWriter, r *http.Request) {
 				metricValue = fmt.Sprintf("%v", gauge)
 			}
 
-		case constants.MetricTypeCounter:
+		case config.MetricTypeCounter:
 			if count, err := h.s.GetCounter(metricKey); err != nil {
 				if errors.Is(err, myErr.ErrNotExist) {
 					w.WriteHeader(http.StatusNotFound)
@@ -67,7 +67,7 @@ func (h *Handler) GetMetricJSON() func(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		switch metric.MType {
-		case constants.MetricTypeGauge:
+		case config.MetricTypeGauge:
 			if gauge, err := h.s.GetGauge(metric.ID); err != nil {
 				if errors.Is(err, myErr.ErrNotExist) {
 					w.WriteHeader(http.StatusNotFound)
@@ -79,7 +79,7 @@ func (h *Handler) GetMetricJSON() func(w http.ResponseWriter, r *http.Request) {
 			} else {
 				metric.Value = &gauge
 			}
-		case constants.MetricTypeCounter:
+		case config.MetricTypeCounter:
 			if count, err := h.s.GetCounter(metric.ID); err != nil {
 				if errors.Is(err, myErr.ErrNotExist) {
 					w.WriteHeader(http.StatusNotFound)
