@@ -30,7 +30,7 @@ func (h *Handler) InitRoutes() *Handler {
 	h.r = chi.NewRouter()
 	h.r.Use(logger.Logger(h.log))
 	h.r.Use(middleware.Compress(gzip.DefaultCompression, "application/json", "text/html"))
-	h.r.Use(myMiddleware.Decompress)
+	h.r.Use(myMiddleware.Decompress(h.log))
 
 	h.r.Route("/", func(r chi.Router) {
 		r.Get("/", h.GetListMetrics())
