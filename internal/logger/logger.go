@@ -11,9 +11,8 @@ import (
 
 func Logger(l *zap.Logger) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
-		fn := func(w http.ResponseWriter, r *http.Request) {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
-
 			t1 := time.Now()
 			defer func() {
 				scheme := "http"
@@ -29,9 +28,7 @@ func Logger(l *zap.Logger) func(next http.Handler) http.Handler {
 					zap.String("from", r.RemoteAddr),
 				)
 			}()
-
 			next.ServeHTTP(ww, r)
-		}
-		return http.HandlerFunc(fn)
+		})
 	}
 }
