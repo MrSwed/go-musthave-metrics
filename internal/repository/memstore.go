@@ -113,6 +113,8 @@ func (m *MemStorageRepository) Save() error {
 	if m.c.FileStoragePath == "" {
 		return nil
 	}
+	m.mc.Lock()
+	defer m.mc.Unlock()
 	data, err := json.Marshal(m)
 	if err != nil {
 		return err
