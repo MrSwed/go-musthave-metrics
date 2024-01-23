@@ -1,16 +1,24 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"log"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 )
 
 func main() {
-	var conf = new(config)
+	var (
+		wg   sync.WaitGroup
+		conf = new(config)
+	)
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
 	conf.Config()
 
@@ -21,34 +29,47 @@ func main() {
 `, conf.serverAddress, baseURL, conf.reportInterval, conf.pollInterval)
 
 	m := new(metricsCollects)
+
+	// collect metrics
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		for {
-			m.getMetrics()
-			time.Sleep(time.Duration(conf.pollInterval) * time.Second)
+			select {
+			case <-time.After(time.Duration(conf.pollInterval) * time.Second):
+				log.Println("Collect metrics")
+				m.getMetrics()
+			case <-ctx.Done():
+				log.Println("Metrics collector is stopped")
+				return
+			}
 		}
 	}()
 
+	// send metrics
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		for {
-			if errs := m.sendMetrics(conf.serverAddress, gaugeType, conf.gaugesList); errs != nil {
-				log.Print(errors.Join(errs...))
-			} else {
-				log.Printf("%d Gauges metrics sent", len(conf.gaugesList))
+			select {
+			case <-time.After(time.Duration(conf.reportInterval) * time.Second):
+				if errs := m.sendMetrics(conf.serverAddress, gaugeType, conf.gaugesList); errs != nil {
+					log.Println(errors.Join(errs...))
+				} else {
+					log.Printf("%d Gauges metrics sent", len(conf.gaugesList))
+				}
+				if errs := m.sendMetrics(conf.serverAddress, counterType, conf.countersList); errs != nil {
+					log.Println(errors.Join(errs...))
+				} else {
+					log.Printf("%d Counter metrics sent", len(conf.countersList))
+				}
+			case <-ctx.Done():
+				log.Println("Metrics sender is stopped")
+				return
 			}
-			if errs := m.sendMetrics(conf.serverAddress, counterType, conf.countersList); errs != nil {
-				log.Print(errors.Join(errs...))
-			} else {
-				log.Printf("%d Counter metrics sent", len(conf.countersList))
-			}
-			time.Sleep(time.Duration(conf.reportInterval) * time.Second)
 		}
 	}()
+	wg.Wait()
 
-	defer func() {
-		log.Printf("Agent stopped")
-	}()
-
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	<-c
+	log.Println("Agent stopped")
 }
