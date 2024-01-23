@@ -5,6 +5,8 @@ import (
 )
 
 const (
+	ServerShutdownTimeout = 30
+
 	serverAddress   = "localhost:8080"
 	storeInterval   = 300
 	fileStoragePath = "/tmp/metrics-db.json"

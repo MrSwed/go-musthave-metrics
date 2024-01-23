@@ -22,9 +22,9 @@ func TestUpdateMetric(t *testing.T) {
 	repo := repository.NewRepository(&conf.StorageConfig)
 	s := service.NewService(repo)
 	logger, _ := zap.NewDevelopment()
-	h := NewHandler(s, &conf.ServerConfig, logger).InitRoutes()
+	h := NewHandler(s, logger).Handler()
 
-	ts := httptest.NewServer(h.r)
+	ts := httptest.NewServer(h)
 	defer ts.Close()
 
 	type want struct {
@@ -212,9 +212,9 @@ func TestHandler_UpdateMetricJson(t *testing.T) {
 	repo := repository.NewRepository(&conf.StorageConfig)
 	s := service.NewService(repo)
 	logger, _ := zap.NewDevelopment()
-	h := NewHandler(s, &conf.ServerConfig, logger).InitRoutes()
+	h := NewHandler(s, logger).Handler()
 
-	ts := httptest.NewServer(h.r)
+	ts := httptest.NewServer(h)
 	defer ts.Close()
 
 	type want struct {

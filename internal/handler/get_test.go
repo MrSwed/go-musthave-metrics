@@ -24,8 +24,8 @@ func TestGetMetric(t *testing.T) {
 	repo := repository.NewRepository(&conf.StorageConfig)
 	s := service.NewService(repo)
 	logger, _ := zap.NewDevelopment()
-	h := NewHandler(s, &conf.ServerConfig, logger).InitRoutes()
-	ts := httptest.NewServer(h.r)
+	h := NewHandler(s, logger).Handler()
+	ts := httptest.NewServer(h)
 	defer ts.Close()
 
 	testCounter := int64(1)
@@ -160,9 +160,9 @@ func TestGetListMetrics(t *testing.T) {
 	repo := repository.NewRepository(&conf.StorageConfig)
 	s := service.NewService(repo)
 	logger, _ := zap.NewDevelopment()
-	h := NewHandler(s, &conf.ServerConfig, logger).InitRoutes()
+	h := NewHandler(s, logger).Handler()
 
-	ts := httptest.NewServer(h.r)
+	ts := httptest.NewServer(h)
 	defer ts.Close()
 
 	testCounter := int64(1)
@@ -247,8 +247,8 @@ func TestGetMetricJson(t *testing.T) {
 	repo := repository.NewRepository(&conf.StorageConfig)
 	s := service.NewService(repo)
 	logger, _ := zap.NewDevelopment()
-	h := NewHandler(s, &conf.ServerConfig, logger).InitRoutes()
-	ts := httptest.NewServer(h.r)
+	h := NewHandler(s, logger).Handler()
+	ts := httptest.NewServer(h)
 	defer ts.Close()
 
 	testCounter := int64(1)

@@ -18,15 +18,14 @@ import (
 type Handler struct {
 	s   *service.Service
 	r   *chi.Mux
-	c   *config.ServerConfig
 	log *zap.Logger
 }
 
-func NewHandler(s *service.Service, c *config.ServerConfig, log *zap.Logger) *Handler {
-	return &Handler{s: s, c: c, log: log}
+func NewHandler(s *service.Service, log *zap.Logger) *Handler {
+	return &Handler{s: s, log: log}
 }
 
-func (h *Handler) InitRoutes() *Handler {
+func (h *Handler) Handler() http.Handler {
 	h.r = chi.NewRouter()
 	h.r.Use(logger.Logger(h.log))
 	h.r.Use(middleware.Compress(gzip.DefaultCompression, "application/json", "text/html"))
@@ -48,12 +47,6 @@ func (h *Handler) InitRoutes() *Handler {
 			config.MetricTypeParam, config.MetricNameParam), h.GetMetric())
 		r.Post("/", h.GetMetricJSON())
 	})
-	return h
-}
 
-func (h *Handler) RunServer() error {
-	if h.r == nil {
-		h.InitRoutes()
-	}
-	return http.ListenAndServe(h.c.ServerAddress, h.r)
+	return h.r
 }

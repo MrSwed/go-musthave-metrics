@@ -13,20 +13,14 @@ type StorageConfig struct {
 	StorageRestore  bool
 }
 
-type ServerConfig struct {
-	ServerAddress string
-}
-
 type Config struct {
-	ServerConfig
+	ServerAddress string
 	StorageConfig
 }
 
 func NewConfig(init ...bool) *Config {
 	c := &Config{
-		ServerConfig: ServerConfig{
-			ServerAddress: serverAddress,
-		},
+		ServerAddress: serverAddress,
 		StorageConfig: StorageConfig{
 			StoreInterval:   storeInterval,
 			FileStoragePath: fileStoragePath,
