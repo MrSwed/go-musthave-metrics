@@ -29,9 +29,9 @@ func (m *metricsCollects) getMetrics() {
 
 func (m *metricsCollects) sendOneMetric(serverAddress, t, k string) (err error) {
 	var (
-		res    *http.Response
-		v      interface{}
-		metric = map[string]interface{}{"id": k, "type": t}
+		res       *http.Response
+		v         interface{}
+		oneMetric = newMetric(k, t)
 	)
 	dVal := reflect.Indirect(reflect.ValueOf(m))
 	if refV := dVal.FieldByName(k); refV.IsValid() {
@@ -44,17 +44,11 @@ func (m *metricsCollects) sendOneMetric(serverAddress, t, k string) (err error) 
 	}
 	urlStr := fmt.Sprintf("%s%s", serverAddress, baseURL)
 
-	switch t {
-	case gaugeType:
-		metric["value"] = v
-	case counterType:
-		metric["delta"] = v
-	default:
-		err = fmt.Errorf("unknown metric type %s", t)
+	if err = oneMetric.set(v); err != nil {
 		return
 	}
 	var body []byte
-	if body, err = json.Marshal(metric); err != nil {
+	if body, err = json.Marshal(oneMetric); err != nil {
 		return
 	}
 	compressedBody := new(bytes.Buffer)
