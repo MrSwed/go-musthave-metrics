@@ -69,7 +69,8 @@ func main() {
 	go func() {
 		<-exitSig
 
-		shutdownCtx, _ := context.WithTimeout(serverCtx, config.ServerShutdownTimeout*time.Second)
+		shutdownCtx, shutdownStopForce := context.WithTimeout(serverCtx, config.ServerShutdownTimeout*time.Second)
+		defer shutdownStopForce()
 		go func() {
 			<-shutdownCtx.Done()
 			if errors.Is(shutdownCtx.Err(), context.DeadlineExceeded) {
