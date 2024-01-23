@@ -6,9 +6,9 @@ import (
 )
 
 var (
-	badGaugeValue   = errors.New("bad gauge value")
-	badCounterValue = errors.New("bad counter value")
-	badMetricType   = errors.New("unknown metric type")
+	errBadGaugeValue   = errors.New("bad gauge value")
+	errBadCounterValue = errors.New("bad counter value")
+	errBadMetricType   = errors.New("unknown metric type")
 )
 
 type metric struct {
@@ -45,7 +45,7 @@ func (m *metric) set(v interface{}) (err error) {
 		case uint64:
 			gv = float64(g)
 		default:
-			return fmt.Errorf("%w %v", badGaugeValue, v)
+			return fmt.Errorf("%w %v", errBadGaugeValue, v)
 		}
 		m.Value = &gv
 	case counterType:
@@ -64,11 +64,11 @@ func (m *metric) set(v interface{}) (err error) {
 		case float64:
 			cv = int64(c)
 		default:
-			return fmt.Errorf("%w %v", badCounterValue, v)
+			return fmt.Errorf("%w %v", errBadCounterValue, v)
 		}
 		m.Delta = &cv
 	default:
-		err = fmt.Errorf("%w %s", badMetricType, m.MType)
+		err = fmt.Errorf("%w %s", errBadMetricType, m.MType)
 		return
 	}
 	return nil

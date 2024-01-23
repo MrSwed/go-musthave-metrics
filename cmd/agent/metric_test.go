@@ -54,21 +54,21 @@ func TestMetric_set(t *testing.T) {
 			mKey:    "someCounter",
 			mType:   "counter",
 			mValue:  "string",
-			wantErr: badCounterValue,
+			wantErr: errBadCounterValue,
 		},
 		{
 			name:    "Set gauge string, Error",
 			mKey:    "someCounter",
 			mType:   "gauge",
 			mValue:  "string",
-			wantErr: badGaugeValue,
+			wantErr: errBadGaugeValue,
 		},
 		{
 			name:    "Set unknown type",
 			mKey:    "someKey",
 			mType:   "unknownType",
 			mValue:  100,
-			wantErr: badMetricType,
+			wantErr: errBadMetricType,
 		},
 	}
 	for _, tt := range tests {
