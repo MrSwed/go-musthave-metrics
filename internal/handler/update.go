@@ -18,6 +18,9 @@ func (h *Handler) UpdateMetric() func(w http.ResponseWriter, r *http.Request) {
 		case config.MetricTypeGauge:
 			if v, err := strconv.ParseFloat(metricValStr, 64); err != nil {
 				w.WriteHeader(http.StatusBadRequest)
+				if _, err := w.Write([]byte("Bad metric value")); err != nil {
+					h.log.Error("Error return answer", zap.Error(err))
+				}
 				return
 			} else {
 				if err = h.s.SetGauge(metricKey, v); err != nil {
@@ -28,6 +31,9 @@ func (h *Handler) UpdateMetric() func(w http.ResponseWriter, r *http.Request) {
 		case config.MetricTypeCounter:
 			if v, err := strconv.ParseInt(metricValStr, 10, 64); err != nil {
 				w.WriteHeader(http.StatusBadRequest)
+				if _, err := w.Write([]byte("Bad metric value")); err != nil {
+					h.log.Error("Error return answer", zap.Error(err))
+				}
 				return
 			} else {
 				if err = h.s.IncreaseCounter(metricKey, v); err != nil {
@@ -37,6 +43,9 @@ func (h *Handler) UpdateMetric() func(w http.ResponseWriter, r *http.Request) {
 			}
 		default:
 			w.WriteHeader(http.StatusBadRequest)
+			if _, err := w.Write([]byte("Unknown metric type")); err != nil {
+				h.log.Error("Error return answer", zap.Error(err))
+			}
 			return
 		}
 
@@ -55,12 +64,18 @@ func (h *Handler) UpdateMetricJSON() func(w http.ResponseWriter, r *http.Request
 		err := json.NewDecoder(r.Body).Decode(&metric)
 		if err != nil || metric.ID == "" || metric.MType == "" {
 			w.WriteHeader(http.StatusBadRequest)
+			if _, err := w.Write([]byte("Bad metric id or type")); err != nil {
+				h.log.Error("Error return answer", zap.Error(err))
+			}
 			return
 		}
 		switch metric.MType {
 		case config.MetricTypeGauge:
 			if metric.Value == nil {
 				w.WriteHeader(http.StatusBadRequest)
+				if _, err := w.Write([]byte("Bad metric value")); err != nil {
+					h.log.Error("Error return answer", zap.Error(err))
+				}
 				return
 			} else {
 				if err = h.s.SetGauge(metric.ID, *metric.Value); err != nil {
@@ -87,6 +102,9 @@ func (h *Handler) UpdateMetricJSON() func(w http.ResponseWriter, r *http.Request
 			}
 		default:
 			w.WriteHeader(http.StatusBadRequest)
+			if _, err := w.Write([]byte("Unknown metric type")); err != nil {
+				h.log.Error("Error return answer", zap.Error(err))
+			}
 			return
 		}
 		var out []byte
