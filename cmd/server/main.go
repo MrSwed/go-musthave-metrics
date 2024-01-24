@@ -86,6 +86,7 @@ func main() {
 
 	if err = server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		logger.Error("shutdown", zap.Error(err))
+		serverStop()
 	}
 
 	<-serverCtx.Done()
