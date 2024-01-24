@@ -86,6 +86,9 @@ func (h *Handler) UpdateMetricJSON() func(w http.ResponseWriter, r *http.Request
 		case config.MetricTypeCounter:
 			if metric.Delta == nil {
 				w.WriteHeader(http.StatusBadRequest)
+				if _, err := w.Write([]byte("Bad metric value")); err != nil {
+					h.log.Error("Error return answer", zap.Error(err))
+				}
 				return
 			} else {
 				if err = h.s.IncreaseCounter(metric.ID, *metric.Delta); err != nil {
