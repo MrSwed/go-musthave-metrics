@@ -1,61 +1,75 @@
 package main
 
 import (
+	"errors"
 	"fmt"
-	"math/rand"
-	"net/http"
-	"reflect"
-	"runtime"
-	"sync"
 )
 
-type metricsCollects struct {
-	runtime.MemStats
-	PollCount   int64
-	RandomValue float64
-	m           sync.RWMutex
+var (
+	errBadGaugeValue   = errors.New("bad gauge value")
+	errBadCounterValue = errors.New("bad counter value")
+	errBadMetricType   = errors.New("unknown metric type")
+)
+
+type metric struct {
+	ID    string   `json:"id"`
+	MType string   `json:"type"`
+	Delta *int64   `json:"delta,omitempty"`
+	Value *float64 `json:"value,omitempty"`
 }
 
-func (m *metricsCollects) getMetrics() {
-	m.m.Lock()
-	defer m.m.Unlock()
-	runtime.ReadMemStats(&m.MemStats)
-	m.PollCount++
-	m.RandomValue = rand.Float64()
+func newMetric(id, mType string) *metric {
+	return &metric{
+		ID:    id,
+		MType: mType,
+	}
 }
 
-func (m *metricsCollects) sendOneMetric(serverAddress, t, k string) (err error) {
-	var (
-		res *http.Response
-		v   interface{}
-	)
-	dVal := reflect.Indirect(reflect.ValueOf(m))
-	if refV := dVal.FieldByName(k); refV.IsValid() {
-		m.m.RLock()
-		v = refV.Interface()
-		m.m.RUnlock()
-	} else {
-		err = fmt.Errorf("unknown metric name %s", k)
-		return
-	}
-	urlStr := fmt.Sprintf("%s%s/%s/%s/%v", serverAddress, baseURL, t, k, v)
-	if res, err = http.Post(urlStr, "text/plain", nil); err != nil {
-		return
-	}
-	defer func() { err = res.Body.Close() }()
-	if res.StatusCode != http.StatusOK {
-		err = fmt.Errorf("%v", res.StatusCode)
-	}
-
-	return
-}
-
-func (m *metricsCollects) sendMetrics(serverAddress, metricType string, list []string) (errs []error) {
-	for _, mName := range list {
-		if err := m.sendOneMetric(serverAddress, metricType, mName); err != nil {
-			errs = append(errs, err)
+func (m *metric) set(v interface{}) (err error) {
+	switch m.MType {
+	case gaugeType:
+		var gv float64
+		switch g := v.(type) {
+		case float64:
+			gv = g
+		case int:
+			gv = float64(g)
+		case int32:
+			gv = float64(g)
+		case int64:
+			gv = float64(g)
+		case uint:
+			gv = float64(g)
+		case uint32:
+			gv = float64(g)
+		case uint64:
+			gv = float64(g)
+		default:
+			return fmt.Errorf("%w %v", errBadGaugeValue, v)
 		}
+		m.Value = &gv
+	case counterType:
+		var cv int64
+		switch c := v.(type) {
+		case int64:
+			cv = c
+		case int:
+			cv = int64(c)
+		case int32:
+			cv = int64(c)
+		case uint64:
+			cv = int64(c)
+		case float32:
+			cv = int64(c)
+		case float64:
+			cv = int64(c)
+		default:
+			return fmt.Errorf("%w %v", errBadCounterValue, v)
+		}
+		m.Delta = &cv
+	default:
+		err = fmt.Errorf("%w %s", errBadMetricType, m.MType)
+		return
 	}
-
-	return
+	return nil
 }

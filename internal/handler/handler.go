@@ -1,47 +1,52 @@
 package handler
 
 import (
+	"compress/gzip"
 	"fmt"
-	"log"
 	"net/http"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/constants"
+	"github.com/MrSwed/go-musthave-metrics/internal/config"
+	"github.com/MrSwed/go-musthave-metrics/internal/logger"
+	myMiddleware "github.com/MrSwed/go-musthave-metrics/internal/middleware"
 	"github.com/MrSwed/go-musthave-metrics/internal/service"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"go.uber.org/zap"
 )
 
 type Handler struct {
-	s *service.Service
-	r *chi.Mux
+	s   *service.Service
+	r   *chi.Mux
+	log *zap.Logger
 }
 
-func NewHandler(s *service.Service) *Handler { return &Handler{s: s} }
+func NewHandler(s *service.Service, log *zap.Logger) *Handler {
+	return &Handler{s: s, log: log}
+}
 
-func (h *Handler) InitRoutes() *Handler {
+func (h *Handler) Handler() http.Handler {
 	h.r = chi.NewRouter()
-	h.r.Use(middleware.Logger)
+	h.r.Use(logger.Logger(h.log))
+	h.r.Use(middleware.Compress(gzip.DefaultCompression, "application/json", "text/html"))
+	h.r.Use(myMiddleware.Decompress(h.log))
 
 	h.r.Route("/", func(r chi.Router) {
 		r.Get("/", h.GetListMetrics())
 	})
 
-	h.r.Route(fmt.Sprintf("%s/{%s}/{%s}/{%s}",
-		constants.UpdateRoute, constants.MetricTypeParam, constants.MetricNameParam, constants.MetricValueParam),
-		func(r chi.Router) { r.Post("/", h.UpdateMetric()) })
+	h.r.Route(config.UpdateRoute, func(r chi.Router) {
+		r.Post(fmt.Sprintf("/{%s}/{%s}/{%s}",
+			config.MetricTypeParam, config.MetricNameParam, config.MetricValueParam),
+			h.UpdateMetric())
+		r.Post("/", h.UpdateMetricJSON())
+	})
 
-	h.r.Route(fmt.Sprintf("%s/{%s}/{%s}",
-		constants.ValueRoute, constants.MetricTypeParam, constants.MetricNameParam),
-		func(r chi.Router) {
-			r.Get("/", h.GetMetric())
-		})
-	return h
-}
+	h.r.Route(config.ValueRoute, func(r chi.Router) {
+		r.Get(fmt.Sprintf("/{%s}/{%s}",
+			config.MetricTypeParam, config.MetricNameParam), h.GetMetric())
+		r.Post("/", h.GetMetricJSON())
+	})
 
-func (h *Handler) RunServer(addr string) {
-	if h.r == nil {
-		h.InitRoutes()
-	}
-	log.Fatal(http.ListenAndServe(addr, h.r))
+	return h.r
 }

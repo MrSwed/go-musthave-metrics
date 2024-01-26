@@ -2,7 +2,7 @@ package service
 
 import (
 	"errors"
-	"github.com/MrSwed/go-musthave-metrics/internal/constants"
+	"github.com/MrSwed/go-musthave-metrics/internal/config"
 	myErr "github.com/MrSwed/go-musthave-metrics/internal/errors"
 	"github.com/MrSwed/go-musthave-metrics/internal/helper"
 	"github.com/MrSwed/go-musthave-metrics/internal/repository"
@@ -64,16 +64,16 @@ func (m *MetricsService) GetCountersHTMLPage() (html []byte, err error) {
 	}
 	for k, v := range counter {
 		list[k] = lItem{
-			MType:  constants.MetricTypeCounter,
+			MType:  config.MetricTypeCounter,
 			MValue: v,
 		}
 	}
 	for k, v := range gauge {
 		list[k] = lItem{
-			MType:  constants.MetricTypeGauge,
+			MType:  config.MetricTypeGauge,
 			MValue: v,
 		}
 	}
-	html, err = helper.ParseEmailHTMLTemplate(constants.MetricListTpl, list)
+	html, err = helper.ParseEmailHTMLTemplate(config.MetricListTpl, list)
 	return
 }
