@@ -20,7 +20,7 @@ import (
 
 func main() {
 	var wg sync.WaitGroup
-	conf := config.NewConfig(true)
+	conf := config.NewConfig().Init()
 
 	serverCtx, serverStop := context.WithCancel(context.Background())
 

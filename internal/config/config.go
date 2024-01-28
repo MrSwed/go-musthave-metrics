@@ -18,8 +18,8 @@ type Config struct {
 	StorageConfig
 }
 
-func NewConfig(init ...bool) *Config {
-	c := &Config{
+func NewConfig() *Config {
+	return &Config{
 		ServerAddress: serverAddress,
 		StorageConfig: StorageConfig{
 			StoreInterval:   storeInterval,
@@ -27,10 +27,10 @@ func NewConfig(init ...bool) *Config {
 			StorageRestore:  storageRestore,
 		},
 	}
-	if len(init) > 0 && init[0] {
-		return c.withFlags().withEnv().cleanSchemes()
-	}
-	return c
+}
+
+func (c *Config) Init() *Config {
+	return c.withFlags().withEnv().cleanSchemes()
 }
 
 func (c *Config) withEnv() *Config {
@@ -65,16 +65,17 @@ func (c *Config) withEnv() *Config {
 }
 
 func (c *Config) withFlags() *Config {
-	flag.StringVar(&c.ServerAddress, "a", serverAddress, "Provide the address start server")
-	flag.IntVar(&c.StoreInterval, "i", storeInterval, "Provide the interval store (sec)")
-	flag.StringVar(&c.FileStoragePath, "f", fileStoragePath, "Provide the file storage path")
-	flag.BoolVar(&c.StorageRestore, "r", storageRestore, "Restore storage at boot")
+	flag.StringVar(&c.ServerAddress, "a", c.ServerAddress, "Provide the address start server")
+	flag.IntVar(&c.StoreInterval, "i", c.StoreInterval, "Provide the interval store (sec)")
+	flag.StringVar(&c.FileStoragePath, "f", c.FileStoragePath, "Provide the file storage path")
+	flag.BoolVar(&c.StorageRestore, "r", c.StorageRestore, "Restore storage at boot")
 	flag.Parse()
 	return c
 }
 
 func (c *Config) cleanSchemes() *Config {
-	c.ServerAddress = strings.TrimPrefix(c.ServerAddress, "http://")
-	c.ServerAddress = strings.TrimPrefix(c.ServerAddress, "https://")
+	for _, v := range []string{"http://", "https://"} {
+		c.ServerAddress = strings.TrimPrefix(c.ServerAddress, v)
+	}
 	return c
 }
