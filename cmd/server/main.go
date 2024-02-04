@@ -29,14 +29,14 @@ func main() {
 		panic(err)
 	}
 	r := repository.NewRepository(&conf.StorageConfig)
-	s := service.NewService(r)
+	s := service.NewService(r, &conf.StorageConfig)
 	h := handler.NewHandler(s, logger)
 
 	logger.Info("Start server", zap.Any("Config", conf))
 
 	if conf.FileStoragePath != "" {
 		if conf.StorageRestore {
-			if err := r.Restore(); err != nil {
+			if err := s.RestoreFromFile(); err != nil {
 				logger.Error("Storage restore", zap.Error(err))
 			} else {
 				logger.Info("Storage restored")
@@ -49,7 +49,7 @@ func main() {
 				for {
 					select {
 					case <-time.After(time.Duration(conf.StoreInterval) * time.Second):
-						if err := r.Save(); err != nil {
+						if err := s.SaveToFile(); err != nil {
 							logger.Error("Storage save", zap.Error(err))
 						}
 					case <-serverCtx.Done():
@@ -95,7 +95,7 @@ func main() {
 	wg.Wait()
 
 	if conf.FileStoragePath != "" {
-		if err := r.Save(); err != nil {
+		if err := s.SaveToFile(); err != nil {
 			logger.Error("Storage save", zap.Error(err))
 		} else {
 			logger.Info("Storage saved")

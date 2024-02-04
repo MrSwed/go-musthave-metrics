@@ -21,11 +21,12 @@ import (
 )
 
 func TestUpdateMetric(t *testing.T) {
+	conf := config.NewConfig()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	repo := mocks.NewMockMemStorage(ctrl)
+	repo := mocks.NewMockRepository(ctrl)
 
-	s := service.NewService(repo)
+	s := service.NewService(repo, &conf.StorageConfig)
 	logger, _ := zap.NewDevelopment()
 	h := NewHandler(s, logger).Handler()
 	ts := httptest.NewServer(h)
@@ -54,7 +55,7 @@ func TestUpdateMetric(t *testing.T) {
 		want want
 	}{
 		{
-			name: "Save counter. Ok",
+			name: "SaveToFile counter. Ok",
 			args: args{
 				method: http.MethodPost,
 				path:   "/update/counter/testCounter/1",
@@ -66,7 +67,7 @@ func TestUpdateMetric(t *testing.T) {
 			},
 		},
 		{
-			name: "Save gauge. Ok",
+			name: "SaveToFile gauge. Ok",
 			args: args{
 				method: http.MethodPost,
 				path:   "/update/gauge/testGauge/1.1",
@@ -78,7 +79,7 @@ func TestUpdateMetric(t *testing.T) {
 			},
 		},
 		{
-			name: "Save gauge 2. Ok",
+			name: "SaveToFile gauge 2. Ok",
 			args: args{
 				method: http.MethodPost,
 				path:   "/update/gauge/testGauge/0.0001",
@@ -222,11 +223,12 @@ func TestUpdateMetric(t *testing.T) {
 }
 
 func TestHandler_UpdateMetricJson(t *testing.T) {
+	conf := config.NewConfig()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	repo := mocks.NewMockMemStorage(ctrl)
+	repo := mocks.NewMockRepository(ctrl)
 
-	s := service.NewService(repo)
+	s := service.NewService(repo, &conf.StorageConfig)
 	logger, _ := zap.NewDevelopment()
 	h := NewHandler(s, logger).Handler()
 	ts := httptest.NewServer(h)
@@ -256,7 +258,7 @@ func TestHandler_UpdateMetricJson(t *testing.T) {
 		want want
 	}{
 		{
-			name: "Save counter. Ok",
+			name: "SaveToFile counter. Ok",
 			args: args{
 				method: http.MethodPost,
 				body: map[string]interface{}{
@@ -272,7 +274,7 @@ func TestHandler_UpdateMetricJson(t *testing.T) {
 			},
 		},
 		{
-			name: "Save gauge. Ok",
+			name: "SaveToFile gauge. Ok",
 			args: args{
 				method: http.MethodPost,
 				body: map[string]interface{}{
@@ -288,7 +290,7 @@ func TestHandler_UpdateMetricJson(t *testing.T) {
 			},
 		},
 		{
-			name: "Save gauge 2. Ok",
+			name: "SaveToFile gauge 2. Ok",
 			args: args{
 				method: http.MethodPost,
 				body: map[string]interface{}{

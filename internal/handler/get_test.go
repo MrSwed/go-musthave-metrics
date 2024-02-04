@@ -23,11 +23,13 @@ import (
 )
 
 func TestGetMetric(t *testing.T) {
+	conf := config.NewConfig()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	repo := mocks.NewMockMemStorage(ctrl)
+	repo := mocks.NewMockRepository(ctrl)
 
-	s := service.NewService(repo)
+	s := service.NewService(repo, &conf.StorageConfig)
+
 	logger, _ := zap.NewDevelopment()
 	h := NewHandler(s, logger).Handler()
 	ts := httptest.NewServer(h)
@@ -139,7 +141,7 @@ func TestGetMetric(t *testing.T) {
 			defer req.Context()
 
 			res, err := http.DefaultClient.Do(req)
-			require.NoError(t, err, fmt.Sprint("request error"))
+			require.NoError(t, err, "request error")
 			var resBody []byte
 
 			// проверяем код ответа
@@ -162,11 +164,13 @@ func TestGetMetric(t *testing.T) {
 }
 
 func TestGetListMetrics(t *testing.T) {
+	conf := config.NewConfig()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	repo := mocks.NewMockMemStorage(ctrl)
+	repo := mocks.NewMockRepository(ctrl)
 
-	s := service.NewService(repo)
+	s := service.NewService(repo, &conf.StorageConfig)
+
 	logger, _ := zap.NewDevelopment()
 	h := NewHandler(s, logger).Handler()
 
@@ -251,11 +255,13 @@ func TestGetListMetrics(t *testing.T) {
 }
 
 func TestGetMetricJson(t *testing.T) {
+	conf := config.NewConfig()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	repo := mocks.NewMockMemStorage(ctrl)
+	repo := mocks.NewMockRepository(ctrl)
 
-	s := service.NewService(repo)
+	s := service.NewService(repo, &conf.StorageConfig)
+
 	logger, _ := zap.NewDevelopment()
 	h := NewHandler(s, logger).Handler()
 	ts := httptest.NewServer(h)
@@ -415,7 +421,7 @@ func TestGetMetricJson(t *testing.T) {
 			defer req.Context()
 
 			res, err := http.DefaultClient.Do(req)
-			require.NoError(t, err, fmt.Sprint("request error"))
+			require.NoError(t, err, "request error")
 			var resBody []byte
 
 			// проверяем код ответа

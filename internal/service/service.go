@@ -1,11 +1,14 @@
 package service
 
-import "github.com/MrSwed/go-musthave-metrics/internal/repository"
+import (
+	"github.com/MrSwed/go-musthave-metrics/internal/config"
+	"github.com/MrSwed/go-musthave-metrics/internal/repository"
+)
 
 type Service struct {
 	Metrics
 }
 
-func NewService(r repository.MemStorage) *Service {
-	return &Service{Metrics: NewMemStorage(r)}
+func NewService(r repository.Repository, c *config.StorageConfig) *Service {
+	return &Service{Metrics: NewMetricService(r, c)}
 }
