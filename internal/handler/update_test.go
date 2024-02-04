@@ -3,29 +3,41 @@ package handler
 import (
 	"bytes"
 	"encoding/json"
-	"go.uber.org/zap"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/MrSwed/go-musthave-metrics/internal/config"
-	"github.com/MrSwed/go-musthave-metrics/internal/repository"
+	mocks "github.com/MrSwed/go-musthave-metrics/internal/mock/repository"
 	"github.com/MrSwed/go-musthave-metrics/internal/service"
+
+	"github.com/golang/mock/gomock"
+	"go.uber.org/zap"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestUpdateMetric(t *testing.T) {
-	conf := config.NewConfig()
-	repo := repository.NewRepository(&conf.StorageConfig)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	repo := mocks.NewMockMemStorage(ctrl)
+
 	s := service.NewService(repo)
 	logger, _ := zap.NewDevelopment()
 	h := NewHandler(s, logger).Handler()
-
 	ts := httptest.NewServer(h)
 	defer ts.Close()
+
+	testCounter := int64(1)
+	testGauge := 1.0001
+
+	_ = repo.EXPECT().SetGauge(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	_ = repo.EXPECT().SetCounter(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	_ = repo.EXPECT().GetCounter(gomock.Any()).Return(testCounter, nil).AnyTimes()
+	_ = repo.EXPECT().GetGauge(gomock.Any()).Return(testGauge, nil).AnyTimes()
 
 	type want struct {
 		code        int
@@ -183,11 +195,13 @@ func TestUpdateMetric(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 
 			req, err := http.NewRequest(test.args.method, ts.URL+test.args.path, nil)
+			require.NoError(t, err)
 			defer req.Context()
 
 			res, err := http.DefaultClient.Do(req)
-			var resBody []byte
+			require.NoError(t, err)
 
+			var resBody []byte
 			// проверяем код ответа
 			require.Equal(t, test.want.code, res.StatusCode)
 			func() {
@@ -208,14 +222,23 @@ func TestUpdateMetric(t *testing.T) {
 }
 
 func TestHandler_UpdateMetricJson(t *testing.T) {
-	conf := config.NewConfig()
-	repo := repository.NewRepository(&conf.StorageConfig)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	repo := mocks.NewMockMemStorage(ctrl)
+
 	s := service.NewService(repo)
 	logger, _ := zap.NewDevelopment()
 	h := NewHandler(s, logger).Handler()
-
 	ts := httptest.NewServer(h)
 	defer ts.Close()
+
+	testCounter := int64(1)
+	testGauge := 1.0001
+
+	_ = repo.EXPECT().SetGauge(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	_ = repo.EXPECT().SetCounter(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	_ = repo.EXPECT().GetCounter(gomock.Any()).Return(testCounter, nil).AnyTimes()
+	_ = repo.EXPECT().GetGauge(gomock.Any()).Return(testGauge, nil).AnyTimes()
 
 	type want struct {
 		code        int
@@ -239,7 +262,7 @@ func TestHandler_UpdateMetricJson(t *testing.T) {
 				body: map[string]interface{}{
 					"id":    "testCounter",
 					"type":  "counter",
-					"delta": 1,
+					"delta": testCounter,
 				},
 			},
 			want: want{
@@ -255,12 +278,12 @@ func TestHandler_UpdateMetricJson(t *testing.T) {
 				body: map[string]interface{}{
 					"id":    "testGauge",
 					"type":  "gauge",
-					"value": 1.1,
+					"value": testGauge,
 				},
 			},
 			want: want{
 				code:        http.StatusOK,
-				response:    `{"id":"testGauge","type":"gauge","value":1.1}`,
+				response:    fmt.Sprintf(`{"id":"testGauge","type":"gauge","value":%0.4f}`, testGauge),
 				contentType: "application/json; charset=utf-8",
 			},
 		},
@@ -271,12 +294,12 @@ func TestHandler_UpdateMetricJson(t *testing.T) {
 				body: map[string]interface{}{
 					"id":    "testGauge2",
 					"type":  "gauge",
-					"value": 0.0001,
+					"value": testGauge,
 				},
 			},
 			want: want{
 				code:        http.StatusOK,
-				response:    `{"id":"testGauge2","type":"gauge","value":0.0001}`,
+				response:    fmt.Sprintf(`{"id":"testGauge2","type":"gauge","value":%0.4f}`, testGauge),
 				contentType: "application/json; charset=utf-8",
 			},
 		},

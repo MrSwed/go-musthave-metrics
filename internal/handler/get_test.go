@@ -10,8 +10,11 @@ import (
 	"testing"
 
 	"github.com/MrSwed/go-musthave-metrics/internal/config"
-	"github.com/MrSwed/go-musthave-metrics/internal/repository"
+	"github.com/MrSwed/go-musthave-metrics/internal/errors"
+	mocks "github.com/MrSwed/go-musthave-metrics/internal/mock/repository"
 	"github.com/MrSwed/go-musthave-metrics/internal/service"
+
+	"github.com/golang/mock/gomock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,8 +23,10 @@ import (
 )
 
 func TestGetMetric(t *testing.T) {
-	conf := config.NewConfig()
-	repo := repository.NewRepository(&conf.StorageConfig)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	repo := mocks.NewMockMemStorage(ctrl)
+
 	s := service.NewService(repo)
 	logger, _ := zap.NewDevelopment()
 	h := NewHandler(s, logger).Handler()
@@ -31,9 +36,10 @@ func TestGetMetric(t *testing.T) {
 	testCounter := int64(1)
 	testGauge := 1.0001
 
-	// save some values
-	_ = s.SetGauge("testGauge", testGauge)
-	_ = s.IncreaseCounter("testCounter", testCounter)
+	_ = repo.EXPECT().GetCounter("testCounter").Return(testCounter, nil)
+	_ = repo.EXPECT().GetGauge("testGauge").Return(testGauge, nil)
+	_ = repo.EXPECT().GetGauge(gomock.Any()).Return(float64(0), errors.ErrNotExist)
+	_ = repo.EXPECT().GetCounter(gomock.Any()).Return(int64(0), errors.ErrNotExist)
 
 	type want struct {
 		code        int
@@ -133,7 +139,7 @@ func TestGetMetric(t *testing.T) {
 			defer req.Context()
 
 			res, err := http.DefaultClient.Do(req)
-			require.NoError(t, err)
+			require.NoError(t, err, fmt.Sprint("request error"))
 			var resBody []byte
 
 			// проверяем код ответа
@@ -156,8 +162,10 @@ func TestGetMetric(t *testing.T) {
 }
 
 func TestGetListMetrics(t *testing.T) {
-	conf := config.NewConfig()
-	repo := repository.NewRepository(&conf.StorageConfig)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	repo := mocks.NewMockMemStorage(ctrl)
+
 	s := service.NewService(repo)
 	logger, _ := zap.NewDevelopment()
 	h := NewHandler(s, logger).Handler()
@@ -167,9 +175,9 @@ func TestGetListMetrics(t *testing.T) {
 
 	testCounter := int64(1)
 	testGauge := 1.0001
-	// save some values
-	_ = s.SetGauge("testGauge", testGauge)
-	_ = s.IncreaseCounter("testCounter", testCounter)
+
+	_ = repo.EXPECT().GetAllCounters().Return(map[string]int64{"testCounter": testCounter}, nil)
+	_ = repo.EXPECT().GetAllGauges().Return(map[string]float64{"testGauge": testGauge}, nil)
 
 	type want struct {
 		code            int
@@ -198,7 +206,7 @@ func TestGetListMetrics(t *testing.T) {
 			},
 		},
 		{
-			name: "No main page",
+			name: "Not main page",
 			args: args{
 				method: http.MethodGet,
 				path:   "/somepage",
@@ -243,8 +251,10 @@ func TestGetListMetrics(t *testing.T) {
 }
 
 func TestGetMetricJson(t *testing.T) {
-	conf := config.NewConfig()
-	repo := repository.NewRepository(&conf.StorageConfig)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	repo := mocks.NewMockMemStorage(ctrl)
+
 	s := service.NewService(repo)
 	logger, _ := zap.NewDevelopment()
 	h := NewHandler(s, logger).Handler()
@@ -254,9 +264,10 @@ func TestGetMetricJson(t *testing.T) {
 	testCounter := int64(1)
 	testGauge := 1.0001
 
-	// save some values
-	_ = s.SetGauge("testGauge", testGauge)
-	_ = s.IncreaseCounter("testCounter", testCounter)
+	_ = repo.EXPECT().GetCounter("testCounter").Return(testCounter, nil)
+	_ = repo.EXPECT().GetGauge("testGauge").Return(testGauge, nil)
+	_ = repo.EXPECT().GetGauge(gomock.Any()).Return(float64(0), errors.ErrNotExist)
+	_ = repo.EXPECT().GetCounter(gomock.Any()).Return(int64(0), errors.ErrNotExist)
 
 	type want struct {
 		code        int
@@ -404,7 +415,7 @@ func TestGetMetricJson(t *testing.T) {
 			defer req.Context()
 
 			res, err := http.DefaultClient.Do(req)
-			require.NoError(t, err)
+			require.NoError(t, err, fmt.Sprint("request error"))
 			var resBody []byte
 
 			// проверяем код ответа

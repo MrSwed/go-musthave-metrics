@@ -9,6 +9,8 @@ import (
 	"sync"
 )
 
+//go:generate  mockgen -source=../repository/memstore.go -destination=../mock/repository/memstore.go -package=mock MemStorage
+
 type MemStorage interface {
 	SetGauge(k string, v float64) error
 	SetCounter(k string, v int64) error
