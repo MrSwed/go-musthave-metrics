@@ -33,6 +33,7 @@ func (h *Handler) Handler() http.Handler {
 
 	h.r.Route("/", func(r chi.Router) {
 		r.Get("/", h.GetListMetrics())
+		r.Get("/ping", h.GetDBPing())
 	})
 
 	h.r.Route(config.UpdateRoute, func(r chi.Router) {

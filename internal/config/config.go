@@ -15,6 +15,7 @@ type StorageConfig struct {
 
 type Config struct {
 	ServerAddress string
+	DatabaseDSN   string
 	StorageConfig
 }
 
@@ -61,6 +62,9 @@ func (c *Config) withEnv() *Config {
 			}
 		}()
 	}
+	if dbDSN, ok := os.LookupEnv(envNameDBDSN); ok {
+		c.DatabaseDSN = dbDSN
+	}
 	return c
 }
 
@@ -69,6 +73,7 @@ func (c *Config) withFlags() *Config {
 	flag.IntVar(&c.StoreInterval, "i", c.StoreInterval, "Provide the interval store (sec)")
 	flag.StringVar(&c.FileStoragePath, "f", c.FileStoragePath, "Provide the file storage path")
 	flag.BoolVar(&c.StorageRestore, "r", c.StorageRestore, "Restore storage at boot")
+	flag.StringVar(&c.DatabaseDSN, "d", c.DatabaseDSN, "Provide the database dsn connect string")
 	flag.Parse()
 	return c
 }

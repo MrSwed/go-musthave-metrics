@@ -16,6 +16,7 @@ type Metrics interface {
 	GetCountersHTMLPage() ([]byte, error)
 	SaveToFile() error
 	RestoreFromFile() error
+	CheckDB() error
 }
 
 type MetricsService struct {
@@ -101,4 +102,8 @@ func (s *MetricsService) SaveToFile() (err error) {
 
 func (s *MetricsService) RestoreFromFile() (err error) {
 	return s.r.RestoreFromFile(s.r.MemStore())
+}
+
+func (s *MetricsService) CheckDB() error {
+	return s.r.Ping()
 }

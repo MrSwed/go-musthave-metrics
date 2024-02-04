@@ -16,6 +16,7 @@ const (
 	envNameFileStoragePath = "FILE_STORAGE_PATH"
 	envNameStoreInterval   = "STORE_INTERVAL"
 	envNameRestore         = "RESTORE"
+	envNameDBDSN           = "DATABASE_DSN"
 
 	UpdateRoute      = "/update"
 	ValueRoute       = "/value"

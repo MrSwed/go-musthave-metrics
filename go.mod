@@ -5,6 +5,8 @@ go 1.21
 require (
 	github.com/go-chi/chi/v5 v5.0.11
 	github.com/golang/mock v1.6.0
+	github.com/jmoiron/sqlx v1.3.5
+	github.com/lib/pq v1.2.0
 	github.com/stretchr/testify v1.8.4
 	go.uber.org/zap v1.26.0
 )

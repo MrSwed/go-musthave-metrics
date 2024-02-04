@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -15,6 +16,8 @@ import (
 	"github.com/MrSwed/go-musthave-metrics/internal/repository"
 	"github.com/MrSwed/go-musthave-metrics/internal/service"
 
+	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
 	"go.uber.org/zap"
 )
 
@@ -28,11 +31,26 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	r := repository.NewRepository(&conf.StorageConfig)
-	s := service.NewService(r, &conf.StorageConfig)
-	h := handler.NewHandler(s, logger)
 
 	logger.Info("Start server", zap.Any("Config", conf))
+
+	var db *sqlx.DB
+	if len(conf.DatabaseDSN) > 0 {
+		if db, err = connectPostgres(conf.DatabaseDSN); err != nil {
+			logger.Fatal("cannot connect db", zap.Error(err))
+		}
+		logger.Info("DB connected")
+	} else {
+		fmt.Println("-database-dsn non-empty flag required")
+		return
+	}
+
+	r, err := repository.NewRepository(&conf.StorageConfig, db)
+	if err != nil {
+		logger.Fatal("repository init error", zap.Error(err))
+	}
+	s := service.NewService(r, &conf.StorageConfig)
+	h := handler.NewHandler(s, logger)
 
 	if conf.FileStoragePath != "" {
 		if conf.StorageRestore {
@@ -84,6 +102,7 @@ func main() {
 		serverStop()
 	}()
 
+	logger.Info("Start web app")
 	if err = server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		logger.Error("Start server", zap.Error(err))
 		serverStop()
@@ -93,6 +112,7 @@ func main() {
 
 	// wait StoreInterval
 	wg.Wait()
+	logger.Info("Server stopped")
 
 	if conf.FileStoragePath != "" {
 		if err := s.SaveToFile(); err != nil {
@@ -101,6 +121,21 @@ func main() {
 			logger.Info("Storage saved")
 		}
 	}
-	logger.Info("Server stopped")
+
+	if db != nil {
+		if err = db.Close(); err != nil {
+			logger.Error("DB close", zap.Error(err))
+		} else {
+			logger.Info("Db Closed")
+		}
+	}
 	_ = logger.Sync()
+}
+
+func connectPostgres(sbDSN string) (db *sqlx.DB, err error) {
+	db, err = sqlx.Connect("postgres", sbDSN)
+	if err != nil {
+		return
+	}
+	return
 }

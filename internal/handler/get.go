@@ -123,3 +123,18 @@ func (h *Handler) GetListMetrics() func(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 }
+
+func (h *Handler) GetDBPing() func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := h.s.CheckDB(); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			h.log.Error("Error ping", zap.Error(err))
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		if _, err := w.Write([]byte("Status: ok")); err != nil {
+			h.log.Error("Error return answer", zap.Error(err))
+		}
+	}
+}
