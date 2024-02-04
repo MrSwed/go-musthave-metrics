@@ -7,6 +7,7 @@ import (
 
 	"github.com/MrSwed/go-musthave-metrics/internal/config"
 	"github.com/MrSwed/go-musthave-metrics/internal/domain"
+
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 )

@@ -98,6 +98,7 @@ func (s *MetricsService) GetCountersHTMLPage() (html []byte, err error) {
 func (s *MetricsService) SaveToFile() (err error) {
 	return s.r.SaveToFile(s.r.MemStore())
 }
+
 func (s *MetricsService) RestoreFromFile() (err error) {
 	return s.r.RestoreFromFile(s.r.MemStore())
 }

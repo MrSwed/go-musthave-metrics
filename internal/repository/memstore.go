@@ -1,8 +1,9 @@
 package repository
 
 import (
-	myErr "github.com/MrSwed/go-musthave-metrics/internal/errors"
 	"sync"
+
+	myErr "github.com/MrSwed/go-musthave-metrics/internal/errors"
 )
 
 type MemStorage interface {

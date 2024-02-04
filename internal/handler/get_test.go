@@ -15,10 +15,8 @@ import (
 	"github.com/MrSwed/go-musthave-metrics/internal/service"
 
 	"github.com/golang/mock/gomock"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
 	"go.uber.org/zap"
 )
 

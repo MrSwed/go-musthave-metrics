@@ -14,10 +14,9 @@ import (
 	"github.com/MrSwed/go-musthave-metrics/internal/service"
 
 	"github.com/golang/mock/gomock"
-	"go.uber.org/zap"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 )
 
 func TestUpdateMetric(t *testing.T) {
