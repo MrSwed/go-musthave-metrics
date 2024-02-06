@@ -82,5 +82,6 @@ func (c *Config) cleanSchemes() *Config {
 	for _, v := range []string{"http://", "https://"} {
 		c.ServerAddress = strings.TrimPrefix(c.ServerAddress, v)
 	}
+	c.DatabaseDSN = strings.Trim(c.DatabaseDSN, "'")
 	return c
 }
