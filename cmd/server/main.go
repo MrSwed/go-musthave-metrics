@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -40,9 +39,6 @@ func main() {
 			logger.Fatal("cannot connect db", zap.Error(err))
 		}
 		logger.Info("DB connected")
-	} else {
-		fmt.Println("-database-dsn non-empty flag required")
-		return
 	}
 
 	r, err := repository.NewRepository(&conf.StorageConfig, db)

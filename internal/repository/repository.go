@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"fmt"
 	"github.com/MrSwed/go-musthave-metrics/internal/config"
 	"github.com/jmoiron/sqlx"
 )
@@ -21,9 +20,6 @@ type RepositoryStorage struct {
 }
 
 func NewRepository(c *config.StorageConfig, db *sqlx.DB) (*RepositoryStorage, error) {
-	if db == nil {
-		return nil, fmt.Errorf("need db connector")
-	}
 	return &RepositoryStorage{
 		MemStorage:  NewMemRepository(),
 		FileStorage: NewFileStorageRepository(c),

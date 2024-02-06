@@ -14,6 +14,9 @@ type DBStorageRepo struct {
 }
 
 func NewDBStorageRepository(db *sqlx.DB) *DBStorageRepo {
+	if db == nil {
+		return nil
+	}
 	return &DBStorageRepo{
 		db: db,
 	}
