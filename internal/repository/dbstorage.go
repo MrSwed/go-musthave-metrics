@@ -14,9 +14,6 @@ type DBStorageRepo struct {
 }
 
 func NewDBStorageRepository(db *sqlx.DB) *DBStorageRepo {
-	if db == nil {
-		return nil
-	}
 	return &DBStorageRepo{
 		db: db,
 	}
@@ -24,7 +21,7 @@ func NewDBStorageRepository(db *sqlx.DB) *DBStorageRepo {
 
 func (r *DBStorageRepo) Ping() error {
 	if r.db == nil {
-		return fmt.Errorf("no db connect")
+		return fmt.Errorf("no db connected")
 	}
 	return r.db.Ping()
 }
