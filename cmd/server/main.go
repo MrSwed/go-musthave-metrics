@@ -12,9 +12,11 @@ import (
 
 	"github.com/MrSwed/go-musthave-metrics/internal/config"
 	"github.com/MrSwed/go-musthave-metrics/internal/handler"
+	myMigrate "github.com/MrSwed/go-musthave-metrics/internal/migrate"
 	"github.com/MrSwed/go-musthave-metrics/internal/repository"
 	"github.com/MrSwed/go-musthave-metrics/internal/service"
 
+	"github.com/golang-migrate/migrate/v4"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"go.uber.org/zap"
@@ -33,12 +35,26 @@ func main() {
 
 	logger.Info("Start server", zap.Any("Config", conf))
 
-	var db *sqlx.DB
+	var (
+		db      *sqlx.DB
+		isNewDB = true
+	)
 	if len(conf.DatabaseDSN) > 0 {
 		if db, err = connectPostgres(conf.DatabaseDSN); err != nil {
 			logger.Fatal("cannot connect db", zap.Error(err))
 		}
 		logger.Info("DB connected")
+		versions, errM := myMigrate.Migrate(db.DB)
+		switch {
+		case errors.Is(errM, migrate.ErrNoChange):
+			logger.Info("DB migrate: ", zap.Error(err), zap.Any("versions", versions))
+		case errM == nil:
+			logger.Info("DB migrate: new applied ", zap.Any("versions", versions))
+		default:
+			logger.Fatal("DB migrate: ", zap.Any("versions", versions), zap.Error(err))
+		}
+		isNewDB = versions[0] == 0
+
 	}
 
 	r, err := repository.NewRepository(&conf.StorageConfig, db)
@@ -48,7 +64,7 @@ func main() {
 	s := service.NewService(r, &conf.StorageConfig)
 	h := handler.NewHandler(s, logger)
 
-	if conf.FileStoragePath != "" {
+	if conf.FileStoragePath != "" && isNewDB {
 		if conf.StorageRestore {
 			if err := s.RestoreFromFile(); err != nil {
 				logger.Error("Storage restore", zap.Error(err))
