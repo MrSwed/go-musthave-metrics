@@ -50,7 +50,7 @@ func main() {
 			logger.Info("DB migrate: ", zap.Any("info", errM), zap.Any("versions", versions))
 		case errM == nil:
 			logger.Info("DB migrate: new applied ", zap.Any("versions", versions))
-		case errM != nil:
+		default:
 			logger.Fatal("DB migrate: ", zap.Any("versions", versions), zap.Error(errM))
 		}
 		isNewDB = versions[0] == 0
