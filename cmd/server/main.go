@@ -47,11 +47,11 @@ func main() {
 		versions, errM := myMigrate.Migrate(db.DB)
 		switch {
 		case errors.Is(errM, migrate.ErrNoChange):
-			logger.Info("DB migrate: ", zap.Error(err), zap.Any("versions", versions))
+			logger.Info("DB migrate: ", zap.Any("info", errM), zap.Any("versions", versions))
 		case errM == nil:
 			logger.Info("DB migrate: new applied ", zap.Any("versions", versions))
-		default:
-			logger.Fatal("DB migrate: ", zap.Any("versions", versions), zap.Error(err))
+		case errM != nil:
+			logger.Fatal("DB migrate: ", zap.Any("versions", versions), zap.Error(errM))
 		}
 		isNewDB = versions[0] == 0
 

@@ -7,18 +7,6 @@ import (
 
 //go:generate  mockgen -destination=../mock/repository/repository.go -package=mock "github.com/MrSwed/go-musthave-metrics/internal/repository" Repository
 
-type Repository interface {
-	MemStorage
-	FileStorage
-	DBStorage
-}
-
-type RepositoryStorage struct {
-	MemStorage
-	FileStorage
-	DBStorage
-}
-
 type DataStorage interface {
 	SetGauge(k string, v float64) error
 	SetCounter(k string, v int64) error
@@ -28,10 +16,27 @@ type DataStorage interface {
 	GetAllGauges() (map[string]float64, error)
 }
 
-func NewRepository(c *config.StorageConfig, db *sqlx.DB) (*RepositoryStorage, error) {
-	return &RepositoryStorage{
-		MemStorage:  NewMemRepository(),
-		FileStorage: NewFileStorageRepository(c),
-		DBStorage:   NewDBStorageRepository(db),
-	}, nil
+type Repository interface {
+	DataStorage
+	FileStorage
+}
+
+type Storage struct {
+	DataStorage
+	FileStorage
+}
+
+func NewRepository(c *config.StorageConfig, db *sqlx.DB) (s Storage, err error) {
+	if db != nil {
+		s = Storage{
+			DataStorage: NewDBStorageRepository(db),
+			FileStorage: NewFileStorageRepository(c),
+		}
+	} else {
+		s = Storage{
+			DataStorage: NewMemRepository(),
+			FileStorage: NewFileStorageRepository(c),
+		}
+	}
+	return
 }

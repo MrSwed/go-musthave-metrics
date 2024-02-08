@@ -26,6 +26,9 @@ const (
 
 	MetricTypeGauge   = "gauge"
 	MetricTypeCounter = "counter"
+
+	DBTableNameGauges   = "gauges"
+	DBTableNameCounters = "counters"
 )
 
 var (

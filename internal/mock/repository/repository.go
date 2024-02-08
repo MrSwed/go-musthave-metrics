@@ -95,10 +95,10 @@ func (mr *MockRepositoryMockRecorder) GetGauge(arg0 interface{}) *gomock.Call {
 }
 
 // MemStore mocks base method.
-func (m *MockRepository) MemStore() *repository.MemStorageRepository {
+func (m *MockRepository) MemStore() *repository.MemStorageRepo {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "MemStore")
-	ret0, _ := ret[0].(*repository.MemStorageRepository)
+	ret0, _ := ret[0].(*repository.MemStorageRepo)
 	return ret0
 }
 
@@ -123,7 +123,7 @@ func (mr *MockRepositoryMockRecorder) Ping() *gomock.Call {
 }
 
 // RestoreFromFile mocks base method.
-func (m *MockRepository) RestoreFromFile(arg0 *repository.MemStorageRepository) error {
+func (m *MockRepository) RestoreFromFile(arg0 *repository.MemStorageRepo) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RestoreFromFile", arg0)
 	ret0, _ := ret[0].(error)
@@ -137,7 +137,7 @@ func (mr *MockRepositoryMockRecorder) RestoreFromFile(arg0 interface{}) *gomock.
 }
 
 // SaveToFile mocks base method.
-func (m *MockRepository) SaveToFile(arg0 *repository.MemStorageRepository) error {
+func (m *MockRepository) SaveToFile(arg0 *repository.MemStorageRepo) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SaveToFile", arg0)
 	ret0, _ := ret[0].(error)

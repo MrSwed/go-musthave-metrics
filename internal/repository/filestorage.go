@@ -10,8 +10,8 @@ import (
 )
 
 type FileStorage interface {
-	SaveToFile(m *MemStorageRepository) error
-	RestoreFromFile(m *MemStorageRepository) error
+	SaveToFile(m *MemStorageRepo) error
+	RestoreFromFile(m *MemStorageRepo) error
 }
 
 type FileStorageRepo struct {
@@ -24,7 +24,7 @@ func NewFileStorageRepository(c *config.StorageConfig) *FileStorageRepo {
 	}
 }
 
-func (f *FileStorageRepo) RestoreFromFile(m *MemStorageRepository) (err error) {
+func (f *FileStorageRepo) RestoreFromFile(m *MemStorageRepo) (err error) {
 	if f.c.FileStoragePath == "" {
 		return fmt.Errorf("no storage file provided")
 	}
@@ -39,7 +39,7 @@ func (f *FileStorageRepo) RestoreFromFile(m *MemStorageRepository) (err error) {
 	return json.Unmarshal(data, &m)
 }
 
-func (f *FileStorageRepo) SaveToFile(m *MemStorageRepository) error {
+func (f *FileStorageRepo) SaveToFile(m *MemStorageRepo) error {
 	if f.c.FileStoragePath == "" {
 		return fmt.Errorf("no storage file provided")
 	}

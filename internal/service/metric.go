@@ -33,7 +33,9 @@ func (s *MetricsService) SetGauge(k string, v float64) (err error) {
 		return
 	}
 	if s.c.StoreInterval == 0 {
-		err = s.r.SaveToFile(s.r.MemStore())
+		if err = s.SaveToFile(); errors.Is(err, myErr.ErrNotMemMode) {
+			err = nil
+		}
 	}
 	return
 }
@@ -47,7 +49,9 @@ func (s *MetricsService) IncreaseCounter(k string, v int64) (err error) {
 			return
 		}
 		if s.c.StoreInterval == 0 {
-			err = s.r.SaveToFile(s.r.MemStore())
+			if err = s.SaveToFile(); errors.Is(err, myErr.ErrNotMemMode) {
+				err = nil
+			}
 		}
 
 		return
@@ -96,14 +100,29 @@ func (s *MetricsService) GetCountersHTMLPage() (html []byte, err error) {
 	return
 }
 
-func (s *MetricsService) SaveToFile() (err error) {
-	return s.r.SaveToFile(s.r.MemStore())
+func (s *MetricsService) SaveToFile() error {
+	if rs, ok := s.r.(repository.Storage); ok {
+		if rsM, ok := rs.DataStorage.(repository.MemStorage); ok {
+			return s.r.SaveToFile(rsM.MemStore())
+		}
+	}
+	return myErr.ErrNotMemMode
 }
 
-func (s *MetricsService) RestoreFromFile() (err error) {
-	return s.r.RestoreFromFile(s.r.MemStore())
+func (s *MetricsService) RestoreFromFile() error {
+	if rs, ok := s.r.(repository.Storage); ok {
+		if rsM, ok := rs.DataStorage.(repository.MemStorage); ok {
+			return s.r.RestoreFromFile(rsM.MemStore())
+		}
+	}
+	return myErr.ErrNotMemMode
 }
 
 func (s *MetricsService) CheckDB() error {
-	return s.r.Ping()
+	if rs, ok := s.r.(repository.Storage); ok {
+		if rsDB, ok := rs.DataStorage.(repository.DBStorage); ok {
+			return rsDB.Ping()
+		}
+	}
+	return myErr.ErrNoDBConnected
 }

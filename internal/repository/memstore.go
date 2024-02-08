@@ -7,13 +7,7 @@ import (
 )
 
 type MemStorage interface {
-	SetGauge(k string, v float64) error
-	SetCounter(k string, v int64) error
-	GetGauge(k string) (float64, error)
-	GetCounter(k string) (int64, error)
-	GetAllCounters() (map[string]int64, error)
-	GetAllGauges() (map[string]float64, error)
-	MemStore() *MemStorageRepository
+	MemStore() *MemStorageRepo
 }
 
 type MemStorageCounter struct {
@@ -26,37 +20,37 @@ type MemStorageGauge struct {
 	mg    sync.RWMutex
 }
 
-type MemStorageRepository struct {
+type MemStorageRepo struct {
 	MemStorageCounter
 	MemStorageGauge
 }
 
-func NewMemRepository() *MemStorageRepository {
-	return &MemStorageRepository{
+func NewMemRepository() *MemStorageRepo {
+	return &MemStorageRepo{
 		MemStorageCounter: MemStorageCounter{Counter: map[string]int64{}},
 		MemStorageGauge:   MemStorageGauge{Gauge: map[string]float64{}},
 	}
 }
 
-func (m *MemStorageRepository) MemStore() *MemStorageRepository {
+func (m *MemStorageRepo) MemStore() *MemStorageRepo {
 	return m
 }
 
-func (m *MemStorageRepository) SetGauge(k string, v float64) (err error) {
+func (m *MemStorageRepo) SetGauge(k string, v float64) (err error) {
 	m.mg.Lock()
 	defer m.mg.Unlock()
 	m.Gauge[k] = v
 	return
 }
 
-func (m *MemStorageRepository) SetCounter(k string, v int64) (err error) {
+func (m *MemStorageRepo) SetCounter(k string, v int64) (err error) {
 	m.mc.Lock()
 	defer m.mc.Unlock()
 	m.Counter[k] = v
 	return
 }
 
-func (m *MemStorageRepository) GetGauge(k string) (v float64, err error) {
+func (m *MemStorageRepo) GetGauge(k string) (v float64, err error) {
 	var ok bool
 	m.mg.RLock()
 	defer m.mg.RUnlock()
@@ -66,7 +60,7 @@ func (m *MemStorageRepository) GetGauge(k string) (v float64, err error) {
 	return
 }
 
-func (m *MemStorageRepository) GetCounter(k string) (v int64, err error) {
+func (m *MemStorageRepo) GetCounter(k string) (v int64, err error) {
 	var ok bool
 	m.mc.RLock()
 	defer m.mc.RUnlock()
@@ -76,12 +70,12 @@ func (m *MemStorageRepository) GetCounter(k string) (v int64, err error) {
 	return
 }
 
-func (m *MemStorageRepository) GetAllGauges() (map[string]float64, error) {
+func (m *MemStorageRepo) GetAllGauges() (map[string]float64, error) {
 	var err error
 	return m.Gauge, err
 }
 
-func (m *MemStorageRepository) GetAllCounters() (map[string]int64, error) {
+func (m *MemStorageRepo) GetAllCounters() (map[string]int64, error) {
 	var err error
 	return m.Counter, err
 }
