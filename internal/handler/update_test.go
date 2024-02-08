@@ -3,41 +3,29 @@ package handler
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
+	"go.uber.org/zap"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/MrSwed/go-musthave-metrics/internal/config"
-	mocks "github.com/MrSwed/go-musthave-metrics/internal/mock/repository"
+	"github.com/MrSwed/go-musthave-metrics/internal/repository"
 	"github.com/MrSwed/go-musthave-metrics/internal/service"
 
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 )
 
 func TestUpdateMetric(t *testing.T) {
 	conf := config.NewConfig()
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	repo := mocks.NewMockRepository(ctrl)
-
+	repo := repository.NewRepository(&conf.StorageConfig, nil)
 	s := service.NewService(repo, &conf.StorageConfig)
 	logger, _ := zap.NewDevelopment()
 	h := NewHandler(s, logger).Handler()
+
 	ts := httptest.NewServer(h)
 	defer ts.Close()
-
-	testCounter := int64(1)
-	testGauge := 1.0001
-
-	_ = repo.EXPECT().SetGauge(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-	_ = repo.EXPECT().SetCounter(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-	_ = repo.EXPECT().GetCounter(gomock.Any()).Return(testCounter, nil).AnyTimes()
-	_ = repo.EXPECT().GetGauge(gomock.Any()).Return(testGauge, nil).AnyTimes()
 
 	type want struct {
 		code        int
@@ -54,7 +42,7 @@ func TestUpdateMetric(t *testing.T) {
 		want want
 	}{
 		{
-			name: "SaveToFile counter. Ok",
+			name: "Save counter. Ok",
 			args: args{
 				method: http.MethodPost,
 				path:   "/update/counter/testCounter/1",
@@ -66,7 +54,7 @@ func TestUpdateMetric(t *testing.T) {
 			},
 		},
 		{
-			name: "SaveToFile gauge. Ok",
+			name: "Save gauge. Ok",
 			args: args{
 				method: http.MethodPost,
 				path:   "/update/gauge/testGauge/1.1",
@@ -78,7 +66,7 @@ func TestUpdateMetric(t *testing.T) {
 			},
 		},
 		{
-			name: "SaveToFile gauge 2. Ok",
+			name: "Save gauge 2. Ok",
 			args: args{
 				method: http.MethodPost,
 				path:   "/update/gauge/testGauge/0.0001",
@@ -223,23 +211,13 @@ func TestUpdateMetric(t *testing.T) {
 
 func TestHandler_UpdateMetricJson(t *testing.T) {
 	conf := config.NewConfig()
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	repo := mocks.NewMockRepository(ctrl)
-
+	repo := repository.NewRepository(&conf.StorageConfig, nil)
 	s := service.NewService(repo, &conf.StorageConfig)
 	logger, _ := zap.NewDevelopment()
 	h := NewHandler(s, logger).Handler()
+
 	ts := httptest.NewServer(h)
 	defer ts.Close()
-
-	testCounter := int64(1)
-	testGauge := 1.0001
-
-	_ = repo.EXPECT().SetGauge(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-	_ = repo.EXPECT().SetCounter(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-	_ = repo.EXPECT().GetCounter(gomock.Any()).Return(testCounter, nil).AnyTimes()
-	_ = repo.EXPECT().GetGauge(gomock.Any()).Return(testGauge, nil).AnyTimes()
 
 	type want struct {
 		code        int
@@ -257,13 +235,13 @@ func TestHandler_UpdateMetricJson(t *testing.T) {
 		want want
 	}{
 		{
-			name: "SaveToFile counter. Ok",
+			name: "Save counter. Ok",
 			args: args{
 				method: http.MethodPost,
 				body: map[string]interface{}{
 					"id":    "testCounter",
 					"type":  "counter",
-					"delta": testCounter,
+					"delta": 1,
 				},
 			},
 			want: want{
@@ -273,34 +251,34 @@ func TestHandler_UpdateMetricJson(t *testing.T) {
 			},
 		},
 		{
-			name: "SaveToFile gauge. Ok",
+			name: "Save gauge. Ok",
 			args: args{
 				method: http.MethodPost,
 				body: map[string]interface{}{
 					"id":    "testGauge",
 					"type":  "gauge",
-					"value": testGauge,
+					"value": 1.1,
 				},
 			},
 			want: want{
 				code:        http.StatusOK,
-				response:    fmt.Sprintf(`{"id":"testGauge","type":"gauge","value":%0.4f}`, testGauge),
+				response:    `{"id":"testGauge","type":"gauge","value":1.1}`,
 				contentType: "application/json; charset=utf-8",
 			},
 		},
 		{
-			name: "SaveToFile gauge 2. Ok",
+			name: "Save gauge 2. Ok",
 			args: args{
 				method: http.MethodPost,
 				body: map[string]interface{}{
 					"id":    "testGauge2",
 					"type":  "gauge",
-					"value": testGauge,
+					"value": 0.0001,
 				},
 			},
 			want: want{
 				code:        http.StatusOK,
-				response:    fmt.Sprintf(`{"id":"testGauge2","type":"gauge","value":%0.4f}`, testGauge),
+				response:    `{"id":"testGauge2","type":"gauge","value":0.0001}`,
 				contentType: "application/json; charset=utf-8",
 			},
 		},

@@ -94,34 +94,6 @@ func (mr *MockRepositoryMockRecorder) GetGauge(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGauge", reflect.TypeOf((*MockRepository)(nil).GetGauge), arg0)
 }
 
-// MemStore mocks base method.
-func (m *MockRepository) MemStore() *repository.MemStorageRepo {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "MemStore")
-	ret0, _ := ret[0].(*repository.MemStorageRepo)
-	return ret0
-}
-
-// MemStore indicates an expected call of MemStore.
-func (mr *MockRepositoryMockRecorder) MemStore() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MemStore", reflect.TypeOf((*MockRepository)(nil).MemStore))
-}
-
-// Ping mocks base method.
-func (m *MockRepository) Ping() error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Ping")
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Ping indicates an expected call of Ping.
-func (mr *MockRepositoryMockRecorder) Ping() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Ping", reflect.TypeOf((*MockRepository)(nil).Ping))
-}
-
 // RestoreFromFile mocks base method.
 func (m *MockRepository) RestoreFromFile(arg0 *repository.MemStorageRepo) error {
 	m.ctrl.T.Helper()
