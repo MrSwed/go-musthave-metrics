@@ -45,17 +45,20 @@ func (r *DBStorageRepo) Ping() error {
 }
 
 func (r *DBStorageRepo) SetGauge(k string, v float64) (err error) {
-	_, err = r.db.Exec("insert into"+" "+config.DBTableNameGauges+" (name, value) values ($1, $2)", k, v)
+	_, err = r.db.Exec(`INSERT into `+config.DBTableNameGauges+
+		` (name, value) values ($1, $2) ON CONFLICT (name) DO UPDATE SET value = EXCLUDED.value`, k, v)
 	return
 }
 
 func (r *DBStorageRepo) SetCounter(k string, v int64) (err error) {
-	_, err = r.db.Exec(`INSERT into `+config.DBTableNameCounters+` (name, value) values ($1, $2)`, k, v)
+	_, err = r.db.Exec(`INSERT into `+config.DBTableNameCounters+
+		` (name, value) values ($1, $2) ON CONFLICT (name) DO UPDATE SET value = EXCLUDED.value`, k, v)
 	return
 }
 
 func (r *DBStorageRepo) GetGauge(k string) (v float64, err error) {
-	err = r.db.Get(&v, `SELECT value FROM `+" "+config.DBTableNameGauges+" WHERE name = $1", k)
+	err = r.db.Get(&v, `SELECT value FROM `+config.DBTableNameGauges+
+		` WHERE name = $1`, k)
 	if errors.Is(err, sql.ErrNoRows) {
 		err = myErr.ErrNotExist
 	}

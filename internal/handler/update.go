@@ -27,6 +27,7 @@ func (h *Handler) UpdateMetric() func(w http.ResponseWriter, r *http.Request) {
 				if err = h.s.SetGauge(metricKey, v); err != nil {
 					w.WriteHeader(http.StatusInternalServerError)
 					h.log.Error("Error set gauge", zap.Error(err))
+					return
 				}
 			}
 		case config.MetricTypeCounter:
@@ -40,6 +41,7 @@ func (h *Handler) UpdateMetric() func(w http.ResponseWriter, r *http.Request) {
 				if err = h.s.IncreaseCounter(metricKey, v); err != nil {
 					w.WriteHeader(http.StatusInternalServerError)
 					h.log.Error("Error set counter", zap.Error(err))
+					return
 				}
 			}
 		default:
@@ -82,6 +84,7 @@ func (h *Handler) UpdateMetricJSON() func(w http.ResponseWriter, r *http.Request
 				if err = h.s.SetGauge(metric.ID, *metric.Value); err != nil {
 					w.WriteHeader(http.StatusInternalServerError)
 					h.log.Error("Error set gauge", zap.Error(err))
+					return
 				}
 			}
 		case config.MetricTypeCounter:
@@ -95,6 +98,7 @@ func (h *Handler) UpdateMetricJSON() func(w http.ResponseWriter, r *http.Request
 				if err = h.s.IncreaseCounter(metric.ID, *metric.Delta); err != nil {
 					w.WriteHeader(http.StatusInternalServerError)
 					h.log.Error("Error set counter", zap.Error(err))
+					return
 				}
 				if count, err := h.s.GetCounter(metric.ID); err != nil {
 					w.WriteHeader(http.StatusInternalServerError)
