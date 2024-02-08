@@ -26,7 +26,7 @@ type Storage struct {
 	FileStorage
 }
 
-func NewRepository(c *config.StorageConfig, db *sqlx.DB) (s Storage, err error) {
+func NewRepository(c *config.StorageConfig, db *sqlx.DB) (s Storage) {
 	if db != nil {
 		s = Storage{
 			DataStorage: NewDBStorageRepository(db),

@@ -57,10 +57,7 @@ func main() {
 
 	}
 
-	r, err := repository.NewRepository(&conf.StorageConfig, db)
-	if err != nil {
-		logger.Fatal("repository init error", zap.Error(err))
-	}
+	r := repository.NewRepository(&conf.StorageConfig, db)
 	s := service.NewService(r, &conf.StorageConfig)
 	h := handler.NewHandler(s, logger)
 
