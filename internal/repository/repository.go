@@ -2,6 +2,7 @@ package repository
 
 import (
 	"github.com/MrSwed/go-musthave-metrics/internal/config"
+	"github.com/MrSwed/go-musthave-metrics/internal/domain"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -14,6 +15,7 @@ type DataStorage interface {
 	GetCounter(k string) (int64, error)
 	GetAllCounters() (map[string]int64, error)
 	GetAllGauges() (map[string]float64, error)
+	SetMetrics(metrics []domain.Metric) ([]domain.Metric, error)
 }
 
 type Repository interface {

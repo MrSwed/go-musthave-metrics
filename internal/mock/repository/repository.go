@@ -7,6 +7,7 @@ package mock
 import (
 	reflect "reflect"
 
+	domain "github.com/MrSwed/go-musthave-metrics/internal/domain"
 	repository "github.com/MrSwed/go-musthave-metrics/internal/repository"
 	gomock "github.com/golang/mock/gomock"
 )
@@ -148,4 +149,19 @@ func (m *MockRepository) SetGauge(arg0 string, arg1 float64) error {
 func (mr *MockRepositoryMockRecorder) SetGauge(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetGauge", reflect.TypeOf((*MockRepository)(nil).SetGauge), arg0, arg1)
+}
+
+// SetMetrics mocks base method.
+func (m *MockRepository) SetMetrics(arg0 []domain.Metric) ([]domain.Metric, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetMetrics", arg0)
+	ret0, _ := ret[0].([]domain.Metric)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SetMetrics indicates an expected call of SetMetrics.
+func (mr *MockRepositoryMockRecorder) SetMetrics(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetMetrics", reflect.TypeOf((*MockRepository)(nil).SetMetrics), arg0)
 }

@@ -1,6 +1,9 @@
 package repository
 
 import (
+	"errors"
+	"github.com/MrSwed/go-musthave-metrics/internal/config"
+	"github.com/MrSwed/go-musthave-metrics/internal/domain"
 	"sync"
 
 	myErr "github.com/MrSwed/go-musthave-metrics/internal/errors"
@@ -78,4 +81,31 @@ func (r *MemStorageRepo) GetAllGauges() (map[string]float64, error) {
 func (r *MemStorageRepo) GetAllCounters() (map[string]int64, error) {
 	var err error
 	return r.Counter, err
+}
+
+func (r *MemStorageRepo) SetMetrics(metrics []domain.Metric) (newMetrics []domain.Metric, err error) {
+	for _, metric := range metrics {
+		switch metric.MType {
+		case config.MetricTypeGauge:
+			if err = r.SetGauge(metric.ID, *metric.Value); err != nil {
+				return
+			}
+			newMetrics = append(newMetrics, metric)
+		case config.MetricTypeCounter:
+			var current int64
+			if current, err = r.GetCounter(metric.ID); err != nil && !errors.Is(err, myErr.ErrNotExist) {
+				return
+			}
+			delta := current + *metric.Delta
+			if err = r.SetCounter(metric.ID, delta); err != nil {
+				return
+			}
+			newMetrics = append(newMetrics, domain.Metric{
+				ID:    metric.ID,
+				MType: metric.MType,
+				Delta: &delta,
+			})
+		}
+	}
+	return
 }

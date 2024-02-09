@@ -42,6 +42,9 @@ func (h *Handler) Handler() http.Handler {
 			h.UpdateMetric())
 		r.Post("/", h.UpdateMetricJSON())
 	})
+	h.r.Route(config.UpdatesRoute, func(r chi.Router) {
+		r.Post("/", h.UpdateMetrics())
+	})
 
 	h.r.Route(config.ValueRoute, func(r chi.Router) {
 		r.Get(fmt.Sprintf("/{%s}/{%s}",

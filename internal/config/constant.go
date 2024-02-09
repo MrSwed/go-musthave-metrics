@@ -19,6 +19,7 @@ const (
 	envNameDBDSN           = "DATABASE_DSN"
 
 	UpdateRoute      = "/update"
+	UpdatesRoute     = "/updates"
 	ValueRoute       = "/value"
 	MetricTypeParam  = "metricType"
 	MetricNameParam  = "metricName"

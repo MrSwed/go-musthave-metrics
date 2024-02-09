@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/MrSwed/go-musthave-metrics/internal/config"
+	"github.com/MrSwed/go-musthave-metrics/internal/domain"
 	myErr "github.com/MrSwed/go-musthave-metrics/internal/errors"
 	"github.com/jmoiron/sqlx"
 )
@@ -110,5 +111,52 @@ func (r *DBStorageRepo) GetAllGauges() (data map[string]float64, err error) {
 		}
 		data[item.Name] = item.Value
 	}
+	return
+}
+
+func (r *DBStorageRepo) SetMetrics(metrics []domain.Metric) (newMetrics []domain.Metric, err error) {
+	var tx *sqlx.Tx
+	tx, err = r.db.Beginx()
+	if err != nil {
+		return
+	}
+	defer func() {
+		rErr := tx.Rollback()
+		if rErr != nil && !errors.Is(rErr, sql.ErrTxDone) {
+			err = errors.Join(err, rErr)
+		}
+	}()
+	var stmtG, stmtC *sqlx.Stmt
+	if stmtG, err = tx.Preparex("INSERT INTO " + config.DBTableNameGauges +
+		" (name, value) VALUES($1, $2) ON CONFLICT (name) DO UPDATE SET value = EXCLUDED.value"); err != nil {
+		return
+	}
+	if stmtC, err = tx.Preparex("INSERT INTO " + config.DBTableNameCounters + " as c " +
+		" (name, value) VALUES($1, $2) " +
+		"ON CONFLICT (name) DO UPDATE SET value = c.value + EXCLUDED.value " +
+		"RETURNING c.value"); err != nil {
+		return
+	}
+	defer func() {
+		err = errors.Join(err, stmtG.Close())
+		err = errors.Join(err, stmtC.Close())
+	}()
+
+	for _, metric := range metrics {
+		switch metric.MType {
+		case config.MetricTypeGauge:
+			if _, err = stmtG.Exec(metric.ID, *metric.Value); err != nil {
+				return
+			}
+			newMetrics = append(newMetrics, metric)
+		case config.MetricTypeCounter:
+			newMetric := metric
+			if err = stmtC.Get(newMetric.Delta, metric.ID, *metric.Delta); err != nil {
+				return
+			}
+			newMetrics = append(newMetrics, newMetric)
+		}
+	}
+	err = tx.Commit()
 	return
 }

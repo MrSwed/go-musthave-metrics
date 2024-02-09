@@ -99,3 +99,40 @@ func (h *Handler) UpdateMetricJSON() func(w http.ResponseWriter, r *http.Request
 		}
 	}
 }
+
+func (h *Handler) UpdateMetrics() func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var metrics []domain.Metric
+		err := json.NewDecoder(r.Body).Decode(&metrics)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			if _, err := w.Write([]byte("Bad input json")); err != nil {
+				h.log.Error("Error return answer", zap.Error(err))
+			}
+			return
+		}
+		if metrics, err = h.s.SetMetrics(metrics); err != nil {
+			if errors.As(err, &validator.ValidationErrors{}) {
+				w.WriteHeader(http.StatusBadRequest)
+				if _, err := w.Write([]byte("Bad input data: " + err.Error())); err != nil {
+					h.log.Error("Error return answer", zap.Error(err))
+				}
+			} else {
+				h.log.Error("Error set metric", zap.Error(err))
+				w.WriteHeader(http.StatusInternalServerError)
+			}
+			return
+		}
+		var out []byte
+		if out, err = json.Marshal(metrics); err != nil {
+			h.log.Error("Error marshal metrics", zap.Error(err))
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		if _, err := w.Write(out); err != nil {
+			h.log.Error("Error return answer", zap.Error(err))
+		}
+	}
+}

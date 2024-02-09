@@ -6,3 +6,7 @@ type Metric struct {
 	Delta *int64   `json:"delta,omitempty" validate:"required_if=MType counter,omitempty"`
 	Value *float64 `json:"value,omitempty" validate:"required_if=MType gauge,omitempty"`
 }
+
+type ValidateMetrics struct {
+	Metrics []Metric `validate:"required,gt=0,dive"`
+}

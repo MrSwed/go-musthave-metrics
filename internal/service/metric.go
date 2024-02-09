@@ -19,7 +19,8 @@ type Metrics interface {
 	SaveToFile() error
 	RestoreFromFile() error
 	CheckDB() error
-	SetMetric(m domain.Metric) (domain.Metric, error)
+	SetMetric(metric domain.Metric) (domain.Metric, error)
+	SetMetrics(metrics []domain.Metric) ([]domain.Metric, error)
 }
 
 type MetricsService struct {
@@ -153,4 +154,13 @@ func (s *MetricsService) SetMetric(metric domain.Metric) (rm domain.Metric, err 
 	}
 	rm = metric
 	return
+}
+
+func (s *MetricsService) SetMetrics(metrics []domain.Metric) (rMetrics []domain.Metric, err error) {
+	validate := validator.New()
+	if err = validate.Struct(domain.ValidateMetrics{Metrics: metrics}); err != nil {
+		return
+	}
+
+	return s.r.SetMetrics(metrics)
 }

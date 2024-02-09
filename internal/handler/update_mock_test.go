@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/MrSwed/go-musthave-metrics/internal/domain"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -424,6 +425,211 @@ func TestMockUpdateMetricJson(t *testing.T) {
 			require.NoError(t, err)
 
 			req, err := http.NewRequest(test.args.method, ts.URL+config.UpdateRoute, b)
+			require.NoError(t, err)
+			defer req.Context()
+
+			res, err := http.DefaultClient.Do(req)
+			var resBody []byte
+
+			// проверяем код ответа
+			require.Equal(t, test.want.code, res.StatusCode)
+			func() {
+				defer func(Body io.ReadCloser) {
+					err := Body.Close()
+					require.NoError(t, err)
+				}(res.Body)
+				resBody, err = io.ReadAll(res.Body)
+				require.NoError(t, err)
+			}()
+
+			if test.want.code == http.StatusOK {
+				assert.Equal(t, test.want.response, string(resBody))
+				assert.Equal(t, test.want.contentType, res.Header.Get("Content-Type"))
+			}
+		})
+	}
+}
+
+func TestMockUpdateMetrics(t *testing.T) {
+	conf := config.NewConfig()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	repo := mocks.NewMockRepository(ctrl)
+
+	s := service.NewService(repo, &conf.StorageConfig)
+	logger, _ := zap.NewDevelopment()
+	h := NewHandler(s, logger).Handler()
+
+	ts := httptest.NewServer(h)
+	defer ts.Close()
+
+	testCounter := int64(1)
+	testGauge := 100.0015
+
+	metrics := []domain.Metric{
+		{
+			ID:    "testCounter",
+			MType: "counter",
+			Delta: &testCounter,
+		},
+		{
+			ID:    "testGauge",
+			MType: "gauge",
+			Value: &testGauge,
+		},
+	}
+	_ = repo.EXPECT().SetMetrics(metrics).Return(metrics, nil).AnyTimes()
+
+	type want struct {
+		code        int
+		response    string
+		contentType string
+	}
+
+	type args struct {
+		method string
+		body   interface{}
+	}
+	tests := []struct {
+		name string
+		args args
+		want want
+	}{
+		{
+			name: "Save. Ok",
+			args: args{
+				method: http.MethodPost,
+				body: []map[string]interface{}{
+					{
+						"id":    "testCounter",
+						"type":  "counter",
+						"delta": 1,
+					},
+					{
+						"id":    "testGauge",
+						"type":  "gauge",
+						"value": 100.0015,
+					},
+				},
+			},
+			want: want{
+				code:        http.StatusOK,
+				response:    `[{"id":"testCounter","type":"counter","delta":1},{"id":"testGauge","type":"gauge","value":100.0015}]`,
+				contentType: "application/json; charset=utf-8",
+			},
+		},
+		{
+			name: "Bad metric type",
+			args: args{
+				method: http.MethodPost,
+				body: []map[string]interface{}{
+					{
+						"id":    "testCounter",
+						"type":  "unknownType",
+						"delta": 1,
+					},
+					{
+						"id":    "testGauge",
+						"type":  "gauge",
+						"value": 100.0015,
+					},
+				},
+			},
+			want: want{
+				code: http.StatusBadRequest,
+			},
+		},
+		{
+			name: "No type",
+			args: args{
+				method: http.MethodPost,
+				body: []map[string]interface{}{
+					{
+						"id":    "testCounter",
+						"delta": 1,
+					},
+					{
+						"id":    "testGauge",
+						"type":  "gauge",
+						"value": 100.0015,
+					},
+				},
+			},
+			want: want{
+				code: http.StatusBadRequest,
+			},
+		},
+		{
+			name: "Bad counter 2 (float)",
+			args: args{
+				method: http.MethodPost,
+				body: []map[string]interface{}{
+					{
+						"id":    "testCounter",
+						"type":  "unknownType",
+						"delta": 1.1,
+					},
+					{
+						"id":    "testGauge",
+						"type":  "gauge",
+						"value": 100.0015,
+					},
+				},
+			},
+			want: want{
+				code: http.StatusBadRequest,
+			},
+		},
+		{
+			name: "Bad value",
+			args: args{
+				method: http.MethodPost,
+				body: []map[string]interface{}{
+					{
+						"id":    "testCounter",
+						"type":  "unknownType",
+						"delta": "ddd",
+					},
+					{
+						"id":    "testGauge",
+						"type":  "gauge",
+						"value": "ddd",
+					},
+				},
+			},
+			want: want{
+				code: http.StatusBadRequest,
+			},
+		},
+		{
+			name: "Wrong types",
+			args: args{
+				method: http.MethodPost,
+				body: []map[string]interface{}{
+					{
+						"id":    "testCounter",
+						"type":  "gauge",
+						"delta": 1,
+					},
+					{
+						"id":    "testGauge",
+						"type":  "counter",
+						"value": 100.0015,
+					},
+				},
+			},
+			want: want{
+				code: http.StatusBadRequest,
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			b := new(bytes.Buffer)
+			err := json.NewEncoder(b).Encode(test.args.body)
+			require.NoError(t, err)
+
+			req, err := http.NewRequest(test.args.method, ts.URL+config.UpdatesRoute, b)
 			require.NoError(t, err)
 			defer req.Context()
 
