@@ -325,6 +325,19 @@ func TestHandler_UpdateMetricJson(t *testing.T) {
 			},
 		},
 		{
+			name: "No type",
+			args: args{
+				method: http.MethodPost,
+				body: map[string]interface{}{
+					"id":    "testCounter",
+					"delta": 100,
+				},
+			},
+			want: want{
+				code: http.StatusBadRequest,
+			},
+		},
+		{
 			name: "Bad counter 2 (float)",
 			args: args{
 				method: http.MethodPost,
