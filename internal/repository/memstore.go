@@ -32,50 +32,50 @@ func NewMemRepository() *MemStorageRepo {
 	}
 }
 
-func (m *MemStorageRepo) MemStore() *MemStorageRepo {
-	return m
+func (r *MemStorageRepo) MemStore() *MemStorageRepo {
+	return r
 }
 
-func (m *MemStorageRepo) SetGauge(k string, v float64) (err error) {
-	m.mg.Lock()
-	defer m.mg.Unlock()
-	m.Gauge[k] = v
+func (r *MemStorageRepo) SetGauge(k string, v float64) (err error) {
+	r.mg.Lock()
+	defer r.mg.Unlock()
+	r.Gauge[k] = v
 	return
 }
 
-func (m *MemStorageRepo) SetCounter(k string, v int64) (err error) {
-	m.mc.Lock()
-	defer m.mc.Unlock()
-	m.Counter[k] = v
+func (r *MemStorageRepo) SetCounter(k string, v int64) (err error) {
+	r.mc.Lock()
+	defer r.mc.Unlock()
+	r.Counter[k] = v
 	return
 }
 
-func (m *MemStorageRepo) GetGauge(k string) (v float64, err error) {
+func (r *MemStorageRepo) GetGauge(k string) (v float64, err error) {
 	var ok bool
-	m.mg.RLock()
-	defer m.mg.RUnlock()
-	if v, ok = m.Gauge[k]; !ok {
+	r.mg.RLock()
+	defer r.mg.RUnlock()
+	if v, ok = r.Gauge[k]; !ok {
 		err = myErr.ErrNotExist
 	}
 	return
 }
 
-func (m *MemStorageRepo) GetCounter(k string) (v int64, err error) {
+func (r *MemStorageRepo) GetCounter(k string) (v int64, err error) {
 	var ok bool
-	m.mc.RLock()
-	defer m.mc.RUnlock()
-	if v, ok = m.Counter[k]; !ok {
+	r.mc.RLock()
+	defer r.mc.RUnlock()
+	if v, ok = r.Counter[k]; !ok {
 		err = myErr.ErrNotExist
 	}
 	return
 }
 
-func (m *MemStorageRepo) GetAllGauges() (map[string]float64, error) {
+func (r *MemStorageRepo) GetAllGauges() (map[string]float64, error) {
 	var err error
-	return m.Gauge, err
+	return r.Gauge, err
 }
 
-func (m *MemStorageRepo) GetAllCounters() (map[string]int64, error) {
+func (r *MemStorageRepo) GetAllCounters() (map[string]int64, error) {
 	var err error
-	return m.Counter, err
+	return r.Counter, err
 }
