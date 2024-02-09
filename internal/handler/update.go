@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -68,41 +69,22 @@ func (h *Handler) UpdateMetricJSON() func(w http.ResponseWriter, r *http.Request
 		err := json.NewDecoder(r.Body).Decode(&metric)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			if _, err := w.Write([]byte("Bad metric id or type")); err != nil {
+			if _, err := w.Write([]byte("Bad input json")); err != nil {
 				h.log.Error("Error return answer", zap.Error(err))
 			}
 			return
 		}
-		validate := validator.New()
-
-		if errValidate := validate.Struct(metric); errValidate != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			if _, err := w.Write([]byte("Bad input data: " + errValidate.Error())); err != nil {
-				h.log.Error("Error return answer", zap.Error(err))
-			}
-			return
-		}
-
-		switch metric.MType {
-		case config.MetricTypeGauge:
-			if err = h.s.SetGauge(metric.ID, *metric.Value); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				h.log.Error("Error set gauge", zap.Error(err))
-				return
-			}
-		case config.MetricTypeCounter:
-			if err = h.s.IncreaseCounter(metric.ID, *metric.Delta); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				h.log.Error("Error set counter", zap.Error(err))
-				return
-			}
-			if count, err := h.s.GetCounter(metric.ID); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				h.log.Error("Error get counter", zap.Error(err))
-				return
+		if metric, err = h.s.SetMetric(metric); err != nil {
+			if errors.As(err, &validator.ValidationErrors{}) {
+				w.WriteHeader(http.StatusBadRequest)
+				if _, err := w.Write([]byte("Bad input data: " + err.Error())); err != nil {
+					h.log.Error("Error return answer", zap.Error(err))
+				}
 			} else {
-				metric.Delta = &count
+				h.log.Error("Error set metric", zap.Error(err))
+				w.WriteHeader(http.StatusInternalServerError)
 			}
+			return
 		}
 		var out []byte
 		if out, err = json.Marshal(metric); err != nil {

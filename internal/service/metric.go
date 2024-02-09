@@ -3,9 +3,11 @@ package service
 import (
 	"errors"
 	"github.com/MrSwed/go-musthave-metrics/internal/config"
+	"github.com/MrSwed/go-musthave-metrics/internal/domain"
 	myErr "github.com/MrSwed/go-musthave-metrics/internal/errors"
 	"github.com/MrSwed/go-musthave-metrics/internal/helper"
 	"github.com/MrSwed/go-musthave-metrics/internal/repository"
+	"github.com/go-playground/validator/v10"
 )
 
 type Metrics interface {
@@ -17,6 +19,7 @@ type Metrics interface {
 	SaveToFile() error
 	RestoreFromFile() error
 	CheckDB() error
+	SetMetric(m domain.Metric) (domain.Metric, error)
 }
 
 type MetricsService struct {
@@ -125,4 +128,29 @@ func (s *MetricsService) CheckDB() error {
 		}
 	}
 	return myErr.ErrNoDBConnected
+}
+
+func (s *MetricsService) SetMetric(metric domain.Metric) (rm domain.Metric, err error) {
+	validate := validator.New()
+	if err = validate.Struct(metric); err != nil {
+		return
+	}
+	switch metric.MType {
+	case config.MetricTypeGauge:
+		if err = s.SetGauge(metric.ID, *metric.Value); err != nil {
+			return
+		}
+	case config.MetricTypeCounter:
+		if err = s.IncreaseCounter(metric.ID, *metric.Delta); err != nil {
+			return
+		}
+		var count int64
+		if count, err = s.GetCounter(metric.ID); err != nil {
+			return
+		} else {
+			metric.Delta = &count
+		}
+	}
+	rm = metric
+	return
 }
