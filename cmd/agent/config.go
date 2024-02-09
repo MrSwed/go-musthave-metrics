@@ -17,8 +17,12 @@ type config struct {
 	serverAddress  string
 	reportInterval int
 	pollInterval   int
-	gaugesList     []string
-	countersList   []string
+	metricLists
+}
+
+type metricLists struct {
+	GaugesList   []string `type:"gauge"`
+	CountersList []string `type:"counter"`
 }
 
 func (c *config) parseFlags() {
@@ -47,9 +51,9 @@ func (c *config) getEnv() {
 
 func (c *config) setGaugesList(m ...string) {
 	if len(m) > 0 {
-		c.gaugesList = m
+		c.GaugesList = m
 	} else {
-		c.gaugesList = []string{
+		c.GaugesList = []string{
 			"Alloc",
 			"BuckHashSys",
 			"Frees",
@@ -84,9 +88,9 @@ func (c *config) setGaugesList(m ...string) {
 
 func (c *config) setCountersList(m ...string) {
 	if len(m) > 0 {
-		c.countersList = m
+		c.CountersList = m
 	} else {
-		c.countersList = []string{
+		c.CountersList = []string{
 			"PollCount",
 		}
 	}

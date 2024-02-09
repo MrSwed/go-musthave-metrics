@@ -81,12 +81,25 @@ func (m *metricsCollects) sendOneMetric(serverAddress, t, k string) (err error) 
 	return
 }
 
-func (m *metricsCollects) sendMetrics(serverAddress, metricType string, list []string) (errs []error) {
-	for _, mName := range list {
-		if err := m.sendOneMetric(serverAddress, metricType, mName); err != nil {
-			errs = append(errs, err)
+func (m *metricsCollects) sendMetrics(serverAddress string, lists metricLists) (errs []error) {
+	lRefVal := reflect.ValueOf(lists)
+	lRefType := reflect.TypeOf(lists)
+	var mType string
+	for i := 0; i < lRefVal.NumField(); i++ {
+		if mType = lRefType.Field(i).Tag.Get("type"); mType == "" {
+			continue
+		}
+		lItemRef := reflect.Indirect(lRefVal.Field(i))
+		if !lItemRef.IsValid() {
+			continue
+		}
+		if list, ok := lItemRef.Interface().([]string); ok {
+			for _, mName := range list {
+				if err := m.sendOneMetric(serverAddress, mType, mName); err != nil {
+					errs = append(errs, err)
+				}
+			}
 		}
 	}
-
 	return
 }

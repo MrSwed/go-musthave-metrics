@@ -53,15 +53,10 @@ func main() {
 		for {
 			select {
 			case <-time.After(time.Duration(conf.reportInterval) * time.Second):
-				if errs := m.sendMetrics(conf.serverAddress, gaugeType, conf.gaugesList); errs != nil {
+				if errs := m.sendMetrics(conf.serverAddress, conf.metricLists); errs != nil {
 					log.Println(errors.Join(errs...))
 				} else {
-					log.Printf("%d Gauges metrics sent", len(conf.gaugesList))
-				}
-				if errs := m.sendMetrics(conf.serverAddress, counterType, conf.countersList); errs != nil {
-					log.Println(errors.Join(errs...))
-				} else {
-					log.Printf("%d Counter metrics sent", len(conf.countersList))
+					log.Printf("%d metrics sent", len(conf.GaugesList))
 				}
 			case <-ctx.Done():
 				log.Println("Metrics sender is stopped")
