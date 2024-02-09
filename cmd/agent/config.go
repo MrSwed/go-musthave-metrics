@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	baseURL     = "/update"
+	baseURL     = "/updates"
 	gaugeType   = "gauge"
 	counterType = "counter"
 )

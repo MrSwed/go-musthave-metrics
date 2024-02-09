@@ -27,61 +27,15 @@ func (m *metricsCollects) getMetrics() {
 	m.RandomValue = rand.Float64()
 }
 
-func (m *metricsCollects) sendOneMetric(serverAddress, t, k string) (err error) {
-	var (
-		res       *http.Response
-		v         interface{}
-		oneMetric = newMetric(k, t)
-	)
-	dVal := reflect.Indirect(reflect.ValueOf(m))
-	if refV := dVal.FieldByName(k); refV.IsValid() {
-		m.m.RLock()
-		v = refV.Interface()
-		m.m.RUnlock()
-	} else {
-		err = fmt.Errorf("unknown metric name %s", k)
-		return
-	}
-	urlStr := fmt.Sprintf("%s%s", serverAddress, baseURL)
-
-	if err = oneMetric.set(v); err != nil {
-		return
-	}
-	var body []byte
-	if body, err = json.Marshal(oneMetric); err != nil {
-		return
-	}
-	compressedBody := new(bytes.Buffer)
-
-	zb := gzip.NewWriter(compressedBody)
-	if _, err = zb.Write(body); err != nil {
-		return
-	}
-	if err = zb.Close(); err != nil {
-		return
-	}
-	var req *http.Request
-	if req, err = http.NewRequest("POST", urlStr, compressedBody); err != nil {
-		return
-	}
-	//req.Header.Set("Accept-Encoding", "gzip")
-	req.Header.Set("Content-Encoding", "gzip")
-	req.Header.Set("Content-Type", "application/json; charset=utf-8")
-
-	if res, err = http.DefaultClient.Do(req); err != nil {
-		return
-	}
-	if err = res.Body.Close(); err != nil {
-		return
-	}
-	if res.StatusCode != http.StatusOK {
-		err = fmt.Errorf("post %s body %s: get StatusCode %d", urlStr, body, res.StatusCode)
-	}
-
-	return
-}
-
 func (m *metricsCollects) sendMetrics(serverAddress string, lists metricLists) (errs []error) {
+	var (
+		metrics []*metric
+		err     error
+	)
+
+	mRefVal := reflect.Indirect(reflect.ValueOf(m))
+	urlStr := serverAddress + baseURL
+
 	lRefVal := reflect.ValueOf(lists)
 	lRefType := reflect.TypeOf(lists)
 	var mType string
@@ -95,11 +49,65 @@ func (m *metricsCollects) sendMetrics(serverAddress string, lists metricLists) (
 		}
 		if list, ok := lItemRef.Interface().([]string); ok {
 			for _, mName := range list {
-				if err := m.sendOneMetric(serverAddress, mType, mName); err != nil {
-					errs = append(errs, err)
+				var (
+					v interface{}
+				)
+				if refV := mRefVal.FieldByName(mName); refV.IsValid() {
+					m.m.RLock()
+					v = refV.Interface()
+					m.m.RUnlock()
+				} else {
+					errs = append(errs, fmt.Errorf("unknown metric name %s", mName))
+					continue
 				}
+				oneMetric := newMetric(mName, mType)
+				if err := oneMetric.set(v); err != nil {
+					errs = append(errs, err)
+					continue
+				}
+				metrics = append(metrics, oneMetric)
 			}
 		}
 	}
+
+	var body []byte
+	if body, err = json.Marshal(metrics); err != nil {
+		errs = append(errs, err)
+		return
+	}
+	compressedBody := new(bytes.Buffer)
+
+	zb := gzip.NewWriter(compressedBody)
+	if _, err = zb.Write(body); err != nil {
+		errs = append(errs, err)
+
+		return
+	}
+
+	if err = zb.Close(); err != nil {
+		errs = append(errs, err)
+		return
+	}
+	var req *http.Request
+	if req, err = http.NewRequest("POST", urlStr, compressedBody); err != nil {
+		errs = append(errs, err)
+		return
+	}
+	req.Header.Set("Content-Encoding", "gzip")
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+
+	var res *http.Response
+	if res, err = http.DefaultClient.Do(req); err != nil {
+		errs = append(errs, err)
+		return
+	}
+	if err = res.Body.Close(); err != nil {
+		errs = append(errs, err)
+		return
+	}
+	if res.StatusCode != http.StatusOK {
+		errs = append(errs, fmt.Errorf("post %s body %s: get StatusCode %d", urlStr, body, res.StatusCode))
+	}
+
 	return
 }

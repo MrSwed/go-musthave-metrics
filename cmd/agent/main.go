@@ -56,7 +56,7 @@ func main() {
 				if errs := m.sendMetrics(conf.serverAddress, conf.metricLists); errs != nil {
 					log.Println(errors.Join(errs...))
 				} else {
-					log.Printf("%d metrics sent", len(conf.GaugesList))
+					log.Printf("%d metrics sent", len(conf.GaugesList)+len(conf.CountersList))
 				}
 			case <-ctx.Done():
 				log.Println("Metrics sender is stopped")
