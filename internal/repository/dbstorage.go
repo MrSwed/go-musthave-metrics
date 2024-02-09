@@ -75,7 +75,7 @@ func (r *DBStorageRepo) GetCounter(k string) (v int64, err error) {
 
 func (r *DBStorageRepo) GetAllCounters() (data map[string]int64, err error) {
 	var rows *sql.Rows
-	if rows, err = r.db.Query(`SELECT value FROM ` + config.DBTableNameCounters); err != nil {
+	if rows, err = r.db.Query(`SELECT name, value FROM ` + config.DBTableNameCounters); err != nil {
 		return
 	}
 	if err = rows.Err(); err != nil {
@@ -95,7 +95,7 @@ func (r *DBStorageRepo) GetAllCounters() (data map[string]int64, err error) {
 
 func (r *DBStorageRepo) GetAllGauges() (data map[string]float64, err error) {
 	var rows *sql.Rows
-	if rows, err = r.db.Query(`SELECT value FROM ` + config.DBTableNameCounters); err != nil {
+	if rows, err = r.db.Query(`SELECT name, value FROM ` + config.DBTableNameGauges); err != nil {
 		return
 	}
 	if err = rows.Err(); err != nil {

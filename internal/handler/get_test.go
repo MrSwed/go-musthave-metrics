@@ -405,7 +405,7 @@ func TestGetMetricJson(t *testing.T) {
 			defer req.Context()
 
 			res, err := http.DefaultClient.Do(req)
-			require.NoError(t, err, fmt.Sprint("request error"))
+			require.NoError(t, err)
 			var resBody []byte
 
 			// проверяем код ответа
