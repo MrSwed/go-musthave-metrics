@@ -40,7 +40,7 @@ func main() {
 		isNewDB = true
 	)
 	if len(conf.DatabaseDSN) > 0 {
-		if db, err = connectPostgres(conf.DatabaseDSN); err != nil {
+		if db, err = sqlx.Connect("postgres", conf.DatabaseDSN); err != nil {
 			logger.Fatal("cannot connect db", zap.Error(err))
 		}
 		logger.Info("DB connected")
@@ -139,12 +139,4 @@ func main() {
 		}
 	}
 	_ = logger.Sync()
-}
-
-func connectPostgres(sbDSN string) (db *sqlx.DB, err error) {
-	db, err = sqlx.Connect("postgres", sbDSN)
-	if err != nil {
-		return
-	}
-	return
 }

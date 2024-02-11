@@ -35,4 +35,6 @@ const (
 var (
 	//go:embed template/list_tpl.html
 	MetricListTpl embed.FS
+
+	RetriesOnErr = [3]int{1, 3, 5}
 )
