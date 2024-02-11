@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"github.com/pkg/errors"
+	"errors"
 	"log"
 	"net/url"
 	"os"
@@ -61,7 +61,7 @@ func main() {
 							log.Println(err)
 							break
 						}
-						log.Println(errors.WithMessagef(err, "try %d", i+1))
+						log.Printf("try %d: %s", i+1, err)
 						if i < len(RetriesOnErr) {
 							time.Sleep(time.Duration(RetriesOnErr[i]) * time.Second)
 						}
