@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"strconv"
 
 	"github.com/MrSwed/go-musthave-metrics/internal/config"
 	"github.com/MrSwed/go-musthave-metrics/internal/domain"
@@ -19,7 +18,7 @@ func (h *Handler) UpdateMetric() func(w http.ResponseWriter, r *http.Request) {
 		action, metricKey, metricValStr := chi.URLParam(r, config.MetricTypeParam), chi.URLParam(r, config.MetricNameParam), chi.URLParam(r, config.MetricValueParam)
 		switch action {
 		case config.MetricTypeGauge:
-			if v, err := strconv.ParseFloat(metricValStr, 64); err != nil {
+			if v, err := domain.ParseGauge(metricValStr); err != nil {
 				w.WriteHeader(http.StatusBadRequest)
 				if _, err := w.Write([]byte("Bad metric value")); err != nil {
 					h.log.Error("Error return answer", zap.Error(err))
@@ -33,7 +32,7 @@ func (h *Handler) UpdateMetric() func(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		case config.MetricTypeCounter:
-			if v, err := strconv.ParseInt(metricValStr, 10, 64); err != nil {
+			if v, err := domain.ParseCounter(metricValStr); err != nil {
 				w.WriteHeader(http.StatusBadRequest)
 				if _, err := w.Write([]byte("Bad metric value")); err != nil {
 					h.log.Error("Error return answer", zap.Error(err))

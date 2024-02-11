@@ -32,8 +32,8 @@ func TestMockUpdateMetric(t *testing.T) {
 	ts := httptest.NewServer(h)
 	defer ts.Close()
 
-	testCounter := int64(1)
-	testGauge := 1.0001
+	testCounter := domain.Counter(1)
+	testGauge := domain.Gauge(1.0001)
 
 	_ = repo.EXPECT().SetGauge(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	_ = repo.EXPECT().SetCounter(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
@@ -234,8 +234,8 @@ func TestMockUpdateMetricJson(t *testing.T) {
 	ts := httptest.NewServer(h)
 	defer ts.Close()
 
-	testCounter := int64(1)
-	testGauge := 1.0001
+	testCounter := domain.Counter(1)
+	testGauge := domain.Gauge(1.0001)
 
 	_ = repo.EXPECT().SetGauge(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	_ = repo.EXPECT().SetCounter(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
@@ -463,8 +463,8 @@ func TestMockUpdateMetrics(t *testing.T) {
 	ts := httptest.NewServer(h)
 	defer ts.Close()
 
-	testCounter := int64(1)
-	testGauge := 100.0015
+	testCounter := domain.Counter(1)
+	testGauge := domain.Gauge(100.0015)
 
 	metrics := []domain.Metric{
 		{

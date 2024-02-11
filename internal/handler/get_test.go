@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/MrSwed/go-musthave-metrics/internal/domain"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -28,8 +29,8 @@ func TestGetMetric(t *testing.T) {
 	ts := httptest.NewServer(h)
 	defer ts.Close()
 
-	testCounter := int64(1)
-	testGauge := 1.0001
+	testCounter := domain.Counter(1)
+	testGauge := domain.Gauge(1.0001)
 
 	// save some values
 	_ = s.SetGauge("testGauge", testGauge)
@@ -166,8 +167,8 @@ func TestGetListMetrics(t *testing.T) {
 	ts := httptest.NewServer(h)
 	defer ts.Close()
 
-	testCounter := int64(1)
-	testGauge := 1.0001
+	testCounter := domain.Counter(1)
+	testGauge := domain.Gauge(1.0001)
 	// save some values
 	_ = s.SetGauge("testGauge", testGauge)
 	_ = s.IncreaseCounter("testCounter", testCounter)
@@ -252,8 +253,8 @@ func TestGetMetricJson(t *testing.T) {
 	ts := httptest.NewServer(h)
 	defer ts.Close()
 
-	testCounter := int64(1)
-	testGauge := 1.0001
+	testCounter := domain.Counter(1)
+	testGauge := domain.Gauge(1.0001)
 
 	// save some values
 	_ = s.SetGauge("testGauge", testGauge)

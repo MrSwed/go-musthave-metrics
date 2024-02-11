@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/MrSwed/go-musthave-metrics/internal/domain"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -33,13 +34,13 @@ func TestMockGetMetric(t *testing.T) {
 	ts := httptest.NewServer(h)
 	defer ts.Close()
 
-	testCounter := int64(1)
-	testGauge := 1.0001
+	testCounter := domain.Counter(1)
+	testGauge := domain.Gauge(1.0001)
 
 	_ = repo.EXPECT().GetCounter("testCounter").Return(testCounter, nil)
 	_ = repo.EXPECT().GetGauge("testGauge").Return(testGauge, nil)
-	_ = repo.EXPECT().GetGauge(gomock.Any()).Return(float64(0), errors.ErrNotExist)
-	_ = repo.EXPECT().GetCounter(gomock.Any()).Return(int64(0), errors.ErrNotExist)
+	_ = repo.EXPECT().GetGauge(gomock.Any()).Return(domain.Gauge(0), errors.ErrNotExist)
+	_ = repo.EXPECT().GetCounter(gomock.Any()).Return(domain.Counter(0), errors.ErrNotExist)
 
 	type want struct {
 		code        int
@@ -175,11 +176,11 @@ func TestMockGetListMetrics(t *testing.T) {
 	ts := httptest.NewServer(h)
 	defer ts.Close()
 
-	testCounter := int64(1)
-	testGauge := 1.0001
+	testCounter := domain.Counter(1)
+	testGauge := domain.Gauge(1.0001)
 
-	_ = repo.EXPECT().GetAllCounters().Return(map[string]int64{"testCounter": testCounter}, nil)
-	_ = repo.EXPECT().GetAllGauges().Return(map[string]float64{"testGauge": testGauge}, nil)
+	_ = repo.EXPECT().GetAllCounters().Return(domain.Counters{"testCounter": testCounter}, nil)
+	_ = repo.EXPECT().GetAllGauges().Return(domain.Gauges{"testGauge": testGauge}, nil)
 
 	type want struct {
 		code            int
@@ -265,13 +266,13 @@ func TestMockGetMetricJson(t *testing.T) {
 	ts := httptest.NewServer(h)
 	defer ts.Close()
 
-	testCounter := int64(1)
-	testGauge := 1.0001
+	testCounter := domain.Counter(1)
+	testGauge := domain.Gauge(1.0001)
 
 	_ = repo.EXPECT().GetCounter("testCounter").Return(testCounter, nil)
 	_ = repo.EXPECT().GetGauge("testGauge").Return(testGauge, nil)
-	_ = repo.EXPECT().GetGauge(gomock.Any()).Return(float64(0), errors.ErrNotExist)
-	_ = repo.EXPECT().GetCounter(gomock.Any()).Return(int64(0), errors.ErrNotExist)
+	_ = repo.EXPECT().GetGauge(gomock.Any()).Return(domain.Gauge(0), errors.ErrNotExist)
+	_ = repo.EXPECT().GetCounter(gomock.Any()).Return(domain.Counter(0), errors.ErrNotExist)
 
 	type want struct {
 		code        int

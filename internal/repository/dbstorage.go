@@ -27,17 +27,13 @@ func NewDBStorageRepository(db *sqlx.DB) *DBStorageRepo {
 
 type DBStorageGauge struct {
 	Name  string
-	Value float64
+	Value domain.Gauge
 }
 
 type DBStorageCounter struct {
 	Name  string
-	Value int64
+	Value domain.Counter
 }
-
-// todo own types
-//type DBStorageCounters map[string]int64
-//type DBStorageGauges map[string]float64
 
 func retryFunc(fn func() error) (err error) {
 	for i := 0; i <= len(config.RetriesOnErr); i++ {
@@ -63,7 +59,7 @@ func (r *DBStorageRepo) Ping() (err error) {
 	return
 }
 
-func (r *DBStorageRepo) SetGauge(k string, v float64) (err error) {
+func (r *DBStorageRepo) SetGauge(k string, v domain.Gauge) (err error) {
 	err = retryFunc(func() (err error) {
 		_, err = r.db.Exec(`INSERT into `+config.DBTableNameGauges+
 			` (name, value) values ($1, $2) ON CONFLICT (name) DO UPDATE SET value = EXCLUDED.value`, k, v)
@@ -72,7 +68,7 @@ func (r *DBStorageRepo) SetGauge(k string, v float64) (err error) {
 	return
 }
 
-func (r *DBStorageRepo) SetCounter(k string, v int64) (err error) {
+func (r *DBStorageRepo) SetCounter(k string, v domain.Counter) (err error) {
 	err = retryFunc(func() (err error) {
 		_, err = r.db.Exec(`INSERT into `+config.DBTableNameCounters+
 			` (name, value) values ($1, $2) ON CONFLICT (name) DO UPDATE SET value = EXCLUDED.value`, k, v)
@@ -81,7 +77,7 @@ func (r *DBStorageRepo) SetCounter(k string, v int64) (err error) {
 	return
 }
 
-func (r *DBStorageRepo) GetGauge(k string) (v float64, err error) {
+func (r *DBStorageRepo) GetGauge(k string) (v domain.Gauge, err error) {
 	err = retryFunc(func() (err error) {
 		err = r.db.Get(&v, `SELECT value FROM `+config.DBTableNameGauges+
 			` WHERE name = $1`, k)
@@ -93,7 +89,7 @@ func (r *DBStorageRepo) GetGauge(k string) (v float64, err error) {
 	return
 }
 
-func (r *DBStorageRepo) GetCounter(k string) (v int64, err error) {
+func (r *DBStorageRepo) GetCounter(k string) (v domain.Counter, err error) {
 	err = retryFunc(func() (err error) {
 		err = r.db.Get(&v, `SELECT value FROM `+config.DBTableNameCounters+` WHERE name = $1 LIMIT 1`, k)
 		if errors.Is(err, sql.ErrNoRows) {
@@ -104,7 +100,7 @@ func (r *DBStorageRepo) GetCounter(k string) (v int64, err error) {
 	return
 }
 
-func (r *DBStorageRepo) GetAllCounters() (data map[string]int64, err error) {
+func (r *DBStorageRepo) GetAllCounters() (data domain.Counters, err error) {
 	err = retryFunc(func() (err error) {
 		var rows *sql.Rows
 		if rows, err = r.db.Query(`SELECT name, value FROM ` + config.DBTableNameCounters); err != nil {
@@ -116,7 +112,7 @@ func (r *DBStorageRepo) GetAllCounters() (data map[string]int64, err error) {
 		defer func(rows *sql.Rows) {
 			err = rows.Close()
 		}(rows)
-		data = make(map[string]int64)
+		data = make(domain.Counters)
 		for rows.Next() {
 			var item DBStorageCounter
 			if err = rows.Scan(&item.Name, &item.Value); err != nil {
@@ -129,7 +125,7 @@ func (r *DBStorageRepo) GetAllCounters() (data map[string]int64, err error) {
 	return
 }
 
-func (r *DBStorageRepo) GetAllGauges() (data map[string]float64, err error) {
+func (r *DBStorageRepo) GetAllGauges() (data domain.Gauges, err error) {
 	err = retryFunc(func() (err error) {
 		var rows *sql.Rows
 		if rows, err = r.db.Query(`SELECT name, value FROM ` + config.DBTableNameGauges); err != nil {
@@ -141,7 +137,7 @@ func (r *DBStorageRepo) GetAllGauges() (data map[string]float64, err error) {
 		defer func(rows *sql.Rows) {
 			err = rows.Close()
 		}(rows)
-		data = make(map[string]float64)
+		data = make(domain.Gauges)
 		for rows.Next() {
 			var item DBStorageGauge
 			if err = rows.Scan(&item.Name, &item.Value); err != nil {

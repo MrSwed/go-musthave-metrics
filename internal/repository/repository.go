@@ -9,12 +9,12 @@ import (
 //go:generate  mockgen -destination=../mock/repository/repository.go -package=mock "github.com/MrSwed/go-musthave-metrics/internal/repository" Repository
 
 type DataStorage interface {
-	SetGauge(k string, v float64) error
-	SetCounter(k string, v int64) error
-	GetGauge(k string) (float64, error)
-	GetCounter(k string) (int64, error)
-	GetAllCounters() (map[string]int64, error)
-	GetAllGauges() (map[string]float64, error)
+	SetGauge(k string, v domain.Gauge) error
+	SetCounter(k string, v domain.Counter) error
+	GetGauge(k string) (domain.Gauge, error)
+	GetCounter(k string) (domain.Counter, error)
+	GetAllCounters() (domain.Counters, error)
+	GetAllGauges() (domain.Gauges, error)
 	SetMetrics(metrics []domain.Metric) ([]domain.Metric, error)
 }
 

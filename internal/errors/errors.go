@@ -10,7 +10,6 @@ var (
 	ErrNotExist      = errors.New("does not exist")
 	ErrNoDBConnected = errors.New("no DB connected")
 	ErrNotMemMode    = errors.New("no MemStore connected")
-	PQError          = &pq.Error{}
 )
 
 func IsPQClass08Error(err error) (yes bool) {

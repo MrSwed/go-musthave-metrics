@@ -14,12 +14,12 @@ type MemStorage interface {
 }
 
 type MemStorageCounter struct {
-	Counter map[string]int64 `json:"counter"`
+	Counter domain.Counters `json:"counter"`
 	mc      sync.RWMutex
 }
 
 type MemStorageGauge struct {
-	Gauge map[string]float64 `json:"gauge"`
+	Gauge domain.Gauges `json:"gauge"`
 	mg    sync.RWMutex
 }
 
@@ -30,8 +30,8 @@ type MemStorageRepo struct {
 
 func NewMemRepository() *MemStorageRepo {
 	return &MemStorageRepo{
-		MemStorageCounter: MemStorageCounter{Counter: map[string]int64{}},
-		MemStorageGauge:   MemStorageGauge{Gauge: map[string]float64{}},
+		MemStorageCounter: MemStorageCounter{Counter: domain.Counters{}},
+		MemStorageGauge:   MemStorageGauge{Gauge: domain.Gauges{}},
 	}
 }
 
@@ -39,21 +39,21 @@ func (r *MemStorageRepo) MemStore() *MemStorageRepo {
 	return r
 }
 
-func (r *MemStorageRepo) SetGauge(k string, v float64) (err error) {
+func (r *MemStorageRepo) SetGauge(k string, v domain.Gauge) (err error) {
 	r.mg.Lock()
 	defer r.mg.Unlock()
 	r.Gauge[k] = v
 	return
 }
 
-func (r *MemStorageRepo) SetCounter(k string, v int64) (err error) {
+func (r *MemStorageRepo) SetCounter(k string, v domain.Counter) (err error) {
 	r.mc.Lock()
 	defer r.mc.Unlock()
 	r.Counter[k] = v
 	return
 }
 
-func (r *MemStorageRepo) GetGauge(k string) (v float64, err error) {
+func (r *MemStorageRepo) GetGauge(k string) (v domain.Gauge, err error) {
 	var ok bool
 	r.mg.RLock()
 	defer r.mg.RUnlock()
@@ -63,7 +63,7 @@ func (r *MemStorageRepo) GetGauge(k string) (v float64, err error) {
 	return
 }
 
-func (r *MemStorageRepo) GetCounter(k string) (v int64, err error) {
+func (r *MemStorageRepo) GetCounter(k string) (v domain.Counter, err error) {
 	var ok bool
 	r.mc.RLock()
 	defer r.mc.RUnlock()
@@ -73,12 +73,12 @@ func (r *MemStorageRepo) GetCounter(k string) (v int64, err error) {
 	return
 }
 
-func (r *MemStorageRepo) GetAllGauges() (map[string]float64, error) {
+func (r *MemStorageRepo) GetAllGauges() (domain.Gauges, error) {
 	var err error
 	return r.Gauge, err
 }
 
-func (r *MemStorageRepo) GetAllCounters() (map[string]int64, error) {
+func (r *MemStorageRepo) GetAllCounters() (domain.Counters, error) {
 	var err error
 	return r.Counter, err
 }
@@ -92,7 +92,7 @@ func (r *MemStorageRepo) SetMetrics(metrics []domain.Metric) (newMetrics []domai
 			}
 			newMetrics = append(newMetrics, metric)
 		case config.MetricTypeCounter:
-			var current int64
+			var current domain.Counter
 			if current, err = r.GetCounter(metric.ID); err != nil && !errors.Is(err, myErr.ErrNotExist) {
 				return
 			}

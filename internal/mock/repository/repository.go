@@ -36,10 +36,10 @@ func (m *MockRepository) EXPECT() *MockRepositoryMockRecorder {
 }
 
 // GetAllCounters mocks base method.
-func (m *MockRepository) GetAllCounters() (map[string]int64, error) {
+func (m *MockRepository) GetAllCounters() (domain.Counters, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAllCounters")
-	ret0, _ := ret[0].(map[string]int64)
+	ret0, _ := ret[0].(domain.Counters)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -51,10 +51,10 @@ func (mr *MockRepositoryMockRecorder) GetAllCounters() *gomock.Call {
 }
 
 // GetAllGauges mocks base method.
-func (m *MockRepository) GetAllGauges() (map[string]float64, error) {
+func (m *MockRepository) GetAllGauges() (domain.Gauges, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAllGauges")
-	ret0, _ := ret[0].(map[string]float64)
+	ret0, _ := ret[0].(domain.Gauges)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -66,10 +66,10 @@ func (mr *MockRepositoryMockRecorder) GetAllGauges() *gomock.Call {
 }
 
 // GetCounter mocks base method.
-func (m *MockRepository) GetCounter(arg0 string) (int64, error) {
+func (m *MockRepository) GetCounter(arg0 string) (domain.Counter, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetCounter", arg0)
-	ret0, _ := ret[0].(int64)
+	ret0, _ := ret[0].(domain.Counter)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -81,10 +81,10 @@ func (mr *MockRepositoryMockRecorder) GetCounter(arg0 interface{}) *gomock.Call 
 }
 
 // GetGauge mocks base method.
-func (m *MockRepository) GetGauge(arg0 string) (float64, error) {
+func (m *MockRepository) GetGauge(arg0 string) (domain.Gauge, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetGauge", arg0)
-	ret0, _ := ret[0].(float64)
+	ret0, _ := ret[0].(domain.Gauge)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -124,7 +124,7 @@ func (mr *MockRepositoryMockRecorder) SaveToFile(arg0 interface{}) *gomock.Call 
 }
 
 // SetCounter mocks base method.
-func (m *MockRepository) SetCounter(arg0 string, arg1 int64) error {
+func (m *MockRepository) SetCounter(arg0 string, arg1 domain.Counter) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetCounter", arg0, arg1)
 	ret0, _ := ret[0].(error)
@@ -138,7 +138,7 @@ func (mr *MockRepositoryMockRecorder) SetCounter(arg0, arg1 interface{}) *gomock
 }
 
 // SetGauge mocks base method.
-func (m *MockRepository) SetGauge(arg0 string, arg1 float64) error {
+func (m *MockRepository) SetGauge(arg0 string, arg1 domain.Gauge) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetGauge", arg0, arg1)
 	ret0, _ := ret[0].(error)
