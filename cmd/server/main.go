@@ -36,13 +36,14 @@ func main() {
 	logger.Info("Start server", zap.Any("Config", conf))
 
 	var (
-		db      *sqlx.DB
-		isNewDB = true
+		db         *sqlx.DB
+		isMemStore = true
 	)
 	if len(conf.DatabaseDSN) > 0 {
 		if db, err = sqlx.Connect("postgres", conf.DatabaseDSN); err != nil {
 			logger.Fatal("cannot connect db", zap.Error(err))
 		}
+		isMemStore = false
 		logger.Info("DB connected")
 		versions, errM := myMigrate.Migrate(db.DB)
 		switch {
@@ -53,15 +54,13 @@ func main() {
 		default:
 			logger.Fatal("DB migrate: ", zap.Any("versions", versions), zap.Error(errM))
 		}
-		isNewDB = versions[0] == 0
-
 	}
 
 	r := repository.NewRepository(&conf.StorageConfig, db)
 	s := service.NewService(r, &conf.StorageConfig)
 	h := handler.NewHandler(s, logger)
 
-	if conf.FileStoragePath != "" && isNewDB {
+	if conf.FileStoragePath != "" && isMemStore {
 		if conf.StorageRestore {
 			if err := s.RestoreFromFile(); err != nil {
 				logger.Error("Storage restore", zap.Error(err))
@@ -123,7 +122,7 @@ func main() {
 	wg.Wait()
 	logger.Info("Server stopped")
 
-	if conf.FileStoragePath != "" {
+	if conf.FileStoragePath != "" && isMemStore {
 		if err := s.SaveToFile(); err != nil {
 			logger.Error("Storage save", zap.Error(err))
 		} else {
