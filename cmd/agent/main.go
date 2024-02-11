@@ -2,8 +2,9 @@ package main
 
 import (
 	"context"
-	"errors"
+	"github.com/pkg/errors"
 	"log"
+	"net/url"
 	"os"
 	"os/signal"
 	"sync"
@@ -50,13 +51,24 @@ func main() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		urlErr := &url.Error{}
 		for {
 			select {
 			case <-time.After(time.Duration(conf.reportInterval) * time.Second):
-				if errs := m.sendMetrics(conf.serverAddress, conf.metricLists); errs != nil {
-					log.Println(errors.Join(errs...))
-				} else {
-					log.Printf("%d metrics sent", len(conf.GaugesList)+len(conf.CountersList))
+				for i := 0; i <= len(RetriesOnErr); i++ {
+					if err := m.sendMetrics(conf.serverAddress, conf.metricLists); err != nil {
+						if !errors.As(err, &urlErr) {
+							log.Println(err)
+							break
+						}
+						log.Println(errors.WithMessagef(err, "try %d", i+1))
+						if i < len(RetriesOnErr) {
+							time.Sleep(time.Duration(RetriesOnErr[i]) * time.Second)
+						}
+					} else {
+						log.Printf("%d metrics sent", len(conf.GaugesList)+len(conf.CountersList))
+						break
+					}
 				}
 			case <-ctx.Done():
 				log.Println("Metrics sender is stopped")

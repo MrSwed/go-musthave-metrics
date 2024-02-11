@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -27,10 +28,10 @@ func (m *metricsCollects) getMetrics() {
 	m.RandomValue = rand.Float64()
 }
 
-func (m *metricsCollects) sendMetrics(serverAddress string, lists metricLists) (errs []error) {
+func (m *metricsCollects) sendMetrics(serverAddress string, lists metricLists) (err error) {
 	var (
 		metrics []*metric
-		err     error
+		er      error
 	)
 
 	mRefVal := reflect.Indirect(reflect.ValueOf(m))
@@ -57,12 +58,12 @@ func (m *metricsCollects) sendMetrics(serverAddress string, lists metricLists) (
 					v = refV.Interface()
 					m.m.RUnlock()
 				} else {
-					errs = append(errs, fmt.Errorf("unknown metric name %s", mName))
+					err = errors.Join(err, fmt.Errorf("unknown metric name %s", mName))
 					continue
 				}
 				oneMetric := newMetric(mName, mType)
-				if err := oneMetric.set(v); err != nil {
-					errs = append(errs, err)
+				if er = oneMetric.set(v); er != nil {
+					err = errors.Join(err, er)
 					continue
 				}
 				metrics = append(metrics, oneMetric)
@@ -71,42 +72,41 @@ func (m *metricsCollects) sendMetrics(serverAddress string, lists metricLists) (
 	}
 
 	var body []byte
-	if body, err = json.Marshal(metrics); err != nil {
-		errs = append(errs, err)
+	if body, er = json.Marshal(metrics); er != nil {
+		err = errors.Join(err, er)
 		return
 	}
 	compressedBody := new(bytes.Buffer)
 
 	zb := gzip.NewWriter(compressedBody)
-	if _, err = zb.Write(body); err != nil {
-		errs = append(errs, err)
-
+	if _, er = zb.Write(body); er != nil {
+		err = errors.Join(err, er)
 		return
 	}
 
-	if err = zb.Close(); err != nil {
-		errs = append(errs, err)
+	if er = zb.Close(); er != nil {
+		err = errors.Join(err, er)
 		return
 	}
 	var req *http.Request
-	if req, err = http.NewRequest("POST", urlStr, compressedBody); err != nil {
-		errs = append(errs, err)
+	if req, er = http.NewRequest("POST", urlStr, compressedBody); er != nil {
+		err = errors.Join(err, er)
 		return
 	}
 	req.Header.Set("Content-Encoding", "gzip")
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 
 	var res *http.Response
-	if res, err = http.DefaultClient.Do(req); err != nil {
-		errs = append(errs, err)
+	if res, er = http.DefaultClient.Do(req); er != nil {
+		err = errors.Join(err, er)
 		return
 	}
-	if err = res.Body.Close(); err != nil {
-		errs = append(errs, err)
+	if er = res.Body.Close(); er != nil {
+		err = errors.Join(err, er)
 		return
 	}
 	if res.StatusCode != http.StatusOK {
-		errs = append(errs, fmt.Errorf("post %s body %s: get StatusCode %d", urlStr, body, res.StatusCode))
+		err = errors.Join(err, fmt.Errorf("post %s body %s: get StatusCode %d", urlStr, body, res.StatusCode))
 	}
 
 	return

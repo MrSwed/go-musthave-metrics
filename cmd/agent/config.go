@@ -13,6 +13,8 @@ const (
 	counterType = "counter"
 )
 
+var RetriesOnErr = [3]int{1, 3, 5}
+
 type config struct {
 	serverAddress  string
 	reportInterval int
