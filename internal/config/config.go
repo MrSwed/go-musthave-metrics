@@ -31,10 +31,10 @@ func NewConfig() *Config {
 }
 
 func (c *Config) Init() *Config {
-	return c.withFlags().withEnv().cleanSchemes()
+	return c.withFlags().WithEnv().CleanSchemes()
 }
 
-func (c *Config) withEnv() *Config {
+func (c *Config) WithEnv() *Config {
 	if addr, ok := os.LookupEnv(envNameServerAddress); ok && addr != "" {
 		c.ServerAddress = addr
 	}
@@ -78,7 +78,7 @@ func (c *Config) withFlags() *Config {
 	return c
 }
 
-func (c *Config) cleanSchemes() *Config {
+func (c *Config) CleanSchemes() *Config {
 	for _, v := range []string{"http://", "https://"} {
 		c.ServerAddress = strings.TrimPrefix(c.ServerAddress, v)
 	}

@@ -1,10 +1,12 @@
+// to test with real db set env DATABASE_DSN before run
+// to test with file - set env FILE_STORAGE_PATH
 package handler
 
 import (
 	"bytes"
 	"encoding/json"
-	"go.uber.org/zap"
 	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -15,12 +17,37 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/jmoiron/sqlx"
+	"go.uber.org/zap"
+)
+
+func NewTestUpdateConfig() (c *config.Config) {
+	c = &config.Config{
+		StorageConfig: config.StorageConfig{
+			FileStoragePath: "",
+			StorageRestore:  false,
+		},
+	}
+	c.WithEnv().CleanSchemes()
+
+	var err error
+	if c.DatabaseDSN != "" {
+		if db, err = sqlx.Open("postgres", c.DatabaseDSN); err != nil {
+			log.Fatal(err)
+		}
+	}
+	return
+}
+
+var (
+	confUpd = NewTestUpdateConfig()
+	dbUpd   *sqlx.DB
 )
 
 func TestUpdateMetric(t *testing.T) {
-	conf := config.NewConfig()
-	repo := repository.NewRepository(&conf.StorageConfig, nil)
-	s := service.NewService(repo, &conf.StorageConfig)
+	repo := repository.NewRepository(&confUpd.StorageConfig, dbUpd)
+	s := service.NewService(repo, &confUpd.StorageConfig)
 	logger, _ := zap.NewDevelopment()
 	h := NewHandler(s, logger).Handler()
 
@@ -210,9 +237,8 @@ func TestUpdateMetric(t *testing.T) {
 }
 
 func TestUpdateMetricJson(t *testing.T) {
-	conf := config.NewConfig()
-	repo := repository.NewRepository(&conf.StorageConfig, nil)
-	s := service.NewService(repo, &conf.StorageConfig)
+	repo := repository.NewRepository(&confUpd.StorageConfig, dbUpd)
+	s := service.NewService(repo, &confUpd.StorageConfig)
 	logger, _ := zap.NewDevelopment()
 	h := NewHandler(s, logger).Handler()
 
@@ -441,9 +467,8 @@ func TestUpdateMetricJson(t *testing.T) {
 }
 
 func TestUpdateMetrics(t *testing.T) {
-	conf := config.NewConfig()
-	repo := repository.NewRepository(&conf.StorageConfig, nil)
-	s := service.NewService(repo, &conf.StorageConfig)
+	repo := repository.NewRepository(&confUpd.StorageConfig, dbUpd)
+	s := service.NewService(repo, &confUpd.StorageConfig)
 	logger, _ := zap.NewDevelopment()
 	h := NewHandler(s, logger).Handler()
 
