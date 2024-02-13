@@ -16,6 +16,8 @@ type DataStorage interface {
 	GetAllCounters() (domain.Counters, error)
 	GetAllGauges() (domain.Gauges, error)
 	SetMetrics(metrics []domain.Metric) ([]domain.Metric, error)
+	Ping() error
+	MemStore() (*MemStorageRepo, error)
 }
 
 type Repository interface {

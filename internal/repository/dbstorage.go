@@ -13,10 +13,6 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-type DBStorage interface {
-	Ping() error
-}
-
 type DBStorageRepo struct {
 	db *sqlx.DB
 }
@@ -199,5 +195,24 @@ func (r *DBStorageRepo) SetMetrics(metrics []domain.Metric) (newMetrics []domain
 		err = tx.Commit()
 		return
 	})
+	return
+}
+
+func (r *DBStorageRepo) MemStore() (m *MemStorageRepo, err error) {
+	var (
+		counters domain.Counters
+		gauges   domain.Gauges
+	)
+	if counters, err = r.GetAllCounters(); err != nil {
+		return
+	}
+	if gauges, err = r.GetAllGauges(); err != nil {
+		return
+	}
+	m = &MemStorageRepo{
+		MemStorageCounter: MemStorageCounter{Counter: counters},
+		MemStorageGauge:   MemStorageGauge{Gauge: gauges},
+	}
+
 	return
 }

@@ -9,10 +9,6 @@ import (
 	myErr "github.com/MrSwed/go-musthave-metrics/internal/errors"
 )
 
-type MemStorage interface {
-	MemStore() *MemStorageRepo
-}
-
 type MemStorageCounter struct {
 	Counter domain.Counters `json:"counter"`
 	mc      sync.RWMutex
@@ -35,8 +31,12 @@ func NewMemRepository() *MemStorageRepo {
 	}
 }
 
-func (r *MemStorageRepo) MemStore() *MemStorageRepo {
-	return r
+func (r *MemStorageRepo) Ping() (err error) {
+	return
+}
+
+func (r *MemStorageRepo) MemStore() (*MemStorageRepo, error) {
+	return r, nil
 }
 
 func (r *MemStorageRepo) SetGauge(k string, v domain.Gauge) (err error) {

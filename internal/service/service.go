@@ -7,8 +7,17 @@ import (
 
 type Service struct {
 	Metrics
+	MetricsHTML
+	MetricsDB
+	MetricsFile
 }
 
 func NewService(r repository.Repository, c *config.StorageConfig) *Service {
-	return &Service{Metrics: NewMetricService(r, c)}
+	mainService := NewMetricService(r, c)
+	return &Service{
+		Metrics:     mainService,
+		MetricsHTML: NewMetricsHTMLService(r),
+		MetricsDB:   NewMetricDBService(r),
+		MetricsFile: mainService,
+	}
 }

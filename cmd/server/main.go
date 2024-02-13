@@ -38,13 +38,13 @@ func main() {
 
 	var (
 		db         *sqlx.DB
-		isMemStore = true
+		isNewStore = true
 	)
 	if len(conf.DatabaseDSN) > 0 {
 		if db, err = sqlx.Connect("postgres", conf.DatabaseDSN); err != nil {
 			logger.Fatal("cannot connect db", zap.Error(err))
 		}
-		isMemStore = false
+		isNewStore = false
 		logger.Info("DB connected")
 		versions, errM := myMigrate.Migrate(db.DB)
 		switch {
@@ -52,6 +52,7 @@ func main() {
 			logger.Info("DB migrate: ", zap.Any("info", errM), zap.Any("versions", versions))
 		case errM == nil:
 			logger.Info("DB migrate: new applied ", zap.Any("versions", versions))
+			isNewStore = versions[0] == 0
 		default:
 			logger.Fatal("DB migrate: ", zap.Any("versions", versions), zap.Error(errM))
 		}
@@ -61,12 +62,12 @@ func main() {
 	s := service.NewService(r, &conf.StorageConfig)
 	h := handler.NewHandler(s, logger)
 
-	if conf.FileStoragePath != "" && isMemStore {
+	if conf.FileStoragePath != "" && isNewStore {
 		if conf.StorageRestore {
-			if err := s.RestoreFromFile(); err != nil {
-				logger.Error("Storage restore", zap.Error(err))
+			if n, err := s.RestoreFromFile(); err != nil {
+				logger.Error("File storage restore", zap.Error(err))
 			} else {
-				logger.Info("Storage restored")
+				logger.Info("File storage restored success", zap.Any("records", n))
 			}
 		}
 		if conf.StoreInterval > 0 {
@@ -76,8 +77,10 @@ func main() {
 				for {
 					select {
 					case <-time.After(time.Duration(conf.StoreInterval) * time.Second):
-						if err := s.SaveToFile(); err != nil {
+						if n, err := s.SaveToFile(); err != nil {
 							logger.Error("Storage save", zap.Error(err))
+						} else {
+							logger.Info("Storage saved", zap.Any("records", n))
 						}
 					case <-serverCtx.Done():
 						logger.Info("StoreInterval finished")
@@ -141,11 +144,11 @@ func main() {
 	wg.Wait()
 	logger.Info("Server stopped")
 
-	if conf.FileStoragePath != "" && isMemStore {
-		if err := s.SaveToFile(); err != nil {
+	if conf.FileStoragePath != "" && isNewStore {
+		if n, err := s.SaveToFile(); err != nil {
 			logger.Error("Storage save", zap.Error(err))
 		} else {
-			logger.Info("Storage saved")
+			logger.Info("Storage saved", zap.Any("records", n))
 		}
 	}
 
