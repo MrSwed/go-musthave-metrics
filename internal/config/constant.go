@@ -2,6 +2,7 @@ package config
 
 import (
 	"embed"
+	"time"
 )
 
 const (
@@ -36,5 +37,5 @@ var (
 	//go:embed template/list_tpl.html
 	MetricListTpl embed.FS
 
-	RetriesOnErr = [3]int{1, 3, 5}
+	Backoff = [3]time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second}
 )

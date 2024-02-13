@@ -36,13 +36,13 @@ type DBStorageCounter struct {
 }
 
 func retryFunc(fn func() error) (err error) {
-	for i := 0; i <= len(config.RetriesOnErr); i++ {
+	for i := 0; i <= len(config.Backoff); i++ {
 		err = fn()
 		if err == nil || !myErr.IsPQClass08Error(err) {
 			break
 		}
-		if i < len(config.RetriesOnErr) {
-			time.Sleep(time.Duration(config.RetriesOnErr[i]) * time.Second)
+		if i < len(config.Backoff) {
+			time.Sleep(config.Backoff[i])
 		}
 	}
 	return

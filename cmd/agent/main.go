@@ -55,15 +55,15 @@ func main() {
 		for {
 			select {
 			case <-time.After(time.Duration(conf.reportInterval) * time.Second):
-				for i := 0; i <= len(RetriesOnErr); i++ {
+				for i := 0; i <= len(Backoff); i++ {
 					if err := m.sendMetrics(conf.serverAddress, conf.metricLists); err != nil {
 						if !errors.As(err, &urlErr) {
 							log.Println(err)
 							break
 						}
 						log.Printf("try %d: %s", i+1, err)
-						if i < len(RetriesOnErr) {
-							time.Sleep(time.Duration(RetriesOnErr[i]) * time.Second)
+						if i < len(Backoff) {
+							time.Sleep(Backoff[i])
 						}
 					} else {
 						log.Printf("%d metrics sent", len(conf.GaugesList)+len(conf.CountersList))

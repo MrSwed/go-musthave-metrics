@@ -5,6 +5,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -13,7 +14,7 @@ const (
 	counterType = "counter"
 )
 
-var RetriesOnErr = [3]int{1, 3, 5}
+var Backoff = [3]time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second}
 
 type config struct {
 	serverAddress  string
