@@ -34,7 +34,7 @@ func (s *MetricsService) SetGauge(k string, v domain.Gauge) (err error) {
 	if err = s.r.SetGauge(k, v); err != nil {
 		return
 	}
-	if s.c.FileStoragePath != "" && s.c.StoreInterval == 0 {
+	if s.c.FileStoragePath != "" && s.c.FileStoreInterval == 0 {
 		if _, err = s.SaveToFile(); errors.Is(err, myErr.ErrNotMemMode) {
 			err = nil
 		}
@@ -50,7 +50,7 @@ func (s *MetricsService) IncreaseCounter(k string, v domain.Counter) (err error)
 		if err = s.r.SetCounter(k, prev+v); err != nil {
 			return
 		}
-		if s.c.FileStoragePath != "" && s.c.StoreInterval == 0 {
+		if s.c.FileStoragePath != "" && s.c.FileStoreInterval == 0 {
 			if _, err = s.SaveToFile(); errors.Is(err, myErr.ErrNotMemMode) {
 				err = nil
 			}
@@ -92,7 +92,7 @@ func (s *MetricsService) SetMetric(metric domain.Metric) (rm domain.Metric, err 
 		}
 	}
 	rm = metric
-	if s.c.FileStoragePath != "" && s.c.StoreInterval == 0 {
+	if s.c.FileStoragePath != "" && s.c.FileStoreInterval == 0 {
 		if _, err = s.SaveToFile(); errors.Is(err, myErr.ErrNotMemMode) {
 			err = nil
 		}
@@ -107,7 +107,7 @@ func (s *MetricsService) SetMetrics(metrics []domain.Metric) (rMetrics []domain.
 		return
 	}
 	rMetrics, err = s.r.SetMetrics(metrics)
-	if s.c.FileStoragePath != "" && s.c.StoreInterval == 0 {
+	if s.c.FileStoragePath != "" && s.c.FileStoreInterval == 0 {
 		if _, err = s.SaveToFile(); errors.Is(err, myErr.ErrNotMemMode) {
 			err = nil
 		}

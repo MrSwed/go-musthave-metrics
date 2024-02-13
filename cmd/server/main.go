@@ -28,6 +28,8 @@ func main() {
 	conf := config.NewConfig().Init()
 
 	serverCtx, serverStop := context.WithCancel(context.Background())
+	serverFileCtx, serverFileStop := context.WithCancel(context.Background())
+	serverDBCtx, serverDBStop := context.WithCancel(context.Background())
 
 	logger, err := zap.NewDevelopment()
 	if err != nil {
@@ -62,28 +64,32 @@ func main() {
 	s := service.NewService(r, &conf.StorageConfig)
 	h := handler.NewHandler(s, logger)
 
-	if conf.FileStoragePath != "" && isNewStore {
+	if conf.FileStoragePath != "" {
 		if conf.StorageRestore {
-			if n, err := s.RestoreFromFile(); err != nil {
-				logger.Error("File storage restore", zap.Error(err))
+			if isNewStore {
+				if n, err := s.RestoreFromFile(); err != nil {
+					logger.Error("File storage restore", zap.Error(err))
+				} else {
+					logger.Info("File storage restored success", zap.Any("records", n))
+				}
 			} else {
-				logger.Info("File storage restored success", zap.Any("records", n))
+				logger.Info("Storage not restored - it is not new db store used")
 			}
 		}
-		if conf.StoreInterval > 0 {
+		if conf.FileStoreInterval > 0 {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
 				for {
 					select {
-					case <-time.After(time.Duration(conf.StoreInterval) * time.Second):
+					case <-time.After(time.Duration(conf.FileStoreInterval) * time.Second):
 						if n, err := s.SaveToFile(); err != nil {
 							logger.Error("Storage save", zap.Error(err))
 						} else {
 							logger.Info("Storage saved", zap.Any("records", n))
 						}
 					case <-serverCtx.Done():
-						logger.Info("StoreInterval finished")
+						logger.Info("FileStoreInterval finished")
 						return
 					}
 				}
@@ -112,24 +118,64 @@ func main() {
 			logger.Error("shutdown", zap.Error(err))
 		}
 
-		if db != nil {
-			shutdownDBCtx, shutdownDBStopForce := context.WithTimeout(serverCtx, constant.ServerShutdownTimeout*time.Second)
-			defer shutdownDBStopForce()
+		serverStop()
+	}()
+
+	go func() {
+		<-serverCtx.Done()
+		if conf.FileStoragePath != "" {
+			shutdownFileCtx, shutdownFileStopForce := context.WithTimeout(serverFileCtx, constant.ServerShutdownTimeout*time.Second)
+			defer shutdownFileStopForce()
+			var (
+				complete = make(chan struct{}, 1)
+			)
 			go func() {
-				<-shutdownDBCtx.Done()
-				if errors.Is(shutdownDBCtx.Err(), context.DeadlineExceeded) {
-					logger.Error("graceful close DB timed out.. forcing exit.", zap.Any("timeout", constant.ServerShutdownTimeout))
+				if n, err := s.SaveToFile(); err != nil {
+					logger.Error("Storage save", zap.Error(err))
+				} else {
+					logger.Info("Storage saved", zap.Any("records", n))
 				}
+				complete <- struct{}{}
 			}()
 
-			if err = db.Close(); err != nil {
-				logger.Error("DB close", zap.Error(err))
-			} else {
-				logger.Info("Db Closed")
+			select {
+			case <-complete:
+				break
+			case <-shutdownFileCtx.Done():
+				logger.Error("FileSave graceful shutdown timed out.. forcing exit.", zap.Any("timeout", constant.ServerShutdownTimeout))
+				return
+			}
+		}
+		serverFileStop()
+	}()
+
+	go func() {
+		<-serverFileCtx.Done()
+		if db != nil {
+			shutdownDBCtx, shutdownDBStopForce := context.WithTimeout(serverDBCtx, constant.ServerShutdownTimeout*time.Second)
+			defer shutdownDBStopForce()
+			var (
+				complete = make(chan struct{}, 1)
+			)
+			go func() {
+				if err = db.Close(); err != nil {
+					logger.Error("DB close", zap.Error(err))
+				} else {
+					logger.Info("Db Closed")
+				}
+				complete <- struct{}{}
+			}()
+
+			select {
+			case <-complete:
+				break
+			case <-shutdownDBCtx.Done():
+				logger.Error("DB graceful shutdown timed out.. forcing exit.", zap.Any("timeout", constant.ServerShutdownTimeout))
+				return
 			}
 		}
 
-		serverStop()
+		serverDBStop()
 	}()
 
 	logger.Info("Start web app")
@@ -138,19 +184,11 @@ func main() {
 		serverStop()
 	}
 
-	<-serverCtx.Done()
+	<-serverDBCtx.Done()
 
-	// wait StoreInterval
+	// wait FileStoreInterval
 	wg.Wait()
 	logger.Info("Server stopped")
-
-	if conf.FileStoragePath != "" && isNewStore {
-		if n, err := s.SaveToFile(); err != nil {
-			logger.Error("Storage save", zap.Error(err))
-		} else {
-			logger.Info("Storage saved", zap.Any("records", n))
-		}
-	}
 
 	_ = logger.Sync()
 }

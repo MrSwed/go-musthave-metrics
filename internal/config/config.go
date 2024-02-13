@@ -10,9 +10,9 @@ import (
 )
 
 type StorageConfig struct {
-	StoreInterval   int
-	FileStoragePath string
-	StorageRestore  bool
+	FileStoreInterval int
+	FileStoragePath   string
+	StorageRestore    bool
 }
 
 type Config struct {
@@ -25,9 +25,9 @@ func NewConfig() *Config {
 	return &Config{
 		ServerAddress: constant.ServerAddress,
 		StorageConfig: StorageConfig{
-			StoreInterval:   constant.StoreInterval,
-			FileStoragePath: constant.FileStoragePath,
-			StorageRestore:  constant.StorageRestore,
+			FileStoreInterval: constant.StoreInterval,
+			FileStoragePath:   constant.FileStoragePath,
+			StorageRestore:    constant.StorageRestore,
 		},
 	}
 }
@@ -45,7 +45,7 @@ func (c *Config) WithEnv() *Config {
 	}
 	if sInterval, ok := os.LookupEnv(constant.EnvNameStoreInterval); ok {
 		if sInterval, err := strconv.Atoi(sInterval); err == nil {
-			c.StoreInterval = sInterval
+			c.FileStoreInterval = sInterval
 		}
 	}
 	if restore, ok := os.LookupEnv(constant.EnvNameRestore); ok {
@@ -72,7 +72,7 @@ func (c *Config) WithEnv() *Config {
 
 func (c *Config) withFlags() *Config {
 	flag.StringVar(&c.ServerAddress, "a", c.ServerAddress, "Provide the address start server")
-	flag.IntVar(&c.StoreInterval, "i", c.StoreInterval, "Provide the interval store (sec)")
+	flag.IntVar(&c.FileStoreInterval, "i", c.FileStoreInterval, "Provide the interval store (sec)")
 	flag.StringVar(&c.FileStoragePath, "f", c.FileStoragePath, "Provide the file storage path")
 	flag.BoolVar(&c.StorageRestore, "r", c.StorageRestore, "Restore storage at boot")
 	flag.StringVar(&c.DatabaseDSN, "d", c.DatabaseDSN, "Provide the database dsn connect string")
