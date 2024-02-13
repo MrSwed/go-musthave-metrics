@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/MrSwed/go-musthave-metrics/internal/config"
+	"github.com/MrSwed/go-musthave-metrics/internal/constant"
 	"github.com/MrSwed/go-musthave-metrics/internal/domain"
 	"github.com/MrSwed/go-musthave-metrics/internal/repository"
 	"github.com/MrSwed/go-musthave-metrics/internal/service"
@@ -426,7 +427,7 @@ func TestGetMetricJson(t *testing.T) {
 			err := json.NewEncoder(b).Encode(test.args.body)
 			require.NoError(t, err)
 
-			req, err := http.NewRequest(test.args.method, ts.URL+config.ValueRoute, b)
+			req, err := http.NewRequest(test.args.method, ts.URL+constant.ValueRoute, b)
 			require.NoError(t, err)
 			defer req.Context()
 

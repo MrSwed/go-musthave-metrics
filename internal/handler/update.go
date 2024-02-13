@@ -5,7 +5,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/config"
+	"github.com/MrSwed/go-musthave-metrics/internal/constant"
 	"github.com/MrSwed/go-musthave-metrics/internal/domain"
 
 	"github.com/go-chi/chi/v5"
@@ -15,9 +15,9 @@ import (
 
 func (h *Handler) UpdateMetric() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		action, metricKey, metricValStr := chi.URLParam(r, config.MetricTypeParam), chi.URLParam(r, config.MetricNameParam), chi.URLParam(r, config.MetricValueParam)
+		action, metricKey, metricValStr := chi.URLParam(r, constant.MetricTypeParam), chi.URLParam(r, constant.MetricNameParam), chi.URLParam(r, constant.MetricValueParam)
 		switch action {
-		case config.MetricTypeGauge:
+		case constant.MetricTypeGauge:
 			if v, err := domain.ParseGauge(metricValStr); err != nil {
 				w.WriteHeader(http.StatusBadRequest)
 				if _, err := w.Write([]byte("Bad metric value")); err != nil {
@@ -31,7 +31,7 @@ func (h *Handler) UpdateMetric() func(w http.ResponseWriter, r *http.Request) {
 					return
 				}
 			}
-		case config.MetricTypeCounter:
+		case constant.MetricTypeCounter:
 			if v, err := domain.ParseCounter(metricValStr); err != nil {
 				w.WriteHeader(http.StatusBadRequest)
 				if _, err := w.Write([]byte("Bad metric value")); err != nil {

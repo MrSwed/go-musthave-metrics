@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"github.com/MrSwed/go-musthave-metrics/internal/constant"
 	"net/http"
 	"os"
 	"os/signal"
@@ -95,12 +96,12 @@ func main() {
 	go func() {
 		<-exitSig
 
-		shutdownCtx, shutdownStopForce := context.WithTimeout(serverCtx, config.ServerShutdownTimeout*time.Second)
+		shutdownCtx, shutdownStopForce := context.WithTimeout(serverCtx, constant.ServerShutdownTimeout*time.Second)
 		defer shutdownStopForce()
 		go func() {
 			<-shutdownCtx.Done()
 			if errors.Is(shutdownCtx.Err(), context.DeadlineExceeded) {
-				logger.Error("graceful shutdown timed out.. forcing exit.", zap.Any("timeout", config.ServerShutdownTimeout))
+				logger.Error("graceful shutdown timed out.. forcing exit.", zap.Any("timeout", constant.ServerShutdownTimeout))
 			}
 		}()
 
@@ -109,12 +110,12 @@ func main() {
 		}
 
 		if db != nil {
-			shutdownDBCtx, shutdownDBStopForce := context.WithTimeout(serverCtx, config.ServerShutdownTimeout*time.Second)
+			shutdownDBCtx, shutdownDBStopForce := context.WithTimeout(serverCtx, constant.ServerShutdownTimeout*time.Second)
 			defer shutdownDBStopForce()
 			go func() {
 				<-shutdownDBCtx.Done()
 				if errors.Is(shutdownDBCtx.Err(), context.DeadlineExceeded) {
-					logger.Error("graceful close DB timed out.. forcing exit.", zap.Any("timeout", config.ServerShutdownTimeout))
+					logger.Error("graceful close DB timed out.. forcing exit.", zap.Any("timeout", constant.ServerShutdownTimeout))
 				}
 			}()
 

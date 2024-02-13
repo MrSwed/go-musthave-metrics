@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/MrSwed/go-musthave-metrics/internal/domain"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/MrSwed/go-musthave-metrics/internal/config"
+	"github.com/MrSwed/go-musthave-metrics/internal/constant"
+	"github.com/MrSwed/go-musthave-metrics/internal/domain"
 	mocks "github.com/MrSwed/go-musthave-metrics/internal/mock/repository"
 	"github.com/MrSwed/go-musthave-metrics/internal/service"
 
@@ -424,7 +425,7 @@ func TestMockUpdateMetricJson(t *testing.T) {
 			err := json.NewEncoder(b).Encode(test.args.body)
 			require.NoError(t, err)
 
-			req, err := http.NewRequest(test.args.method, ts.URL+config.UpdateRoute, b)
+			req, err := http.NewRequest(test.args.method, ts.URL+constant.UpdateRoute, b)
 			require.NoError(t, err)
 			defer req.Context()
 
@@ -629,7 +630,7 @@ func TestMockUpdateMetrics(t *testing.T) {
 			err := json.NewEncoder(b).Encode(test.args.body)
 			require.NoError(t, err)
 
-			req, err := http.NewRequest(test.args.method, ts.URL+config.UpdatesRoute, b)
+			req, err := http.NewRequest(test.args.method, ts.URL+constant.UpdatesRoute, b)
 			require.NoError(t, err)
 			defer req.Context()
 

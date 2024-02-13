@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/MrSwed/go-musthave-metrics/internal/domain"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/MrSwed/go-musthave-metrics/internal/config"
+	"github.com/MrSwed/go-musthave-metrics/internal/constant"
+	"github.com/MrSwed/go-musthave-metrics/internal/domain"
 	"github.com/MrSwed/go-musthave-metrics/internal/errors"
 	mocks "github.com/MrSwed/go-musthave-metrics/internal/mock/repository"
 	"github.com/MrSwed/go-musthave-metrics/internal/service"
@@ -415,7 +416,7 @@ func TestMockGetMetricJson(t *testing.T) {
 			err := json.NewEncoder(b).Encode(test.args.body)
 			require.NoError(t, err)
 
-			req, err := http.NewRequest(test.args.method, ts.URL+config.ValueRoute, b)
+			req, err := http.NewRequest(test.args.method, ts.URL+constant.ValueRoute, b)
 			require.NoError(t, err)
 			defer req.Context()
 

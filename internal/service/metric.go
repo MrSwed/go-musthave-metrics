@@ -2,11 +2,14 @@ package service
 
 import (
 	"errors"
+
 	"github.com/MrSwed/go-musthave-metrics/internal/config"
+	"github.com/MrSwed/go-musthave-metrics/internal/constant"
 	"github.com/MrSwed/go-musthave-metrics/internal/domain"
 	myErr "github.com/MrSwed/go-musthave-metrics/internal/errors"
 	"github.com/MrSwed/go-musthave-metrics/internal/helper"
 	"github.com/MrSwed/go-musthave-metrics/internal/repository"
+
 	"github.com/go-playground/validator/v10"
 )
 
@@ -90,17 +93,17 @@ func (s *MetricsService) GetCountersHTMLPage() (html []byte, err error) {
 	}
 	for k, v := range counter {
 		list[k] = lItem{
-			MType:  config.MetricTypeCounter,
+			MType:  constant.MetricTypeCounter,
 			MValue: v,
 		}
 	}
 	for k, v := range gauge {
 		list[k] = lItem{
-			MType:  config.MetricTypeGauge,
+			MType:  constant.MetricTypeGauge,
 			MValue: v,
 		}
 	}
-	html, err = helper.ParseEmailHTMLTemplate(config.MetricListTpl, list)
+	html, err = helper.ParseEmailHTMLTemplate(constant.MetricListTpl, list)
 	return
 }
 
@@ -137,11 +140,11 @@ func (s *MetricsService) SetMetric(metric domain.Metric) (rm domain.Metric, err 
 		return
 	}
 	switch metric.MType {
-	case config.MetricTypeGauge:
+	case constant.MetricTypeGauge:
 		if err = s.SetGauge(metric.ID, *metric.Value); err != nil {
 			return
 		}
-	case config.MetricTypeCounter:
+	case constant.MetricTypeCounter:
 		if err = s.IncreaseCounter(metric.ID, *metric.Delta); err != nil {
 			return
 		}

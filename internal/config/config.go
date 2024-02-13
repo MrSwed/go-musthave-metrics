@@ -5,6 +5,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/MrSwed/go-musthave-metrics/internal/constant"
 )
 
 type StorageConfig struct {
@@ -21,11 +23,11 @@ type Config struct {
 
 func NewConfig() *Config {
 	return &Config{
-		ServerAddress: serverAddress,
+		ServerAddress: constant.ServerAddress,
 		StorageConfig: StorageConfig{
-			StoreInterval:   storeInterval,
-			FileStoragePath: fileStoragePath,
-			StorageRestore:  storageRestore,
+			StoreInterval:   constant.StoreInterval,
+			FileStoragePath: constant.FileStoragePath,
+			StorageRestore:  constant.StorageRestore,
 		},
 	}
 }
@@ -35,18 +37,18 @@ func (c *Config) Init() *Config {
 }
 
 func (c *Config) WithEnv() *Config {
-	if addr, ok := os.LookupEnv(envNameServerAddress); ok && addr != "" {
+	if addr, ok := os.LookupEnv(constant.EnvNameServerAddress); ok && addr != "" {
 		c.ServerAddress = addr
 	}
-	if file, ok := os.LookupEnv(envNameFileStoragePath); ok && file != "" {
+	if file, ok := os.LookupEnv(constant.EnvNameFileStoragePath); ok && file != "" {
 		c.FileStoragePath = file
 	}
-	if sInterval, ok := os.LookupEnv(envNameStoreInterval); ok {
+	if sInterval, ok := os.LookupEnv(constant.EnvNameStoreInterval); ok {
 		if sInterval, err := strconv.Atoi(sInterval); err == nil {
 			c.StoreInterval = sInterval
 		}
 	}
-	if restore, ok := os.LookupEnv(envNameRestore); ok {
+	if restore, ok := os.LookupEnv(constant.EnvNameRestore); ok {
 		func() {
 			for _, v := range []string{"true", "1", "on", "y", "yes"} {
 				if v == strings.ToLower(restore) {
@@ -62,7 +64,7 @@ func (c *Config) WithEnv() *Config {
 			}
 		}()
 	}
-	if dbDSN, ok := os.LookupEnv(envNameDBDSN); ok {
+	if dbDSN, ok := os.LookupEnv(constant.EnvNameDBDSN); ok {
 		c.DatabaseDSN = dbDSN
 	}
 	return c

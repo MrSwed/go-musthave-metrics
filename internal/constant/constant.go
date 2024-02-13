@@ -1,4 +1,4 @@
-package config
+package constant
 
 import (
 	"embed"
@@ -8,16 +8,16 @@ import (
 const (
 	ServerShutdownTimeout = 30
 
-	serverAddress   = "localhost:8080"
-	storeInterval   = 300
-	fileStoragePath = "/tmp/metrics-db.json"
-	storageRestore  = true
+	ServerAddress   = "localhost:8080"
+	StoreInterval   = 300
+	FileStoragePath = "/tmp/metrics-db.json"
+	StorageRestore  = true
 
-	envNameServerAddress   = "ADDRESS"
-	envNameFileStoragePath = "FILE_STORAGE_PATH"
-	envNameStoreInterval   = "STORE_INTERVAL"
-	envNameRestore         = "RESTORE"
-	envNameDBDSN           = "DATABASE_DSN"
+	EnvNameServerAddress   = "ADDRESS"
+	EnvNameFileStoragePath = "FILE_STORAGE_PATH"
+	EnvNameStoreInterval   = "STORE_INTERVAL"
+	EnvNameRestore         = "RESTORE"
+	EnvNameDBDSN           = "DATABASE_DSN"
 
 	UpdateRoute      = "/update"
 	UpdatesRoute     = "/updates"
