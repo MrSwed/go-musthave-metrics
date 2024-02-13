@@ -107,6 +107,24 @@ func main() {
 		if err := server.Shutdown(shutdownCtx); err != nil {
 			logger.Error("shutdown", zap.Error(err))
 		}
+
+		if db != nil {
+			shutdownDBCtx, shutdownDBStopForce := context.WithTimeout(serverCtx, config.ServerShutdownTimeout*time.Second)
+			defer shutdownDBStopForce()
+			go func() {
+				<-shutdownDBCtx.Done()
+				if errors.Is(shutdownDBCtx.Err(), context.DeadlineExceeded) {
+					logger.Error("graceful close DB timed out.. forcing exit.", zap.Any("timeout", config.ServerShutdownTimeout))
+				}
+			}()
+
+			if err = db.Close(); err != nil {
+				logger.Error("DB close", zap.Error(err))
+			} else {
+				logger.Info("Db Closed")
+			}
+		}
+
 		serverStop()
 	}()
 
@@ -130,12 +148,5 @@ func main() {
 		}
 	}
 
-	if db != nil {
-		if err = db.Close(); err != nil {
-			logger.Error("DB close", zap.Error(err))
-		} else {
-			logger.Info("Db Closed")
-		}
-	}
 	_ = logger.Sync()
 }
