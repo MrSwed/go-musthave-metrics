@@ -52,9 +52,6 @@ func (h *Handler) UpdateMetric() func(w http.ResponseWriter, r *http.Request) {
 			}
 			return
 		}
-
-		// if ok
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
 		if _, err := w.Write([]byte("Saved: Ok")); err != nil {
 			h.log.Error("Error return answer", zap.Error(err))
@@ -91,7 +88,6 @@ func (h *Handler) UpdateMetricJSON() func(w http.ResponseWriter, r *http.Request
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
 		if _, err := w.Write(out); err != nil {
 			h.log.Error("Error return answer", zap.Error(err))
@@ -128,7 +124,6 @@ func (h *Handler) UpdateMetrics() func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
 		if _, err := w.Write(out); err != nil {
 			h.log.Error("Error return answer", zap.Error(err))

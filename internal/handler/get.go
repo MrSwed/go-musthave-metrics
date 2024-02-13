@@ -48,9 +48,6 @@ func (h *Handler) GetMetric() func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-
-		// if ok
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
 		if _, err := w.Write([]byte(metricValue)); err != nil {
 			h.log.Error("Error return answer", zap.Error(err))
@@ -101,7 +98,6 @@ func (h *Handler) GetMetricJSON() func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
 		if _, err := w.Write(out); err != nil {
 			h.log.Error("Error return answer", zap.Error(err))
@@ -131,7 +127,6 @@ func (h *Handler) GetDBPing() func(w http.ResponseWriter, r *http.Request) {
 			h.log.Error("Error ping", zap.Error(err))
 			return
 		}
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
 		if _, err := w.Write([]byte("Status: ok")); err != nil {
 			h.log.Error("Error return answer", zap.Error(err))

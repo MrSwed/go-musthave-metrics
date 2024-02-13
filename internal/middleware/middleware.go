@@ -23,3 +23,21 @@ func Decompress(l *zap.Logger) func(next http.Handler) http.Handler {
 		})
 	}
 }
+
+func JSONHeader() func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+			rw.Header().Set("Content-Type", "application/json; charset=utf-8")
+			next.ServeHTTP(rw, r)
+		})
+	}
+}
+
+func TextHeader() func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+			rw.Header().Set("Content-Type", "text/plain; charset=utf-8")
+			next.ServeHTTP(rw, r)
+		})
+	}
+}
