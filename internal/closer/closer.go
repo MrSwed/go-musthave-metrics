@@ -41,8 +41,10 @@ func (c *Closer) Close(ctx context.Context) (err error) {
 			wg.Done()
 		}()
 	}
-	wg.Wait()
-	complete <- struct{}{}
+	go func() {
+		wg.Wait()
+		complete <- struct{}{}
+	}()
 
 	select {
 	case <-complete:
