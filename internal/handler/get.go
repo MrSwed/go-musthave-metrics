@@ -1,10 +1,12 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/MrSwed/go-musthave-metrics/internal/constant"
 	"github.com/MrSwed/go-musthave-metrics/internal/domain"
@@ -18,9 +20,12 @@ func (h *Handler) GetMetric() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		action, metricKey := chi.URLParam(r, constant.MetricTypeParam), chi.URLParam(r, constant.MetricNameParam)
 		var metricValue string
+		ctx, cancel := context.WithTimeout(r.Context(), constant.ServerShutdownTimeout*time.Second)
+		defer cancel()
+
 		switch action {
 		case constant.MetricTypeGauge:
-			if gauge, err := h.s.GetGauge(metricKey); err != nil {
+			if gauge, err := h.s.GetGauge(ctx, metricKey); err != nil {
 				if errors.Is(err, myErr.ErrNotExist) {
 					w.WriteHeader(http.StatusNotFound)
 				} else {
@@ -33,7 +38,7 @@ func (h *Handler) GetMetric() func(w http.ResponseWriter, r *http.Request) {
 			}
 
 		case constant.MetricTypeCounter:
-			if count, err := h.s.GetCounter(metricKey); err != nil {
+			if count, err := h.s.GetCounter(ctx, metricKey); err != nil {
 				if errors.Is(err, myErr.ErrNotExist) {
 					w.WriteHeader(http.StatusNotFound)
 				} else {
@@ -63,9 +68,12 @@ func (h *Handler) GetMetricJSON() func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
+		ctx, cancel := context.WithTimeout(r.Context(), constant.ServerShutdownTimeout*time.Second)
+		defer cancel()
+
 		switch metric.MType {
 		case constant.MetricTypeGauge:
-			if gauge, err := h.s.GetGauge(metric.ID); err != nil {
+			if gauge, err := h.s.GetGauge(ctx, metric.ID); err != nil {
 				if errors.Is(err, myErr.ErrNotExist) {
 					w.WriteHeader(http.StatusNotFound)
 				} else {
@@ -77,7 +85,7 @@ func (h *Handler) GetMetricJSON() func(w http.ResponseWriter, r *http.Request) {
 				metric.Value = &gauge
 			}
 		case constant.MetricTypeCounter:
-			if count, err := h.s.GetCounter(metric.ID); err != nil {
+			if count, err := h.s.GetCounter(ctx, metric.ID); err != nil {
 				if errors.Is(err, myErr.ErrNotExist) {
 					w.WriteHeader(http.StatusNotFound)
 				} else {
@@ -107,7 +115,10 @@ func (h *Handler) GetMetricJSON() func(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) GetListMetrics() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		html, err := h.s.GetCountersHTMLPage()
+		ctx, cancel := context.WithTimeout(r.Context(), constant.ServerShutdownTimeout*time.Second)
+		defer cancel()
+
+		html, err := h.s.GetCountersHTMLPage(ctx)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			h.log.Error("Error get html page", zap.Error(err))

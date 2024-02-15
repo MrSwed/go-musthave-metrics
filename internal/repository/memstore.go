@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"errors"
 	"sync"
 
@@ -35,25 +36,25 @@ func (r *MemStorageRepo) Ping() (err error) {
 	return
 }
 
-func (r *MemStorageRepo) MemStore() (*MemStorageRepo, error) {
+func (r *MemStorageRepo) MemStore(ctx context.Context) (*MemStorageRepo, error) {
 	return r, nil
 }
 
-func (r *MemStorageRepo) SetGauge(k string, v domain.Gauge) (err error) {
+func (r *MemStorageRepo) SetGauge(ctx context.Context, k string, v domain.Gauge) (err error) {
 	r.mg.Lock()
 	defer r.mg.Unlock()
 	r.Gauge[k] = v
 	return
 }
 
-func (r *MemStorageRepo) SetCounter(k string, v domain.Counter) (err error) {
+func (r *MemStorageRepo) SetCounter(ctx context.Context, k string, v domain.Counter) (err error) {
 	r.mc.Lock()
 	defer r.mc.Unlock()
 	r.Counter[k] = v
 	return
 }
 
-func (r *MemStorageRepo) GetGauge(k string) (v domain.Gauge, err error) {
+func (r *MemStorageRepo) GetGauge(ctx context.Context, k string) (v domain.Gauge, err error) {
 	var ok bool
 	r.mg.RLock()
 	defer r.mg.RUnlock()
@@ -63,7 +64,7 @@ func (r *MemStorageRepo) GetGauge(k string) (v domain.Gauge, err error) {
 	return
 }
 
-func (r *MemStorageRepo) GetCounter(k string) (v domain.Counter, err error) {
+func (r *MemStorageRepo) GetCounter(ctx context.Context, k string) (v domain.Counter, err error) {
 	var ok bool
 	r.mc.RLock()
 	defer r.mc.RUnlock()
@@ -73,31 +74,31 @@ func (r *MemStorageRepo) GetCounter(k string) (v domain.Counter, err error) {
 	return
 }
 
-func (r *MemStorageRepo) GetAllGauges() (domain.Gauges, error) {
+func (r *MemStorageRepo) GetAllGauges(ctx context.Context) (domain.Gauges, error) {
 	var err error
 	return r.Gauge, err
 }
 
-func (r *MemStorageRepo) GetAllCounters() (domain.Counters, error) {
+func (r *MemStorageRepo) GetAllCounters(ctx context.Context) (domain.Counters, error) {
 	var err error
 	return r.Counter, err
 }
 
-func (r *MemStorageRepo) SetMetrics(metrics []domain.Metric) (newMetrics []domain.Metric, err error) {
+func (r *MemStorageRepo) SetMetrics(ctx context.Context, metrics []domain.Metric) (newMetrics []domain.Metric, err error) {
 	for _, metric := range metrics {
 		switch metric.MType {
 		case constant.MetricTypeGauge:
-			if err = r.SetGauge(metric.ID, *metric.Value); err != nil {
+			if err = r.SetGauge(ctx, metric.ID, *metric.Value); err != nil {
 				return
 			}
 			newMetrics = append(newMetrics, metric)
 		case constant.MetricTypeCounter:
 			var current domain.Counter
-			if current, err = r.GetCounter(metric.ID); err != nil && !errors.Is(err, myErr.ErrNotExist) {
+			if current, err = r.GetCounter(ctx, metric.ID); err != nil && !errors.Is(err, myErr.ErrNotExist) {
 				return
 			}
 			delta := current + *metric.Delta
-			if err = r.SetCounter(metric.ID, delta); err != nil {
+			if err = r.SetCounter(ctx, metric.ID, delta); err != nil {
 				return
 			}
 			newMetrics = append(newMetrics, domain.Metric{

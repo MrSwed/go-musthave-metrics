@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -60,8 +61,9 @@ func TestGetMetric(t *testing.T) {
 	testGaugeName := fmt.Sprintf("testGauge%d", rand.Int())
 	testCounterName := fmt.Sprintf("testCounter%d", rand.Int())
 	// save some values
-	_ = s.SetGauge(testGaugeName, testGauge)
-	_ = s.IncreaseCounter(testCounterName, testCounter)
+	ctx := context.Background()
+	_ = s.SetGauge(ctx, testGaugeName, testGauge)
+	_ = s.IncreaseCounter(ctx, testCounterName, testCounter)
 
 	type want struct {
 		code        int
@@ -196,8 +198,9 @@ func TestGetListMetrics(t *testing.T) {
 	testCounter := domain.Counter(1)
 	testGauge := domain.Gauge(1.0001)
 	// save some values
-	_ = s.SetGauge("testGauge", testGauge)
-	_ = s.IncreaseCounter("testCounter", testCounter)
+	ctx := context.Background()
+	_ = s.SetGauge(ctx, "testGauge", testGauge)
+	_ = s.IncreaseCounter(ctx, "testCounter", testCounter)
 
 	type want struct {
 		code            int
@@ -283,8 +286,9 @@ func TestGetMetricJson(t *testing.T) {
 	testGaugeName := fmt.Sprintf("testGauge%d", rand.Int())
 	testCounterName := fmt.Sprintf("testCounter%d", rand.Int())
 	// save some values
-	_ = s.SetGauge(testGaugeName, testGauge)
-	_ = s.IncreaseCounter(testCounterName, testCounter)
+	ctx := context.Background()
+	_ = s.SetGauge(ctx, testGaugeName, testGauge)
+	_ = s.IncreaseCounter(ctx, testCounterName, testCounter)
 
 	type want struct {
 		code        int

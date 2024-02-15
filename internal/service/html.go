@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"github.com/MrSwed/go-musthave-metrics/internal/constant"
 	"github.com/MrSwed/go-musthave-metrics/internal/domain"
 	"github.com/MrSwed/go-musthave-metrics/internal/helper"
@@ -8,7 +9,7 @@ import (
 )
 
 type MetricsHTML interface {
-	GetCountersHTMLPage() ([]byte, error)
+	GetCountersHTMLPage(ctx context.Context) ([]byte, error)
 }
 
 type MetricsHTMLService struct {
@@ -19,7 +20,7 @@ func NewMetricsHTMLService(r repository.Repository) *MetricsHTMLService {
 	return &MetricsHTMLService{r: r}
 }
 
-func (s *MetricsHTMLService) GetCountersHTMLPage() (html []byte, err error) {
+func (s *MetricsHTMLService) GetCountersHTMLPage(ctx context.Context) (html []byte, err error) {
 	type lItem struct {
 		MType  string
 		MValue interface{}
@@ -29,10 +30,10 @@ func (s *MetricsHTMLService) GetCountersHTMLPage() (html []byte, err error) {
 		gauge   domain.Gauges
 		list    = map[string]lItem{}
 	)
-	if counter, err = s.r.GetAllCounters(); err != nil {
+	if counter, err = s.r.GetAllCounters(ctx); err != nil {
 		return
 	}
-	if gauge, err = s.r.GetAllGauges(); err != nil {
+	if gauge, err = s.r.GetAllGauges(ctx); err != nil {
 		return
 	}
 	for k, v := range counter {

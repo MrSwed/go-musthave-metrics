@@ -71,7 +71,7 @@ func runServer(ctx context.Context) {
 	if conf.FileStoragePath != "" {
 		if conf.StorageRestore {
 			if isNewStore {
-				if n, err := s.RestoreFromFile(); err != nil {
+				if n, err := s.RestoreFromFile(ctx); err != nil {
 					logger.Error("File storage restore", zap.Error(err))
 				} else {
 					logger.Info("File storage restored success", zap.Any("records", n))
@@ -87,7 +87,7 @@ func runServer(ctx context.Context) {
 				for {
 					select {
 					case <-time.After(time.Duration(conf.FileStoreInterval) * time.Second):
-						if n, err := s.SaveToFile(); err != nil {
+						if n, err := s.SaveToFile(ctx); err != nil {
 							logger.Error("Storage save", zap.Error(err))
 						} else {
 							logger.Info("Storage saved", zap.Any("records", n))
@@ -110,7 +110,7 @@ func runServer(ctx context.Context) {
 		sCloser.Add("Storage save", func(ctx context.Context) (err error) {
 			defer close(lockDBCLose)
 			var n int64
-			if n, err = s.SaveToFile(); err == nil {
+			if n, err = s.SaveToFile(ctx); err == nil {
 				logger.Info("Storage saved", zap.Any("records", n))
 			}
 			return

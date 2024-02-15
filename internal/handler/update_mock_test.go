@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -36,10 +37,11 @@ func TestMockUpdateMetric(t *testing.T) {
 	testCounter := domain.Counter(1)
 	testGauge := domain.Gauge(1.0001)
 
-	_ = repo.EXPECT().SetGauge(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-	_ = repo.EXPECT().SetCounter(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-	_ = repo.EXPECT().GetCounter(gomock.Any()).Return(testCounter, nil).AnyTimes()
-	_ = repo.EXPECT().GetGauge(gomock.Any()).Return(testGauge, nil).AnyTimes()
+	ctx := context.Background()
+	_ = repo.EXPECT().SetGauge(ctx, gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	_ = repo.EXPECT().SetCounter(ctx, gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	_ = repo.EXPECT().GetCounter(ctx, gomock.Any()).Return(testCounter, nil).AnyTimes()
+	_ = repo.EXPECT().GetGauge(ctx, gomock.Any()).Return(testGauge, nil).AnyTimes()
 
 	type want struct {
 		code        int
@@ -238,10 +240,11 @@ func TestMockUpdateMetricJson(t *testing.T) {
 	testCounter := domain.Counter(1)
 	testGauge := domain.Gauge(1.0001)
 
-	_ = repo.EXPECT().SetGauge(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-	_ = repo.EXPECT().SetCounter(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-	_ = repo.EXPECT().GetCounter(gomock.Any()).Return(testCounter, nil).AnyTimes()
-	_ = repo.EXPECT().GetGauge(gomock.Any()).Return(testGauge, nil).AnyTimes()
+	ctx := context.Background()
+	_ = repo.EXPECT().SetGauge(ctx, gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	_ = repo.EXPECT().SetCounter(ctx, gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	_ = repo.EXPECT().GetCounter(ctx, gomock.Any()).Return(testCounter, nil).AnyTimes()
+	_ = repo.EXPECT().GetGauge(ctx, gomock.Any()).Return(testGauge, nil).AnyTimes()
 
 	type want struct {
 		code        int
@@ -479,7 +482,8 @@ func TestMockUpdateMetrics(t *testing.T) {
 			Value: &testGauge,
 		},
 	}
-	_ = repo.EXPECT().SetMetrics(metrics).Return(metrics, nil).AnyTimes()
+	ctx := context.Background()
+	_ = repo.EXPECT().SetMetrics(ctx, metrics).Return(metrics, nil).AnyTimes()
 
 	type want struct {
 		code        int

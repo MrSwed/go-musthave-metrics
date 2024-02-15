@@ -1,9 +1,11 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/MrSwed/go-musthave-metrics/internal/constant"
 	"github.com/MrSwed/go-musthave-metrics/internal/domain"
@@ -16,6 +18,9 @@ import (
 func (h *Handler) UpdateMetric() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		action, metricKey, metricValStr := chi.URLParam(r, constant.MetricTypeParam), chi.URLParam(r, constant.MetricNameParam), chi.URLParam(r, constant.MetricValueParam)
+		ctx, cancel := context.WithTimeout(r.Context(), constant.ServerShutdownTimeout*time.Second)
+		defer cancel()
+
 		switch action {
 		case constant.MetricTypeGauge:
 			if v, err := domain.ParseGauge(metricValStr); err != nil {
@@ -25,7 +30,7 @@ func (h *Handler) UpdateMetric() func(w http.ResponseWriter, r *http.Request) {
 				}
 				return
 			} else {
-				if err = h.s.SetGauge(metricKey, v); err != nil {
+				if err = h.s.SetGauge(ctx, metricKey, v); err != nil {
 					w.WriteHeader(http.StatusInternalServerError)
 					h.log.Error("Error set gauge", zap.Error(err))
 					return
@@ -39,7 +44,7 @@ func (h *Handler) UpdateMetric() func(w http.ResponseWriter, r *http.Request) {
 				}
 				return
 			} else {
-				if err = h.s.IncreaseCounter(metricKey, v); err != nil {
+				if err = h.s.IncreaseCounter(ctx, metricKey, v); err != nil {
 					w.WriteHeader(http.StatusInternalServerError)
 					h.log.Error("Error set counter", zap.Error(err))
 					return
@@ -70,7 +75,10 @@ func (h *Handler) UpdateMetricJSON() func(w http.ResponseWriter, r *http.Request
 			}
 			return
 		}
-		if metric, err = h.s.SetMetric(metric); err != nil {
+		ctx, cancel := context.WithTimeout(r.Context(), constant.ServerShutdownTimeout*time.Second)
+		defer cancel()
+
+		if metric, err = h.s.SetMetric(ctx, metric); err != nil {
 			if errors.As(err, &validator.ValidationErrors{}) {
 				w.WriteHeader(http.StatusBadRequest)
 				if _, err := w.Write([]byte("Bad input data: " + err.Error())); err != nil {
@@ -106,7 +114,10 @@ func (h *Handler) UpdateMetrics() func(w http.ResponseWriter, r *http.Request) {
 			}
 			return
 		}
-		if metrics, err = h.s.SetMetrics(metrics); err != nil {
+		ctx, cancel := context.WithTimeout(r.Context(), constant.ServerShutdownTimeout*time.Second)
+		defer cancel()
+
+		if metrics, err = h.s.SetMetrics(ctx, metrics); err != nil {
 			if errors.As(err, &validator.ValidationErrors{}) {
 				w.WriteHeader(http.StatusBadRequest)
 				if _, err := w.Write([]byte("Bad input data: " + err.Error())); err != nil {

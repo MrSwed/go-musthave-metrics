@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"github.com/MrSwed/go-musthave-metrics/internal/config"
 	"github.com/MrSwed/go-musthave-metrics/internal/domain"
 	"github.com/jmoiron/sqlx"
@@ -9,15 +10,15 @@ import (
 //go:generate  mockgen -destination=../mock/repository/repository.go -package=mock "github.com/MrSwed/go-musthave-metrics/internal/repository" Repository
 
 type DataStorage interface {
-	SetGauge(k string, v domain.Gauge) error
-	SetCounter(k string, v domain.Counter) error
-	GetGauge(k string) (domain.Gauge, error)
-	GetCounter(k string) (domain.Counter, error)
-	GetAllCounters() (domain.Counters, error)
-	GetAllGauges() (domain.Gauges, error)
-	SetMetrics(metrics []domain.Metric) ([]domain.Metric, error)
+	SetGauge(ctx context.Context, k string, v domain.Gauge) error
+	SetCounter(ctx context.Context, k string, v domain.Counter) error
+	GetGauge(ctx context.Context, k string) (domain.Gauge, error)
+	GetCounter(ctx context.Context, k string) (domain.Counter, error)
+	GetAllCounters(ctx context.Context) (domain.Counters, error)
+	GetAllGauges(ctx context.Context) (domain.Gauges, error)
+	SetMetrics(ctx context.Context, metrics []domain.Metric) ([]domain.Metric, error)
 	Ping() error
-	MemStore() (*MemStorageRepo, error)
+	MemStore(ctx context.Context) (*MemStorageRepo, error)
 }
 
 type Repository interface {

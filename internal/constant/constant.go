@@ -6,7 +6,8 @@ import (
 )
 
 const (
-	ServerShutdownTimeout = 30
+	ServerShutdownTimeout  = 30
+	ServerOperationTimeout = 30
 
 	ServerAddress   = "localhost:8080"
 	StoreInterval   = 300

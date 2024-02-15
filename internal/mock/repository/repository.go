@@ -5,6 +5,7 @@
 package mock
 
 import (
+	context "context"
 	reflect "reflect"
 
 	domain "github.com/MrSwed/go-musthave-metrics/internal/domain"
@@ -36,78 +37,78 @@ func (m *MockRepository) EXPECT() *MockRepositoryMockRecorder {
 }
 
 // GetAllCounters mocks base method.
-func (m *MockRepository) GetAllCounters() (domain.Counters, error) {
+func (m *MockRepository) GetAllCounters(arg0 context.Context) (domain.Counters, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAllCounters")
+	ret := m.ctrl.Call(m, "GetAllCounters", arg0)
 	ret0, _ := ret[0].(domain.Counters)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetAllCounters indicates an expected call of GetAllCounters.
-func (mr *MockRepositoryMockRecorder) GetAllCounters() *gomock.Call {
+func (mr *MockRepositoryMockRecorder) GetAllCounters(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllCounters", reflect.TypeOf((*MockRepository)(nil).GetAllCounters))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllCounters", reflect.TypeOf((*MockRepository)(nil).GetAllCounters), arg0)
 }
 
 // GetAllGauges mocks base method.
-func (m *MockRepository) GetAllGauges() (domain.Gauges, error) {
+func (m *MockRepository) GetAllGauges(arg0 context.Context) (domain.Gauges, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAllGauges")
+	ret := m.ctrl.Call(m, "GetAllGauges", arg0)
 	ret0, _ := ret[0].(domain.Gauges)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetAllGauges indicates an expected call of GetAllGauges.
-func (mr *MockRepositoryMockRecorder) GetAllGauges() *gomock.Call {
+func (mr *MockRepositoryMockRecorder) GetAllGauges(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllGauges", reflect.TypeOf((*MockRepository)(nil).GetAllGauges))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllGauges", reflect.TypeOf((*MockRepository)(nil).GetAllGauges), arg0)
 }
 
 // GetCounter mocks base method.
-func (m *MockRepository) GetCounter(arg0 string) (domain.Counter, error) {
+func (m *MockRepository) GetCounter(arg0 context.Context, arg1 string) (domain.Counter, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetCounter", arg0)
+	ret := m.ctrl.Call(m, "GetCounter", arg0, arg1)
 	ret0, _ := ret[0].(domain.Counter)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetCounter indicates an expected call of GetCounter.
-func (mr *MockRepositoryMockRecorder) GetCounter(arg0 interface{}) *gomock.Call {
+func (mr *MockRepositoryMockRecorder) GetCounter(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCounter", reflect.TypeOf((*MockRepository)(nil).GetCounter), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCounter", reflect.TypeOf((*MockRepository)(nil).GetCounter), arg0, arg1)
 }
 
 // GetGauge mocks base method.
-func (m *MockRepository) GetGauge(arg0 string) (domain.Gauge, error) {
+func (m *MockRepository) GetGauge(arg0 context.Context, arg1 string) (domain.Gauge, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetGauge", arg0)
+	ret := m.ctrl.Call(m, "GetGauge", arg0, arg1)
 	ret0, _ := ret[0].(domain.Gauge)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetGauge indicates an expected call of GetGauge.
-func (mr *MockRepositoryMockRecorder) GetGauge(arg0 interface{}) *gomock.Call {
+func (mr *MockRepositoryMockRecorder) GetGauge(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGauge", reflect.TypeOf((*MockRepository)(nil).GetGauge), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGauge", reflect.TypeOf((*MockRepository)(nil).GetGauge), arg0, arg1)
 }
 
 // MemStore mocks base method.
-func (m *MockRepository) MemStore() (*repository.MemStorageRepo, error) {
+func (m *MockRepository) MemStore(arg0 context.Context) (*repository.MemStorageRepo, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "MemStore")
+	ret := m.ctrl.Call(m, "MemStore", arg0)
 	ret0, _ := ret[0].(*repository.MemStorageRepo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // MemStore indicates an expected call of MemStore.
-func (mr *MockRepositoryMockRecorder) MemStore() *gomock.Call {
+func (mr *MockRepositoryMockRecorder) MemStore(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MemStore", reflect.TypeOf((*MockRepository)(nil).MemStore))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MemStore", reflect.TypeOf((*MockRepository)(nil).MemStore), arg0)
 }
 
 // Ping mocks base method.
@@ -153,44 +154,44 @@ func (mr *MockRepositoryMockRecorder) SaveToFile(arg0 interface{}) *gomock.Call 
 }
 
 // SetCounter mocks base method.
-func (m *MockRepository) SetCounter(arg0 string, arg1 domain.Counter) error {
+func (m *MockRepository) SetCounter(arg0 context.Context, arg1 string, arg2 domain.Counter) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetCounter", arg0, arg1)
+	ret := m.ctrl.Call(m, "SetCounter", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SetCounter indicates an expected call of SetCounter.
-func (mr *MockRepositoryMockRecorder) SetCounter(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockRepositoryMockRecorder) SetCounter(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetCounter", reflect.TypeOf((*MockRepository)(nil).SetCounter), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetCounter", reflect.TypeOf((*MockRepository)(nil).SetCounter), arg0, arg1, arg2)
 }
 
 // SetGauge mocks base method.
-func (m *MockRepository) SetGauge(arg0 string, arg1 domain.Gauge) error {
+func (m *MockRepository) SetGauge(arg0 context.Context, arg1 string, arg2 domain.Gauge) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetGauge", arg0, arg1)
+	ret := m.ctrl.Call(m, "SetGauge", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SetGauge indicates an expected call of SetGauge.
-func (mr *MockRepositoryMockRecorder) SetGauge(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockRepositoryMockRecorder) SetGauge(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetGauge", reflect.TypeOf((*MockRepository)(nil).SetGauge), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetGauge", reflect.TypeOf((*MockRepository)(nil).SetGauge), arg0, arg1, arg2)
 }
 
 // SetMetrics mocks base method.
-func (m *MockRepository) SetMetrics(arg0 []domain.Metric) ([]domain.Metric, error) {
+func (m *MockRepository) SetMetrics(arg0 context.Context, arg1 []domain.Metric) ([]domain.Metric, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetMetrics", arg0)
+	ret := m.ctrl.Call(m, "SetMetrics", arg0, arg1)
 	ret0, _ := ret[0].([]domain.Metric)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // SetMetrics indicates an expected call of SetMetrics.
-func (mr *MockRepositoryMockRecorder) SetMetrics(arg0 interface{}) *gomock.Call {
+func (mr *MockRepositoryMockRecorder) SetMetrics(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetMetrics", reflect.TypeOf((*MockRepository)(nil).SetMetrics), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetMetrics", reflect.TypeOf((*MockRepository)(nil).SetMetrics), arg0, arg1)
 }

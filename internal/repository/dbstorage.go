@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -57,27 +58,27 @@ func (r *DBStorageRepo) Ping() (err error) {
 	return
 }
 
-func (r *DBStorageRepo) SetGauge(k string, v domain.Gauge) (err error) {
+func (r *DBStorageRepo) SetGauge(ctx context.Context, k string, v domain.Gauge) (err error) {
 	err = retryFunc(func() (err error) {
-		_, err = r.db.Exec(`INSERT into `+constant.DBTableNameGauges+
+		_, err = r.db.ExecContext(ctx, `INSERT into `+constant.DBTableNameGauges+
 			` (name, value) values ($1, $2) ON CONFLICT (name) DO UPDATE SET value = EXCLUDED.value`, k, v)
 		return
 	})
 	return
 }
 
-func (r *DBStorageRepo) SetCounter(k string, v domain.Counter) (err error) {
+func (r *DBStorageRepo) SetCounter(ctx context.Context, k string, v domain.Counter) (err error) {
 	err = retryFunc(func() (err error) {
-		_, err = r.db.Exec(`INSERT into `+constant.DBTableNameCounters+
+		_, err = r.db.ExecContext(ctx, `INSERT into `+constant.DBTableNameCounters+
 			` (name, value) values ($1, $2) ON CONFLICT (name) DO UPDATE SET value = EXCLUDED.value`, k, v)
 		return
 	})
 	return
 }
 
-func (r *DBStorageRepo) GetGauge(k string) (v domain.Gauge, err error) {
+func (r *DBStorageRepo) GetGauge(ctx context.Context, k string) (v domain.Gauge, err error) {
 	err = retryFunc(func() (err error) {
-		err = r.db.Get(&v, `SELECT value FROM `+constant.DBTableNameGauges+
+		err = r.db.GetContext(ctx, &v, `SELECT value FROM `+constant.DBTableNameGauges+
 			` WHERE name = $1`, k)
 		if errors.Is(err, sql.ErrNoRows) {
 			err = myErr.ErrNotExist
@@ -87,9 +88,9 @@ func (r *DBStorageRepo) GetGauge(k string) (v domain.Gauge, err error) {
 	return
 }
 
-func (r *DBStorageRepo) GetCounter(k string) (v domain.Counter, err error) {
+func (r *DBStorageRepo) GetCounter(ctx context.Context, k string) (v domain.Counter, err error) {
 	err = retryFunc(func() (err error) {
-		err = r.db.Get(&v, `SELECT value FROM `+constant.DBTableNameCounters+` WHERE name = $1 LIMIT 1`, k)
+		err = r.db.GetContext(ctx, &v, `SELECT value FROM `+constant.DBTableNameCounters+` WHERE name = $1 LIMIT 1`, k)
 		if errors.Is(err, sql.ErrNoRows) {
 			err = myErr.ErrNotExist
 		}
@@ -98,10 +99,10 @@ func (r *DBStorageRepo) GetCounter(k string) (v domain.Counter, err error) {
 	return
 }
 
-func (r *DBStorageRepo) GetAllCounters() (data domain.Counters, err error) {
+func (r *DBStorageRepo) GetAllCounters(ctx context.Context) (data domain.Counters, err error) {
 	err = retryFunc(func() (err error) {
 		var rows *sql.Rows
-		if rows, err = r.db.Query(`SELECT name, value FROM ` + constant.DBTableNameCounters); err != nil {
+		if rows, err = r.db.QueryContext(ctx, `SELECT name, value FROM `+constant.DBTableNameCounters); err != nil {
 			return
 		}
 		if err = rows.Err(); err != nil {
@@ -123,10 +124,10 @@ func (r *DBStorageRepo) GetAllCounters() (data domain.Counters, err error) {
 	return
 }
 
-func (r *DBStorageRepo) GetAllGauges() (data domain.Gauges, err error) {
+func (r *DBStorageRepo) GetAllGauges(ctx context.Context) (data domain.Gauges, err error) {
 	err = retryFunc(func() (err error) {
 		var rows *sql.Rows
-		if rows, err = r.db.Query(`SELECT name, value FROM ` + constant.DBTableNameGauges); err != nil {
+		if rows, err = r.db.QueryContext(ctx, `SELECT name, value FROM `+constant.DBTableNameGauges); err != nil {
 			return
 		}
 		if err = rows.Err(); err != nil {
@@ -148,7 +149,7 @@ func (r *DBStorageRepo) GetAllGauges() (data domain.Gauges, err error) {
 	return
 }
 
-func (r *DBStorageRepo) SetMetrics(metrics []domain.Metric) (newMetrics []domain.Metric, err error) {
+func (r *DBStorageRepo) SetMetrics(ctx context.Context, metrics []domain.Metric) (newMetrics []domain.Metric, err error) {
 	err = retryFunc(func() (err error) {
 		var tx *sqlx.Tx
 		tx, err = r.db.Beginx()
@@ -162,13 +163,13 @@ func (r *DBStorageRepo) SetMetrics(metrics []domain.Metric) (newMetrics []domain
 			}
 		}()
 		var stmtG, stmtC *sqlx.Stmt
-		if stmtG, err = tx.Preparex("INSERT INTO " + constant.DBTableNameGauges +
+		if stmtG, err = tx.PreparexContext(ctx, "INSERT INTO "+constant.DBTableNameGauges+
 			" (name, value) VALUES($1, $2) ON CONFLICT (name) DO UPDATE SET value = EXCLUDED.value"); err != nil {
 			return
 		}
-		if stmtC, err = tx.Preparex("INSERT INTO " + constant.DBTableNameCounters + " as c " +
-			" (name, value) VALUES($1, $2) " +
-			"ON CONFLICT (name) DO UPDATE SET value = c.value + EXCLUDED.value " +
+		if stmtC, err = tx.PreparexContext(ctx, "INSERT INTO "+constant.DBTableNameCounters+" as c "+
+			" (name, value) VALUES($1, $2) "+
+			"ON CONFLICT (name) DO UPDATE SET value = c.value + EXCLUDED.value "+
 			"RETURNING c.value"); err != nil {
 			return
 		}
@@ -180,13 +181,13 @@ func (r *DBStorageRepo) SetMetrics(metrics []domain.Metric) (newMetrics []domain
 		for _, metric := range metrics {
 			switch metric.MType {
 			case constant.MetricTypeGauge:
-				if _, err = stmtG.Exec(metric.ID, *metric.Value); err != nil {
+				if _, err = stmtG.ExecContext(ctx, metric.ID, *metric.Value); err != nil {
 					return
 				}
 				newMetrics = append(newMetrics, metric)
 			case constant.MetricTypeCounter:
 				newMetric := metric
-				if err = stmtC.Get(newMetric.Delta, metric.ID, *metric.Delta); err != nil {
+				if err = stmtC.GetContext(ctx, newMetric.Delta, metric.ID, *metric.Delta); err != nil {
 					return
 				}
 				newMetrics = append(newMetrics, newMetric)
@@ -198,15 +199,15 @@ func (r *DBStorageRepo) SetMetrics(metrics []domain.Metric) (newMetrics []domain
 	return
 }
 
-func (r *DBStorageRepo) MemStore() (m *MemStorageRepo, err error) {
+func (r *DBStorageRepo) MemStore(ctx context.Context) (m *MemStorageRepo, err error) {
 	var (
 		counters domain.Counters
 		gauges   domain.Gauges
 	)
-	if counters, err = r.GetAllCounters(); err != nil {
+	if counters, err = r.GetAllCounters(ctx); err != nil {
 		return
 	}
-	if gauges, err = r.GetAllGauges(); err != nil {
+	if gauges, err = r.GetAllGauges(ctx); err != nil {
 		return
 	}
 	m = &MemStorageRepo{
