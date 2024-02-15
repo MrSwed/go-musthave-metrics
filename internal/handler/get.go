@@ -20,7 +20,7 @@ func (h *Handler) GetMetric() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		action, metricKey := chi.URLParam(r, constant.MetricTypeParam), chi.URLParam(r, constant.MetricNameParam)
 		var metricValue string
-		ctx, cancel := context.WithTimeout(r.Context(), constant.ServerShutdownTimeout*time.Second)
+		ctx, cancel := context.WithTimeout(r.Context(), constant.ServerOperationTimeout*time.Second)
 		defer cancel()
 
 		switch action {
@@ -68,7 +68,7 @@ func (h *Handler) GetMetricJSON() func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		ctx, cancel := context.WithTimeout(r.Context(), constant.ServerShutdownTimeout*time.Second)
+		ctx, cancel := context.WithTimeout(r.Context(), constant.ServerOperationTimeout*time.Second)
 		defer cancel()
 
 		switch metric.MType {
@@ -115,7 +115,7 @@ func (h *Handler) GetMetricJSON() func(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) GetListMetrics() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ctx, cancel := context.WithTimeout(r.Context(), constant.ServerShutdownTimeout*time.Second)
+		ctx, cancel := context.WithTimeout(r.Context(), constant.ServerOperationTimeout*time.Second)
 		defer cancel()
 
 		html, err := h.s.GetCountersHTMLPage(ctx)

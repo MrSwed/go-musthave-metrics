@@ -2,7 +2,6 @@ package handler
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -37,11 +36,10 @@ func TestMockUpdateMetric(t *testing.T) {
 	testCounter := domain.Counter(1)
 	testGauge := domain.Gauge(1.0001)
 
-	ctx := context.Background()
-	_ = repo.EXPECT().SetGauge(ctx, gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-	_ = repo.EXPECT().SetCounter(ctx, gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-	_ = repo.EXPECT().GetCounter(ctx, gomock.Any()).Return(testCounter, nil).AnyTimes()
-	_ = repo.EXPECT().GetGauge(ctx, gomock.Any()).Return(testGauge, nil).AnyTimes()
+	_ = repo.EXPECT().SetGauge(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	_ = repo.EXPECT().SetCounter(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	_ = repo.EXPECT().GetCounter(gomock.Any(), gomock.Any()).Return(testCounter, nil).AnyTimes()
+	_ = repo.EXPECT().GetGauge(gomock.Any(), gomock.Any()).Return(testGauge, nil).AnyTimes()
 
 	type want struct {
 		code        int
@@ -240,11 +238,10 @@ func TestMockUpdateMetricJson(t *testing.T) {
 	testCounter := domain.Counter(1)
 	testGauge := domain.Gauge(1.0001)
 
-	ctx := context.Background()
-	_ = repo.EXPECT().SetGauge(ctx, gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-	_ = repo.EXPECT().SetCounter(ctx, gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-	_ = repo.EXPECT().GetCounter(ctx, gomock.Any()).Return(testCounter, nil).AnyTimes()
-	_ = repo.EXPECT().GetGauge(ctx, gomock.Any()).Return(testGauge, nil).AnyTimes()
+	_ = repo.EXPECT().SetGauge(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	_ = repo.EXPECT().SetCounter(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	_ = repo.EXPECT().GetCounter(gomock.Any(), gomock.Any()).Return(testCounter, nil).AnyTimes()
+	_ = repo.EXPECT().GetGauge(gomock.Any(), gomock.Any()).Return(testGauge, nil).AnyTimes()
 
 	type want struct {
 		code        int
@@ -482,8 +479,8 @@ func TestMockUpdateMetrics(t *testing.T) {
 			Value: &testGauge,
 		},
 	}
-	ctx := context.Background()
-	_ = repo.EXPECT().SetMetrics(ctx, metrics).Return(metrics, nil).AnyTimes()
+
+	_ = repo.EXPECT().SetMetrics(gomock.Any(), metrics).Return(metrics, nil).AnyTimes()
 
 	type want struct {
 		code        int

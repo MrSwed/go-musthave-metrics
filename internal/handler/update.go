@@ -18,7 +18,7 @@ import (
 func (h *Handler) UpdateMetric() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		action, metricKey, metricValStr := chi.URLParam(r, constant.MetricTypeParam), chi.URLParam(r, constant.MetricNameParam), chi.URLParam(r, constant.MetricValueParam)
-		ctx, cancel := context.WithTimeout(r.Context(), constant.ServerShutdownTimeout*time.Second)
+		ctx, cancel := context.WithTimeout(r.Context(), constant.ServerOperationTimeout*time.Second)
 		defer cancel()
 
 		switch action {
@@ -75,7 +75,7 @@ func (h *Handler) UpdateMetricJSON() func(w http.ResponseWriter, r *http.Request
 			}
 			return
 		}
-		ctx, cancel := context.WithTimeout(r.Context(), constant.ServerShutdownTimeout*time.Second)
+		ctx, cancel := context.WithTimeout(r.Context(), constant.ServerOperationTimeout*time.Second)
 		defer cancel()
 
 		if metric, err = h.s.SetMetric(ctx, metric); err != nil {
@@ -114,7 +114,7 @@ func (h *Handler) UpdateMetrics() func(w http.ResponseWriter, r *http.Request) {
 			}
 			return
 		}
-		ctx, cancel := context.WithTimeout(r.Context(), constant.ServerShutdownTimeout*time.Second)
+		ctx, cancel := context.WithTimeout(r.Context(), constant.ServerOperationTimeout*time.Second)
 		defer cancel()
 
 		if metrics, err = h.s.SetMetrics(ctx, metrics); err != nil {
