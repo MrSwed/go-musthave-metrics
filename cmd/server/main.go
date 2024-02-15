@@ -3,15 +3,15 @@ package main
 import (
 	"context"
 	"errors"
-	"github.com/MrSwed/go-musthave-metrics/internal/constant"
 	"net/http"
-	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 	"time"
 
+	"github.com/MrSwed/go-musthave-metrics/internal/closer"
 	"github.com/MrSwed/go-musthave-metrics/internal/config"
+	"github.com/MrSwed/go-musthave-metrics/internal/constant"
 	"github.com/MrSwed/go-musthave-metrics/internal/handler"
 	myMigrate "github.com/MrSwed/go-musthave-metrics/internal/migrate"
 	"github.com/MrSwed/go-musthave-metrics/internal/repository"
@@ -24,12 +24,15 @@ import (
 )
 
 func main() {
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	defer stop()
+
+	runServer(ctx)
+}
+
+func runServer(ctx context.Context) {
 	var wg sync.WaitGroup
 	conf := config.NewConfig().Init()
-
-	serverCtx, serverStop := context.WithCancel(context.Background())
-	serverFileCtx, serverFileStop := context.WithCancel(context.Background())
-	serverDBCtx, serverDBStop := context.WithCancel(context.Background())
 
 	logger, err := zap.NewDevelopment()
 	if err != nil {
@@ -41,6 +44,7 @@ func main() {
 	var (
 		db         *sqlx.DB
 		isNewStore = true
+		sCloser    = &closer.Closer{}
 	)
 	if len(conf.DatabaseDSN) > 0 {
 		if db, err = sqlx.Connect("postgres", conf.DatabaseDSN); err != nil {
@@ -88,8 +92,8 @@ func main() {
 						} else {
 							logger.Info("Storage saved", zap.Any("records", n))
 						}
-					case <-serverCtx.Done():
-						logger.Info("FileStoreInterval finished")
+					case <-ctx.Done():
+						logger.Info("Store save on interval finished")
 						return
 					}
 				}
@@ -98,96 +102,55 @@ func main() {
 	}
 
 	server := &http.Server{Addr: conf.ServerAddress, Handler: h.Handler()}
+	lockDBCLose := make(chan struct{})
 
-	exitSig := make(chan os.Signal, 1)
-	signal.Notify(exitSig, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	sCloser.Add("WEB", server.Shutdown)
 
-	go func() {
-		<-exitSig
-
-		shutdownCtx, shutdownStopForce := context.WithTimeout(serverCtx, constant.ServerShutdownTimeout*time.Second)
-		defer shutdownStopForce()
-		go func() {
-			<-shutdownCtx.Done()
-			if errors.Is(shutdownCtx.Err(), context.DeadlineExceeded) {
-				logger.Error("graceful shutdown timed out.. forcing exit.", zap.Any("timeout", constant.ServerShutdownTimeout))
+	if conf.FileStoragePath != "" && conf.FileStoreInterval == 0 {
+		sCloser.Add("Storage save", func(ctx context.Context) (err error) {
+			defer close(lockDBCLose)
+			var n int64
+			if n, err = s.SaveToFile(); err == nil {
+				logger.Info("Storage saved", zap.Any("records", n))
 			}
-		}()
-
-		if err := server.Shutdown(shutdownCtx); err != nil {
-			logger.Error("shutdown", zap.Error(err))
-		}
-
-		serverStop()
-	}()
-
-	go func() {
-		<-serverCtx.Done()
-		if conf.FileStoragePath != "" {
-			shutdownFileCtx, shutdownFileStopForce := context.WithTimeout(serverFileCtx, constant.ServerShutdownTimeout*time.Second)
-			defer shutdownFileStopForce()
-			var (
-				complete = make(chan struct{}, 1)
-			)
-			go func() {
-				if n, err := s.SaveToFile(); err != nil {
-					logger.Error("Storage save", zap.Error(err))
-				} else {
-					logger.Info("Storage saved", zap.Any("records", n))
-				}
-				complete <- struct{}{}
-			}()
-
-			select {
-			case <-complete:
-				break
-			case <-shutdownFileCtx.Done():
-				logger.Error("FileSave graceful shutdown timed out.. forcing exit.", zap.Any("timeout", constant.ServerShutdownTimeout))
-				return
-			}
-		}
-		serverFileStop()
-	}()
-
-	go func() {
-		<-serverFileCtx.Done()
-		if db != nil {
-			shutdownDBCtx, shutdownDBStopForce := context.WithTimeout(serverDBCtx, constant.ServerShutdownTimeout*time.Second)
-			defer shutdownDBStopForce()
-			var (
-				complete = make(chan struct{}, 1)
-			)
-			go func() {
-				if err = db.Close(); err != nil {
-					logger.Error("DB close", zap.Error(err))
-				} else {
-					logger.Info("Db Closed")
-				}
-				complete <- struct{}{}
-			}()
-
-			select {
-			case <-complete:
-				break
-			case <-shutdownDBCtx.Done():
-				logger.Error("DB graceful shutdown timed out.. forcing exit.", zap.Any("timeout", constant.ServerShutdownTimeout))
-				return
-			}
-		}
-
-		serverDBStop()
-	}()
-
-	logger.Info("Start web app")
-	if err = server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		logger.Error("Start server", zap.Error(err))
-		serverStop()
+			return
+		})
+	} else {
+		close(lockDBCLose)
 	}
 
-	<-serverDBCtx.Done()
+	if db != nil {
+		sCloser.Add("DB Close", func(ctx context.Context) (err error) {
+			<-lockDBCLose
+			if err = db.Close(); err == nil {
+				logger.Info("Db Closed")
+			}
+			return
+		})
+	}
+
+	go func() {
+		if err = server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.Error("Start server", zap.Error(err))
+		}
+	}()
+
+	logger.Info("Server started")
+
+	<-ctx.Done()
+
+	logger.Info("Shutting down server gracefully")
 
 	// wait FileStoreInterval
 	wg.Wait()
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), constant.ServerShutdownTimeout*time.Second)
+	defer cancel()
+
+	if err = sCloser.Close(shutdownCtx); err != nil {
+		logger.Error("Shutdown", zap.Error(err), zap.Any("timeout: ", constant.ServerShutdownTimeout))
+	}
+
 	logger.Info("Server stopped")
 
 	_ = logger.Sync()

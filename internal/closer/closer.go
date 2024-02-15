@@ -7,15 +7,18 @@ import (
 	"sync"
 )
 
+type Func func(ctx context.Context) error
+
 type Closer struct {
 	mu    sync.Mutex
 	funcs []Func
+	names []string
 }
 
-func (c *Closer) Add(f Func) {
+func (c *Closer) Add(n string, f Func) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-
+	c.names = append(c.names, n)
 	c.funcs = append(c.funcs, f)
 }
 
@@ -24,26 +27,29 @@ func (c *Closer) Close(ctx context.Context) (err error) {
 	defer c.mu.Unlock()
 
 	var (
+		wg       sync.WaitGroup
 		complete = make(chan struct{}, 1)
 	)
 
-	go func() {
-		for _, f := range c.funcs {
+	wg.Add(len(c.funcs))
+	for i, f := range c.funcs {
+		i, f := i, f
+		go func() {
 			if errF := f(ctx); errF != nil {
-				err = errors.Join(err, errF)
+				err = errors.Join(err, fmt.Errorf("close %s error: %w", c.names[i], errF))
 			}
-		}
-		complete <- struct{}{}
-	}()
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+	complete <- struct{}{}
 
 	select {
 	case <-complete:
 		break
 	case <-ctx.Done():
-		return fmt.Errorf("shutdown cancelled: %v", ctx.Err())
+		return fmt.Errorf("shutdown cancelled: %s", ctx.Err())
 	}
 
 	return
 }
-
-type Func func(ctx context.Context) error
