@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/MrSwed/go-musthave-metrics/internal/agent/constant"
 )
 
 var Backoff = [3]time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second}
@@ -30,7 +32,7 @@ func (c *Config) parseFlags() {
 }
 
 func (c *Config) getEnv() {
-	addressEnv, reportIntervalEnv, pollIntervalEnv := os.Getenv("ADDRESS"), os.Getenv("REPORT_INTERVAL"), os.Getenv("POLL_INTERVAL")
+	addressEnv, reportIntervalEnv, pollIntervalEnv := os.Getenv(constant.EnvNameServerAddress), os.Getenv(constant.EnvNameReportInterval), os.Getenv(constant.EnvNamePollInterval)
 	if addressEnv != "" {
 		c.ServerAddress = addressEnv
 	}
