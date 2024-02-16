@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/constant"
-	"github.com/MrSwed/go-musthave-metrics/internal/logger"
-	myMiddleware "github.com/MrSwed/go-musthave-metrics/internal/middleware"
-	"github.com/MrSwed/go-musthave-metrics/internal/service"
+	"github.com/MrSwed/go-musthave-metrics/internal/server/constant"
+	"github.com/MrSwed/go-musthave-metrics/internal/server/logger"
+	myMiddleware "github.com/MrSwed/go-musthave-metrics/internal/server/middleware"
+	"github.com/MrSwed/go-musthave-metrics/internal/server/service"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"

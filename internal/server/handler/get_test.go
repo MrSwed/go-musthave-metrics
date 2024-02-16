@@ -12,11 +12,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/config"
-	"github.com/MrSwed/go-musthave-metrics/internal/constant"
-	"github.com/MrSwed/go-musthave-metrics/internal/domain"
-	"github.com/MrSwed/go-musthave-metrics/internal/repository"
-	"github.com/MrSwed/go-musthave-metrics/internal/service"
+	"github.com/MrSwed/go-musthave-metrics/internal/server/config"
+	"github.com/MrSwed/go-musthave-metrics/internal/server/constant"
+	"github.com/MrSwed/go-musthave-metrics/internal/server/domain"
+	"github.com/MrSwed/go-musthave-metrics/internal/server/repository"
+	"github.com/MrSwed/go-musthave-metrics/internal/server/service"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

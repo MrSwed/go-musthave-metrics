@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/constant"
-	"github.com/MrSwed/go-musthave-metrics/internal/domain"
-	myErr "github.com/MrSwed/go-musthave-metrics/internal/errors"
+	"github.com/MrSwed/go-musthave-metrics/internal/server/constant"
+	"github.com/MrSwed/go-musthave-metrics/internal/server/domain"
+	myErr "github.com/MrSwed/go-musthave-metrics/internal/server/errors"
 
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"

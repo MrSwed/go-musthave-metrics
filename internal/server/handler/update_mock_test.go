@@ -9,11 +9,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/config"
-	"github.com/MrSwed/go-musthave-metrics/internal/constant"
-	"github.com/MrSwed/go-musthave-metrics/internal/domain"
-	mocks "github.com/MrSwed/go-musthave-metrics/internal/mock/repository"
-	"github.com/MrSwed/go-musthave-metrics/internal/service"
+	"github.com/MrSwed/go-musthave-metrics/internal/server/config"
+	"github.com/MrSwed/go-musthave-metrics/internal/server/constant"
+	"github.com/MrSwed/go-musthave-metrics/internal/server/domain"
+	mocks "github.com/MrSwed/go-musthave-metrics/internal/server/mock/repository"
+	"github.com/MrSwed/go-musthave-metrics/internal/server/service"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"

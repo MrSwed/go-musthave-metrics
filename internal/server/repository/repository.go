@@ -2,12 +2,12 @@ package repository
 
 import (
 	"context"
-	"github.com/MrSwed/go-musthave-metrics/internal/config"
-	"github.com/MrSwed/go-musthave-metrics/internal/domain"
+	"github.com/MrSwed/go-musthave-metrics/internal/server/config"
+	"github.com/MrSwed/go-musthave-metrics/internal/server/domain"
 	"github.com/jmoiron/sqlx"
 )
 
-//go:generate  mockgen -destination=../mock/repository/repository.go -package=mock "github.com/MrSwed/go-musthave-metrics/internal/repository" Repository
+//go:generate  mockgen -destination=../mock/repository/repository.go -package=mock "github.com/MrSwed/go-musthave-metrics/internal/server/repository" Repository
 
 type DataStorage interface {
 	SetGauge(ctx context.Context, k string, v domain.Gauge) error

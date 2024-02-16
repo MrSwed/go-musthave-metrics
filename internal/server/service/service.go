@@ -1,8 +1,8 @@
 package service
 
 import (
-	"github.com/MrSwed/go-musthave-metrics/internal/config"
-	"github.com/MrSwed/go-musthave-metrics/internal/repository"
+	"github.com/MrSwed/go-musthave-metrics/internal/server/config"
+	"github.com/MrSwed/go-musthave-metrics/internal/server/repository"
 )
 
 type Service struct {

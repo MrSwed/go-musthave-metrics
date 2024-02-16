@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/config"
+	"github.com/MrSwed/go-musthave-metrics/internal/server/config"
 )
 
 type FileStorage interface {

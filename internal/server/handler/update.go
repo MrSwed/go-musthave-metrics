@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/constant"
-	"github.com/MrSwed/go-musthave-metrics/internal/domain"
+	"github.com/MrSwed/go-musthave-metrics/internal/server/constant"
+	"github.com/MrSwed/go-musthave-metrics/internal/server/domain"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"

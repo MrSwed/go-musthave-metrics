@@ -2,7 +2,7 @@ package service
 
 import (
 	"context"
-	"github.com/MrSwed/go-musthave-metrics/internal/repository"
+	"github.com/MrSwed/go-musthave-metrics/internal/server/repository"
 )
 
 type MetricsFile interface {

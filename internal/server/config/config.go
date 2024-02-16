@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/constant"
+	"github.com/MrSwed/go-musthave-metrics/internal/server/constant"
 )
 
 type StorageConfig struct {

@@ -5,9 +5,9 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/constant"
-	"github.com/MrSwed/go-musthave-metrics/internal/domain"
-	myErr "github.com/MrSwed/go-musthave-metrics/internal/errors"
+	"github.com/MrSwed/go-musthave-metrics/internal/server/constant"
+	"github.com/MrSwed/go-musthave-metrics/internal/server/domain"
+	myErr "github.com/MrSwed/go-musthave-metrics/internal/server/errors"
 )
 
 type MemStorageCounter struct {
