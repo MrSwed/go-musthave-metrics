@@ -19,6 +19,7 @@ const (
 	EnvNameStoreInterval   = "STORE_INTERVAL"
 	EnvNameRestore         = "RESTORE"
 	EnvNameDBDSN           = "DATABASE_DSN"
+	EnvNameKey             = "KEY"
 
 	UpdateRoute      = "/update"
 	UpdatesRoute     = "/updates"

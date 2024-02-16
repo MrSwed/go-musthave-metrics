@@ -15,10 +15,15 @@ type StorageConfig struct {
 	StorageRestore    bool
 }
 
+type WEB struct {
+	Key string
+}
+
 type Config struct {
 	ServerAddress string
 	DatabaseDSN   string
 	StorageConfig
+	WEB
 }
 
 func NewConfig() *Config {
@@ -67,6 +72,9 @@ func (c *Config) WithEnv() *Config {
 	if dbDSN, ok := os.LookupEnv(constant.EnvNameDBDSN); ok {
 		c.DatabaseDSN = dbDSN
 	}
+	if key, ok := os.LookupEnv(constant.EnvNameKey); ok {
+		c.Key = key
+	}
 	return c
 }
 
@@ -76,6 +84,7 @@ func (c *Config) withFlags() *Config {
 	flag.StringVar(&c.FileStoragePath, "f", c.FileStoragePath, "Provide the file storage path")
 	flag.BoolVar(&c.StorageRestore, "r", c.StorageRestore, "Restore storage at boot")
 	flag.StringVar(&c.DatabaseDSN, "d", c.DatabaseDSN, "Provide the database dsn connect string")
+	flag.StringVar(&c.Key, "k", "", "Provide the key")
 	flag.Parse()
 	return c
 }

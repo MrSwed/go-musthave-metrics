@@ -16,6 +16,7 @@ type Config struct {
 	ServerAddress  string
 	ReportInterval int
 	PollInterval   int
+	Key            string
 	MetricLists
 }
 
@@ -28,11 +29,16 @@ func (c *Config) parseFlags() {
 	flag.StringVar(&c.ServerAddress, "a", "localhost:8080", "Provide the address of the metrics collection server")
 	flag.IntVar(&c.ReportInterval, "r", 10, "Provide the interval in seconds for send report metrics")
 	flag.IntVar(&c.PollInterval, "p", 2, "Provide the interval in seconds for update metrics")
+	flag.StringVar(&c.Key, "k", "", "Provide the key")
 	flag.Parse()
 }
 
 func (c *Config) getEnv() {
-	addressEnv, reportIntervalEnv, pollIntervalEnv := os.Getenv(constant.EnvNameServerAddress), os.Getenv(constant.EnvNameReportInterval), os.Getenv(constant.EnvNamePollInterval)
+	addressEnv, reportIntervalEnv, pollIntervalEnv, key :=
+		os.Getenv(constant.EnvNameServerAddress),
+		os.Getenv(constant.EnvNameReportInterval),
+		os.Getenv(constant.EnvNamePollInterval),
+		os.Getenv(constant.EnvNameKey)
 	if addressEnv != "" {
 		c.ServerAddress = addressEnv
 	}
@@ -45,6 +51,9 @@ func (c *Config) getEnv() {
 		if v, err := strconv.Atoi(pollIntervalEnv); err == nil {
 			c.PollInterval = v
 		}
+	}
+	if key != "" {
+		c.Key = key
 	}
 }
 

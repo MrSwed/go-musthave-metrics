@@ -3,11 +3,15 @@ package app
 import (
 	"bytes"
 	"compress/gzip"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/MrSwed/go-musthave-metrics/internal/agent/config"
 	"github.com/MrSwed/go-musthave-metrics/internal/agent/constant"
+	"io"
 	"math/rand"
 	"net/http"
 	"reflect"
@@ -20,6 +24,13 @@ type MetricsCollects struct {
 	PollCount   int64
 	RandomValue float64
 	m           sync.RWMutex
+	c           *config.Config
+}
+
+func NewMetricsCollects(c *config.Config) *MetricsCollects {
+	return &MetricsCollects{
+		c: c,
+	}
 }
 
 func (m *MetricsCollects) GetMetrics() {
@@ -98,8 +109,23 @@ func (m *MetricsCollects) SendMetrics(serverAddress string, lists config.MetricL
 	req.Header.Set("Content-Encoding", "gzip")
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 
+	if m.c != nil && m.c.Key != "" {
+
+		h := hmac.New(sha256.New, []byte(m.c.Key))
+		if _, err = h.Write(compressedBody.Bytes()); err != nil {
+			err = errors.Join(err, er)
+			return
+		}
+		req.Header.Set("HashSHA256", hex.EncodeToString(h.Sum(nil)))
+	}
+
 	var res *http.Response
 	if res, er = http.DefaultClient.Do(req); er != nil {
+		err = errors.Join(err, er)
+		return
+	}
+	var resultBody []byte
+	if resultBody, er = io.ReadAll(res.Body); er != nil && !errors.Is(er, io.EOF) {
 		err = errors.Join(err, er)
 		return
 	}
@@ -108,7 +134,7 @@ func (m *MetricsCollects) SendMetrics(serverAddress string, lists config.MetricL
 		return
 	}
 	if res.StatusCode != http.StatusOK {
-		err = errors.Join(err, fmt.Errorf("post %s body %s: get StatusCode %d", urlStr, body, res.StatusCode))
+		err = errors.Join(err, fmt.Errorf("post to %s with body: %s. Get: statusCode: %d;  answer body: %s", urlStr, body, res.StatusCode, resultBody))
 	}
 
 	return

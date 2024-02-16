@@ -32,7 +32,7 @@ func main() {
   Poll interval: %d
 `, conf.ServerAddress, constant.BaseURL, conf.ReportInterval, conf.PollInterval)
 
-	m := new(app.MetricsCollects)
+	m := app.NewMetricsCollects(conf)
 
 	// collect metrics
 	wg.Add(1)

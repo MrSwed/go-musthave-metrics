@@ -2,7 +2,7 @@
   <configuration default="false" name="Metric DB" type="GoApplicationRunConfiguration" factoryName="Go Application" folderName="Metrics">
     <module name="go-musthave-metrics" />
     <working_directory value="$PROJECT_DIR$" />
-    <parameters value="-a=&quot;0.0.0.0:8081&quot; -d=&quot;user=metric password=metric host=localhost port=5432 dbname=go_musthave_metrics sslmode=disable&quot; -i=0" />
+    <parameters value="-a=&quot;0.0.0.0:8081&quot; -d=&quot;user=metric password=metric host=localhost port=5432 dbname=go_musthave_metrics sslmode=disable&quot; -k=&quot;someSecretKey&quot;" />
     <EXTENSION ID="net.ashald.envfile">
       <option name="IS_ENABLED" value="false" />
       <option name="IS_SUBST" value="false" />
@@ -14,7 +14,7 @@
       </ENTRIES>
     </EXTENSION>
     <kind value="FILE" />
-    <package value="github.com/MrSwed/go-musthave-metrics" />
+    <package value="go-musthave-metrics" />
     <directory value="$PROJECT_DIR$" />
     <filePath value="$PROJECT_DIR$/cmd/server/main.go" />
     <method v="2" />

@@ -66,7 +66,7 @@ func runServer(ctx context.Context) {
 
 	r := repository.NewRepository(&conf.StorageConfig, db)
 	s := service.NewService(r, &conf.StorageConfig)
-	h := handler.NewHandler(s, logger)
+	h := handler.NewHandler(s, &conf.WEB, logger)
 
 	if conf.FileStoragePath != "" {
 		if conf.StorageRestore {

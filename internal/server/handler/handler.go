@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/MrSwed/go-musthave-metrics/internal/server/config"
 	"github.com/MrSwed/go-musthave-metrics/internal/server/constant"
 	"github.com/MrSwed/go-musthave-metrics/internal/server/logger"
 	myMiddleware "github.com/MrSwed/go-musthave-metrics/internal/server/middleware"
@@ -19,15 +20,17 @@ type Handler struct {
 	s   *service.Service
 	r   *chi.Mux
 	log *zap.Logger
+	c   *config.WEB
 }
 
-func NewHandler(s *service.Service, log *zap.Logger) *Handler {
-	return &Handler{s: s, log: log}
+func NewHandler(s *service.Service, c *config.WEB, log *zap.Logger) *Handler {
+	return &Handler{s: s, c: c, log: log}
 }
 
 func (h *Handler) Handler() http.Handler {
 	h.r = chi.NewRouter()
 	h.r.Use(logger.Logger(h.log))
+	h.r.Use(myMiddleware.CheckSign(h.c, h.log))
 	h.r.Use(middleware.Compress(gzip.DefaultCompression, "application/json", "text/html"))
 	h.r.Use(myMiddleware.Decompress(h.log))
 

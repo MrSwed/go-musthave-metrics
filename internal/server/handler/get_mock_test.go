@@ -31,7 +31,7 @@ func TestMockGetMetric(t *testing.T) {
 	s := service.NewService(repo, &conf.StorageConfig)
 
 	logger, _ := zap.NewDevelopment()
-	h := NewHandler(s, logger).Handler()
+	h := NewHandler(s, &conf.WEB, logger).Handler()
 	ts := httptest.NewServer(h)
 	defer ts.Close()
 
@@ -172,7 +172,7 @@ func TestMockGetListMetrics(t *testing.T) {
 	s := service.NewService(repo, &conf.StorageConfig)
 
 	logger, _ := zap.NewDevelopment()
-	h := NewHandler(s, logger).Handler()
+	h := NewHandler(s, &conf.WEB, logger).Handler()
 
 	ts := httptest.NewServer(h)
 	defer ts.Close()
@@ -263,7 +263,7 @@ func TestMockGetMetricJson(t *testing.T) {
 	s := service.NewService(repo, &conf.StorageConfig)
 
 	logger, _ := zap.NewDevelopment()
-	h := NewHandler(s, logger).Handler()
+	h := NewHandler(s, &conf.WEB, logger).Handler()
 	ts := httptest.NewServer(h)
 	defer ts.Close()
 

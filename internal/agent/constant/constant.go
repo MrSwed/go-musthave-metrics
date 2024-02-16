@@ -8,4 +8,5 @@ const (
 	EnvNameServerAddress  = "ADDRESS"
 	EnvNameReportInterval = "REPORT_INTERVAL"
 	EnvNamePollInterval   = "POLL_INTERVAL"
+	EnvNameKey            = "KEY"
 )

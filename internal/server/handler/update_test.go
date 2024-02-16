@@ -50,7 +50,7 @@ func TestUpdateMetric(t *testing.T) {
 	repo := repository.NewRepository(&confUpd.StorageConfig, dbUpd)
 	s := service.NewService(repo, &confUpd.StorageConfig)
 	logger, _ := zap.NewDevelopment()
-	h := NewHandler(s, logger).Handler()
+	h := NewHandler(s, &conf.WEB, logger).Handler()
 
 	ts := httptest.NewServer(h)
 	defer ts.Close()
@@ -241,7 +241,7 @@ func TestUpdateMetricJson(t *testing.T) {
 	repo := repository.NewRepository(&confUpd.StorageConfig, dbUpd)
 	s := service.NewService(repo, &confUpd.StorageConfig)
 	logger, _ := zap.NewDevelopment()
-	h := NewHandler(s, logger).Handler()
+	h := NewHandler(s, &conf.WEB, logger).Handler()
 
 	ts := httptest.NewServer(h)
 	defer ts.Close()
@@ -471,7 +471,7 @@ func TestUpdateMetrics(t *testing.T) {
 	repo := repository.NewRepository(&confUpd.StorageConfig, dbUpd)
 	s := service.NewService(repo, &confUpd.StorageConfig)
 	logger, _ := zap.NewDevelopment()
-	h := NewHandler(s, logger).Handler()
+	h := NewHandler(s, &conf.WEB, logger).Handler()
 
 	ts := httptest.NewServer(h)
 	defer ts.Close()
