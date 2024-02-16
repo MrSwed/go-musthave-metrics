@@ -66,7 +66,13 @@ func main() {
 						}
 						log.Printf("try %d: %s", i+1, err)
 						if i < len(config.Backoff) {
-							time.Sleep(config.Backoff[i])
+							log.Printf("wait %d second before next try", config.Backoff[i]/time.Second)
+							select {
+							case <-ctx.Done():
+								log.Print("ctx done, no try more ")
+								return
+							case <-time.After(config.Backoff[i]):
+							}
 						}
 					} else {
 						log.Printf("%d metrics sent", len(conf.GaugesList)+len(conf.CountersList))
