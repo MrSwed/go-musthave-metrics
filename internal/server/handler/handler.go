@@ -2,6 +2,9 @@ package handler
 
 import (
 	"compress/gzip"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"net/http"
 
@@ -25,6 +28,15 @@ type Handler struct {
 
 func NewHandler(s *service.Service, c *config.WEB, log *zap.Logger) *Handler {
 	return &Handler{s: s, c: c, log: log}
+}
+
+func signResponse(r http.ResponseWriter, key string, data []byte) {
+	if key == "" || len(data) == 0 {
+		return
+	}
+	h := hmac.New(sha256.New, []byte(key))
+	h.Write(data)
+	r.Header().Set("HashSHA256", hex.EncodeToString(h.Sum(nil)))
 }
 
 func (h *Handler) Handler() http.Handler {

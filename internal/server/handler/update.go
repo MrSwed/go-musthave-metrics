@@ -57,8 +57,10 @@ func (h *Handler) UpdateMetric() func(w http.ResponseWriter, r *http.Request) {
 			}
 			return
 		}
+		out := []byte("Saved: Ok")
+		signResponse(w, h.c.Key, out)
 		w.WriteHeader(http.StatusOK)
-		if _, err := w.Write([]byte("Saved: Ok")); err != nil {
+		if _, err := w.Write(out); err != nil {
 			h.log.Error("Error return answer", zap.Error(err))
 		}
 	}
@@ -96,6 +98,7 @@ func (h *Handler) UpdateMetricJSON() func(w http.ResponseWriter, r *http.Request
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		signResponse(w, h.c.Key, out)
 		w.WriteHeader(http.StatusOK)
 		if _, err := w.Write(out); err != nil {
 			h.log.Error("Error return answer", zap.Error(err))
@@ -135,6 +138,7 @@ func (h *Handler) UpdateMetrics() func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		signResponse(w, h.c.Key, out)
 		w.WriteHeader(http.StatusOK)
 		if _, err := w.Write(out); err != nil {
 			h.log.Error("Error return answer", zap.Error(err))

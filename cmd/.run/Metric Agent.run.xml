@@ -2,7 +2,7 @@
   <configuration default="false" name="Metric Agent" type="GoApplicationRunConfiguration" factoryName="Go Application" folderName="Metrics">
     <module name="go-musthave-metrics" />
     <working_directory value="$PROJECT_DIR$" />
-    <parameters value="-a=&quot;localhost:8081&quot; " />
+    <parameters value="-a=&quot;localhost:8081&quot; -k=&quot;someSecretKey&quot;" />
     <EXTENSION ID="net.ashald.envfile">
       <option name="IS_ENABLED" value="false" />
       <option name="IS_SUBST" value="false" />

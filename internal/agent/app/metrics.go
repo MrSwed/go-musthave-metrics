@@ -110,7 +110,6 @@ func (m *MetricsCollects) SendMetrics(serverAddress string, lists config.MetricL
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 
 	if m.c != nil && m.c.Key != "" {
-
 		h := hmac.New(sha256.New, []byte(m.c.Key))
 		if _, err = h.Write(compressedBody.Bytes()); err != nil {
 			err = errors.Join(err, er)

@@ -55,7 +55,7 @@ func CheckSign(conf *config.WEB, l *zap.Logger) func(next http.Handler) http.Han
 				getSha, err := hex.DecodeString(r.Header.Get("HashSHA256"))
 				if len(getSha) == 0 || err != nil {
 					rw.WriteHeader(http.StatusBadRequest)
-					if _, err = rw.Write([]byte("Bad HashSHA256")); err != nil {
+					if _, err = rw.Write([]byte("Bad HashKey")); err != nil {
 						l.Error("Error return answer", zap.Error(err))
 					}
 					return
@@ -71,7 +71,7 @@ func CheckSign(conf *config.WEB, l *zap.Logger) func(next http.Handler) http.Han
 				h.Write(body)
 				if !bytes.Equal(getSha, h.Sum(nil)) {
 					rw.WriteHeader(http.StatusBadRequest)
-					if _, err = rw.Write([]byte("Bad HashSHA256")); err != nil {
+					if _, err = rw.Write([]byte("Bad HashKey")); err != nil {
 						l.Error("Error return answer", zap.Error(err))
 					}
 					return
