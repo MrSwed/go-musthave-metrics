@@ -1,123 +1,112 @@
 package repository
 
 import (
-	"encoding/json"
+	"context"
 	"errors"
-	"github.com/MrSwed/go-musthave-metrics/internal/config"
-	myErr "github.com/MrSwed/go-musthave-metrics/internal/errors"
-	"os"
 	"sync"
+
+	"github.com/MrSwed/go-musthave-metrics/internal/constant"
+	"github.com/MrSwed/go-musthave-metrics/internal/domain"
+	myErr "github.com/MrSwed/go-musthave-metrics/internal/errors"
 )
 
-type MemStorage interface {
-	SetGauge(k string, v float64) error
-	SetCounter(k string, v int64) error
-	GetGauge(k string) (float64, error)
-	GetCounter(k string) (int64, error)
-	GetAllCounters() (map[string]int64, error)
-	GetAllGauges() (map[string]float64, error)
-	Save() error
-	Restore() error
-}
-
 type MemStorageCounter struct {
-	Counter map[string]int64 `json:"counter"`
+	Counter domain.Counters `json:"counter"`
 	mc      sync.RWMutex
 }
 
 type MemStorageGauge struct {
-	Gauge map[string]float64 `json:"gauge"`
+	Gauge domain.Gauges `json:"gauge"`
 	mg    sync.RWMutex
 }
 
-type MemStorageRepository struct {
+type MemStorageRepo struct {
 	MemStorageCounter
 	MemStorageGauge
-	c *config.StorageConfig
 }
 
-func NewMemRepository(c *config.StorageConfig) *MemStorageRepository {
-	return &MemStorageRepository{
-		c:                 c,
-		MemStorageCounter: MemStorageCounter{Counter: map[string]int64{}},
-		MemStorageGauge:   MemStorageGauge{Gauge: map[string]float64{}},
+func NewMemRepository() *MemStorageRepo {
+	return &MemStorageRepo{
+		MemStorageCounter: MemStorageCounter{Counter: domain.Counters{}},
+		MemStorageGauge:   MemStorageGauge{Gauge: domain.Gauges{}},
 	}
 }
 
-func (m *MemStorageRepository) SetGauge(k string, v float64) (err error) {
-	m.mg.Lock()
-	defer m.mg.Unlock()
-	m.Gauge[k] = v
-	if m.c.StoreInterval == 0 {
-		err = m.Save()
-	}
+func (r *MemStorageRepo) Ping() (err error) {
 	return
 }
 
-func (m *MemStorageRepository) SetCounter(k string, v int64) (err error) {
-	m.mc.Lock()
-	defer m.mc.Unlock()
-	m.Counter[k] = v
-	if m.c.StoreInterval == 0 {
-		err = m.Save()
-	}
+func (r *MemStorageRepo) MemStore(ctx context.Context) (*MemStorageRepo, error) {
+	return r, nil
+}
+
+func (r *MemStorageRepo) SetGauge(ctx context.Context, k string, v domain.Gauge) (err error) {
+	r.mg.Lock()
+	defer r.mg.Unlock()
+	r.Gauge[k] = v
 	return
 }
 
-func (m *MemStorageRepository) GetGauge(k string) (v float64, err error) {
+func (r *MemStorageRepo) SetCounter(ctx context.Context, k string, v domain.Counter) (err error) {
+	r.mc.Lock()
+	defer r.mc.Unlock()
+	r.Counter[k] = v
+	return
+}
+
+func (r *MemStorageRepo) GetGauge(ctx context.Context, k string) (v domain.Gauge, err error) {
 	var ok bool
-	m.mg.RLock()
-	defer m.mg.RUnlock()
-	if v, ok = m.Gauge[k]; !ok {
+	r.mg.RLock()
+	defer r.mg.RUnlock()
+	if v, ok = r.Gauge[k]; !ok {
 		err = myErr.ErrNotExist
 	}
 	return
 }
 
-func (m *MemStorageRepository) GetCounter(k string) (v int64, err error) {
+func (r *MemStorageRepo) GetCounter(ctx context.Context, k string) (v domain.Counter, err error) {
 	var ok bool
-	m.mc.RLock()
-	defer m.mc.RUnlock()
-	if v, ok = m.Counter[k]; !ok {
+	r.mc.RLock()
+	defer r.mc.RUnlock()
+	if v, ok = r.Counter[k]; !ok {
 		err = myErr.ErrNotExist
 	}
 	return
 }
 
-func (m *MemStorageRepository) GetAllGauges() (map[string]float64, error) {
+func (r *MemStorageRepo) GetAllGauges(ctx context.Context) (domain.Gauges, error) {
 	var err error
-	return m.Gauge, err
+	return r.Gauge, err
 }
 
-func (m *MemStorageRepository) GetAllCounters() (map[string]int64, error) {
+func (r *MemStorageRepo) GetAllCounters(ctx context.Context) (domain.Counters, error) {
 	var err error
-	return m.Counter, err
+	return r.Counter, err
 }
 
-func (m *MemStorageRepository) Restore() (err error) {
-	if m.c.FileStoragePath == "" {
-		return nil
-	}
-	var data []byte
-	if data, err = os.ReadFile(m.c.FileStoragePath); err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return nil
+func (r *MemStorageRepo) SetMetrics(ctx context.Context, metrics []domain.Metric) (newMetrics []domain.Metric, err error) {
+	for _, metric := range metrics {
+		switch metric.MType {
+		case constant.MetricTypeGauge:
+			if err = r.SetGauge(ctx, metric.ID, *metric.Value); err != nil {
+				return
+			}
+			newMetrics = append(newMetrics, metric)
+		case constant.MetricTypeCounter:
+			var current domain.Counter
+			if current, err = r.GetCounter(ctx, metric.ID); err != nil && !errors.Is(err, myErr.ErrNotExist) {
+				return
+			}
+			delta := current + *metric.Delta
+			if err = r.SetCounter(ctx, metric.ID, delta); err != nil {
+				return
+			}
+			newMetrics = append(newMetrics, domain.Metric{
+				ID:    metric.ID,
+				MType: metric.MType,
+				Delta: &delta,
+			})
 		}
-		return err
 	}
-
-	return json.Unmarshal(data, &m)
-}
-
-func (m *MemStorageRepository) Save() error {
-	if m.c.FileStoragePath == "" {
-		return nil
-	}
-	m.mc.Lock()
-	defer m.mc.Unlock()
-	data, err := json.Marshal(m)
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(m.c.FileStoragePath, data, 0644)
+	return
 }

@@ -1,59 +1,45 @@
-// to test with real db set env DATABASE_DSN before run
-// to test with file - set env FILE_STORAGE_PATH
 package handler
 
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/MrSwed/go-musthave-metrics/internal/config"
 	"github.com/MrSwed/go-musthave-metrics/internal/constant"
-	"github.com/MrSwed/go-musthave-metrics/internal/repository"
+	"github.com/MrSwed/go-musthave-metrics/internal/domain"
+	mocks "github.com/MrSwed/go-musthave-metrics/internal/mock/repository"
 	"github.com/MrSwed/go-musthave-metrics/internal/service"
 
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
-func NewTestUpdateConfig() (c *config.Config) {
-	c = &config.Config{
-		StorageConfig: config.StorageConfig{
-			FileStoragePath: "",
-			StorageRestore:  false,
-		},
-	}
-	c.WithEnv().CleanSchemes()
+func TestMockUpdateMetric(t *testing.T) {
+	conf := config.NewConfig()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	repo := mocks.NewMockRepository(ctrl)
 
-	var err error
-	if c.DatabaseDSN != "" {
-		if db, err = sqlx.Open("postgres", c.DatabaseDSN); err != nil {
-			log.Fatal(err)
-		}
-	}
-	return
-}
-
-var (
-	confUpd = NewTestUpdateConfig()
-	dbUpd   *sqlx.DB
-)
-
-func TestUpdateMetric(t *testing.T) {
-	repo := repository.NewRepository(&confUpd.StorageConfig, dbUpd)
-	s := service.NewService(repo, &confUpd.StorageConfig)
+	s := service.NewService(repo, &conf.StorageConfig)
 	logger, _ := zap.NewDevelopment()
 	h := NewHandler(s, logger).Handler()
-
 	ts := httptest.NewServer(h)
 	defer ts.Close()
+
+	testCounter := domain.Counter(1)
+	testGauge := domain.Gauge(1.0001)
+
+	_ = repo.EXPECT().SetGauge(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	_ = repo.EXPECT().SetCounter(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	_ = repo.EXPECT().GetCounter(gomock.Any(), gomock.Any()).Return(testCounter, nil).AnyTimes()
+	_ = repo.EXPECT().GetGauge(gomock.Any(), gomock.Any()).Return(testGauge, nil).AnyTimes()
 
 	type want struct {
 		code        int
@@ -70,7 +56,7 @@ func TestUpdateMetric(t *testing.T) {
 		want want
 	}{
 		{
-			name: "Save counter. Ok",
+			name: "SaveToFile counter. Ok",
 			args: args{
 				method: http.MethodPost,
 				path:   "/update/counter/testCounter/1",
@@ -82,7 +68,7 @@ func TestUpdateMetric(t *testing.T) {
 			},
 		},
 		{
-			name: "Save gauge. Ok",
+			name: "SaveToFile gauge. Ok",
 			args: args{
 				method: http.MethodPost,
 				path:   "/update/gauge/testGauge/1.1",
@@ -94,7 +80,7 @@ func TestUpdateMetric(t *testing.T) {
 			},
 		},
 		{
-			name: "Save gauge 2. Ok",
+			name: "SaveToFile gauge 2. Ok",
 			args: args{
 				method: http.MethodPost,
 				path:   "/update/gauge/testGauge/0.0001",
@@ -237,14 +223,25 @@ func TestUpdateMetric(t *testing.T) {
 	}
 }
 
-func TestUpdateMetricJson(t *testing.T) {
-	repo := repository.NewRepository(&confUpd.StorageConfig, dbUpd)
-	s := service.NewService(repo, &confUpd.StorageConfig)
+func TestMockUpdateMetricJson(t *testing.T) {
+	conf := config.NewConfig()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	repo := mocks.NewMockRepository(ctrl)
+
+	s := service.NewService(repo, &conf.StorageConfig)
 	logger, _ := zap.NewDevelopment()
 	h := NewHandler(s, logger).Handler()
-
 	ts := httptest.NewServer(h)
 	defer ts.Close()
+
+	testCounter := domain.Counter(1)
+	testGauge := domain.Gauge(1.0001)
+
+	_ = repo.EXPECT().SetGauge(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	_ = repo.EXPECT().SetCounter(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	_ = repo.EXPECT().GetCounter(gomock.Any(), gomock.Any()).Return(testCounter, nil).AnyTimes()
+	_ = repo.EXPECT().GetGauge(gomock.Any(), gomock.Any()).Return(testGauge, nil).AnyTimes()
 
 	type want struct {
 		code        int
@@ -262,13 +259,13 @@ func TestUpdateMetricJson(t *testing.T) {
 		want want
 	}{
 		{
-			name: "Save counter. Ok",
+			name: "SaveToFile counter. Ok",
 			args: args{
 				method: http.MethodPost,
 				body: map[string]interface{}{
 					"id":    "testCounter",
 					"type":  "counter",
-					"delta": 1,
+					"delta": testCounter,
 				},
 			},
 			want: want{
@@ -278,34 +275,34 @@ func TestUpdateMetricJson(t *testing.T) {
 			},
 		},
 		{
-			name: "Save gauge. Ok",
+			name: "SaveToFile gauge. Ok",
 			args: args{
 				method: http.MethodPost,
 				body: map[string]interface{}{
 					"id":    "testGauge",
 					"type":  "gauge",
-					"value": 1.1,
+					"value": testGauge,
 				},
 			},
 			want: want{
 				code:        http.StatusOK,
-				response:    `{"id":"testGauge","type":"gauge","value":1.1}`,
+				response:    fmt.Sprintf(`{"id":"testGauge","type":"gauge","value":%0.4f}`, testGauge),
 				contentType: "application/json; charset=utf-8",
 			},
 		},
 		{
-			name: "Save gauge 2. Ok",
+			name: "SaveToFile gauge 2. Ok",
 			args: args{
 				method: http.MethodPost,
 				body: map[string]interface{}{
 					"id":    "testGauge2",
 					"type":  "gauge",
-					"value": 0.0001,
+					"value": testGauge,
 				},
 			},
 			want: want{
 				code:        http.StatusOK,
-				response:    `{"id":"testGauge2","type":"gauge","value":0.0001}`,
+				response:    fmt.Sprintf(`{"id":"testGauge2","type":"gauge","value":%0.4f}`, testGauge),
 				contentType: "application/json; charset=utf-8",
 			},
 		},
@@ -345,19 +342,6 @@ func TestUpdateMetricJson(t *testing.T) {
 					"id":    "testCounter",
 					"type":  "counter",
 					"delta": "ccc",
-				},
-			},
-			want: want{
-				code: http.StatusBadRequest,
-			},
-		},
-		{
-			name: "No type",
-			args: args{
-				method: http.MethodPost,
-				body: map[string]interface{}{
-					"id":    "testCounter",
-					"delta": 100,
 				},
 			},
 			want: want{
@@ -467,14 +451,36 @@ func TestUpdateMetricJson(t *testing.T) {
 	}
 }
 
-func TestUpdateMetrics(t *testing.T) {
-	repo := repository.NewRepository(&confUpd.StorageConfig, dbUpd)
-	s := service.NewService(repo, &confUpd.StorageConfig)
+func TestMockUpdateMetrics(t *testing.T) {
+	conf := config.NewConfig()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	repo := mocks.NewMockRepository(ctrl)
+
+	s := service.NewService(repo, &conf.StorageConfig)
 	logger, _ := zap.NewDevelopment()
 	h := NewHandler(s, logger).Handler()
 
 	ts := httptest.NewServer(h)
 	defer ts.Close()
+
+	testCounter := domain.Counter(1)
+	testGauge := domain.Gauge(100.0015)
+
+	metrics := []domain.Metric{
+		{
+			ID:    "testCounter",
+			MType: "counter",
+			Delta: &testCounter,
+		},
+		{
+			ID:    "testGauge",
+			MType: "gauge",
+			Value: &testGauge,
+		},
+	}
+
+	_ = repo.EXPECT().SetMetrics(gomock.Any(), metrics).Return(metrics, nil).AnyTimes()
 
 	type want struct {
 		code        int

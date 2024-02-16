@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log"
+	"net/url"
 	"os"
 	"os/signal"
 	"sync"
@@ -50,18 +51,24 @@ func main() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		urlErr := &url.Error{}
 		for {
 			select {
 			case <-time.After(time.Duration(conf.reportInterval) * time.Second):
-				if errs := m.sendMetrics(conf.serverAddress, gaugeType, conf.gaugesList); errs != nil {
-					log.Println(errors.Join(errs...))
-				} else {
-					log.Printf("%d Gauges metrics sent", len(conf.gaugesList))
-				}
-				if errs := m.sendMetrics(conf.serverAddress, counterType, conf.countersList); errs != nil {
-					log.Println(errors.Join(errs...))
-				} else {
-					log.Printf("%d Counter metrics sent", len(conf.countersList))
+				for i := 0; i <= len(Backoff); i++ {
+					if err := m.sendMetrics(conf.serverAddress, conf.metricLists); err != nil {
+						if !errors.As(err, &urlErr) {
+							log.Println(err)
+							break
+						}
+						log.Printf("try %d: %s", i+1, err)
+						if i < len(Backoff) {
+							time.Sleep(Backoff[i])
+						}
+					} else {
+						log.Printf("%d metrics sent", len(conf.GaugesList)+len(conf.CountersList))
+						break
+					}
 				}
 			case <-ctx.Done():
 				log.Println("Metrics sender is stopped")

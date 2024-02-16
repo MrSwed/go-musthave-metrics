@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -27,65 +28,85 @@ func (m *metricsCollects) getMetrics() {
 	m.RandomValue = rand.Float64()
 }
 
-func (m *metricsCollects) sendOneMetric(serverAddress, t, k string) (err error) {
+func (m *metricsCollects) sendMetrics(serverAddress string, lists metricLists) (err error) {
 	var (
-		res       *http.Response
-		v         interface{}
-		oneMetric = newMetric(k, t)
+		metrics []*metric
+		er      error
 	)
-	dVal := reflect.Indirect(reflect.ValueOf(m))
-	if refV := dVal.FieldByName(k); refV.IsValid() {
-		m.m.RLock()
-		v = refV.Interface()
-		m.m.RUnlock()
-	} else {
-		err = fmt.Errorf("unknown metric name %s", k)
-		return
-	}
-	urlStr := fmt.Sprintf("%s%s", serverAddress, baseURL)
 
-	if err = oneMetric.set(v); err != nil {
-		return
+	mRefVal := reflect.Indirect(reflect.ValueOf(m))
+	urlStr := serverAddress + baseURL
+
+	lRefVal := reflect.ValueOf(lists)
+	lRefType := reflect.TypeOf(lists)
+	var mType string
+	for i := 0; i < lRefVal.NumField(); i++ {
+		if mType = lRefType.Field(i).Tag.Get("type"); mType == "" {
+			continue
+		}
+		lItemRef := reflect.Indirect(lRefVal.Field(i))
+		if !lItemRef.IsValid() {
+			continue
+		}
+		if list, ok := lItemRef.Interface().([]string); ok {
+			for _, mName := range list {
+				var (
+					v interface{}
+				)
+				if refV := mRefVal.FieldByName(mName); refV.IsValid() {
+					m.m.RLock()
+					v = refV.Interface()
+					m.m.RUnlock()
+				} else {
+					err = errors.Join(err, fmt.Errorf("unknown metric name %s", mName))
+					continue
+				}
+				oneMetric := newMetric(mName, mType)
+				if er = oneMetric.set(v); er != nil {
+					err = errors.Join(err, er)
+					continue
+				}
+				metrics = append(metrics, oneMetric)
+			}
+		}
 	}
+
 	var body []byte
-	if body, err = json.Marshal(oneMetric); err != nil {
+	if body, er = json.Marshal(metrics); er != nil {
+		err = errors.Join(err, er)
 		return
 	}
 	compressedBody := new(bytes.Buffer)
 
 	zb := gzip.NewWriter(compressedBody)
-	if _, err = zb.Write(body); err != nil {
+	if _, er = zb.Write(body); er != nil {
+		err = errors.Join(err, er)
 		return
 	}
-	if err = zb.Close(); err != nil {
+
+	if er = zb.Close(); er != nil {
+		err = errors.Join(err, er)
 		return
 	}
 	var req *http.Request
-	if req, err = http.NewRequest("POST", urlStr, compressedBody); err != nil {
+	if req, er = http.NewRequest("POST", urlStr, compressedBody); er != nil {
+		err = errors.Join(err, er)
 		return
 	}
-	//req.Header.Set("Accept-Encoding", "gzip")
 	req.Header.Set("Content-Encoding", "gzip")
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 
-	if res, err = http.DefaultClient.Do(req); err != nil {
+	var res *http.Response
+	if res, er = http.DefaultClient.Do(req); er != nil {
+		err = errors.Join(err, er)
 		return
 	}
-	if err = res.Body.Close(); err != nil {
+	if er = res.Body.Close(); er != nil {
+		err = errors.Join(err, er)
 		return
 	}
 	if res.StatusCode != http.StatusOK {
-		err = fmt.Errorf("post %s body %s: get StatusCode %d", urlStr, body, res.StatusCode)
-	}
-
-	return
-}
-
-func (m *metricsCollects) sendMetrics(serverAddress, metricType string, list []string) (errs []error) {
-	for _, mName := range list {
-		if err := m.sendOneMetric(serverAddress, metricType, mName); err != nil {
-			errs = append(errs, err)
-		}
+		err = errors.Join(err, fmt.Errorf("post %s body %s: get StatusCode %d", urlStr, body, res.StatusCode))
 	}
 
 	return

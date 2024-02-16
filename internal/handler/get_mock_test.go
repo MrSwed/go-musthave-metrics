@@ -2,12 +2,9 @@ package handler
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
-	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -15,42 +12,24 @@ import (
 	"github.com/MrSwed/go-musthave-metrics/internal/config"
 	"github.com/MrSwed/go-musthave-metrics/internal/constant"
 	"github.com/MrSwed/go-musthave-metrics/internal/domain"
-	"github.com/MrSwed/go-musthave-metrics/internal/repository"
+	"github.com/MrSwed/go-musthave-metrics/internal/errors"
+	mocks "github.com/MrSwed/go-musthave-metrics/internal/mock/repository"
 	"github.com/MrSwed/go-musthave-metrics/internal/service"
 
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
-func NewConfigGetTest() (c *config.Config) {
-	c = &config.Config{
-		StorageConfig: config.StorageConfig{
-			FileStoragePath: "",
-			StorageRestore:  false,
-		},
-	}
-	c.WithEnv().CleanSchemes()
+func TestMockGetMetric(t *testing.T) {
+	conf := config.NewConfig()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	repo := mocks.NewMockRepository(ctrl)
 
-	var err error
-	if c.DatabaseDSN != "" {
-		if db, err = sqlx.Open("postgres", c.DatabaseDSN); err != nil {
-			log.Fatal(err)
-		}
-	}
-	return
-}
-
-var (
-	conf = NewConfigGetTest()
-	db   *sqlx.DB
-)
-
-func TestGetMetric(t *testing.T) {
-	repo := repository.NewRepository(&conf.StorageConfig, db)
 	s := service.NewService(repo, &conf.StorageConfig)
+
 	logger, _ := zap.NewDevelopment()
 	h := NewHandler(s, logger).Handler()
 	ts := httptest.NewServer(h)
@@ -58,12 +37,11 @@ func TestGetMetric(t *testing.T) {
 
 	testCounter := domain.Counter(1)
 	testGauge := domain.Gauge(1.0001)
-	testGaugeName := fmt.Sprintf("testGauge%d", rand.Int())
-	testCounterName := fmt.Sprintf("testCounter%d", rand.Int())
-	// save some values
-	ctx := context.Background()
-	_ = s.SetGauge(ctx, testGaugeName, testGauge)
-	_ = s.IncreaseCounter(ctx, testCounterName, testCounter)
+
+	_ = repo.EXPECT().GetCounter(gomock.Any(), "testCounter").Return(testCounter, nil)
+	_ = repo.EXPECT().GetGauge(gomock.Any(), "testGauge").Return(testGauge, nil)
+	_ = repo.EXPECT().GetGauge(gomock.Any(), gomock.Any()).Return(domain.Gauge(0), errors.ErrNotExist)
+	_ = repo.EXPECT().GetCounter(gomock.Any(), gomock.Any()).Return(domain.Counter(0), errors.ErrNotExist)
 
 	type want struct {
 		code        int
@@ -83,7 +61,7 @@ func TestGetMetric(t *testing.T) {
 			name: "Get counter. Ok",
 			args: args{
 				method: http.MethodGet,
-				path:   "/value/counter/" + testCounterName,
+				path:   "/value/counter/testCounter",
 			},
 			want: want{
 				code:        http.StatusOK,
@@ -95,7 +73,7 @@ func TestGetMetric(t *testing.T) {
 			name: "Get gauge. Ok",
 			args: args{
 				method: http.MethodGet,
-				path:   "/value/gauge/" + testGaugeName,
+				path:   "/value/gauge/testGauge",
 			},
 			want: want{
 				code:        http.StatusOK,
@@ -107,7 +85,7 @@ func TestGetMetric(t *testing.T) {
 			name: "Bad method",
 			args: args{
 				method: http.MethodPost,
-				path:   "/value/gauge/" + testGaugeName,
+				path:   "/value/gauge/testGauge",
 			},
 			want: want{
 				code: http.StatusMethodNotAllowed,
@@ -163,7 +141,7 @@ func TestGetMetric(t *testing.T) {
 			defer req.Context()
 
 			res, err := http.DefaultClient.Do(req)
-			require.NoError(t, err)
+			require.NoError(t, err, "request error")
 			var resBody []byte
 
 			// проверяем код ответа
@@ -185,10 +163,14 @@ func TestGetMetric(t *testing.T) {
 	}
 }
 
-func TestGetListMetrics(t *testing.T) {
-	repo := repository.NewRepository(&conf.StorageConfig, db)
+func TestMockGetListMetrics(t *testing.T) {
+	conf := config.NewConfig()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	repo := mocks.NewMockRepository(ctrl)
 
 	s := service.NewService(repo, &conf.StorageConfig)
+
 	logger, _ := zap.NewDevelopment()
 	h := NewHandler(s, logger).Handler()
 
@@ -197,10 +179,9 @@ func TestGetListMetrics(t *testing.T) {
 
 	testCounter := domain.Counter(1)
 	testGauge := domain.Gauge(1.0001)
-	// save some values
-	ctx := context.Background()
-	_ = s.SetGauge(ctx, "testGauge", testGauge)
-	_ = s.IncreaseCounter(ctx, "testCounter", testCounter)
+
+	_ = repo.EXPECT().GetAllCounters(gomock.Any()).Return(domain.Counters{"testCounter": testCounter}, nil)
+	_ = repo.EXPECT().GetAllGauges(gomock.Any()).Return(domain.Gauges{"testGauge": testGauge}, nil)
 
 	type want struct {
 		code            int
@@ -273,9 +254,14 @@ func TestGetListMetrics(t *testing.T) {
 	}
 }
 
-func TestGetMetricJson(t *testing.T) {
-	repo := repository.NewRepository(&conf.StorageConfig, db)
+func TestMockGetMetricJson(t *testing.T) {
+	conf := config.NewConfig()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	repo := mocks.NewMockRepository(ctrl)
+
 	s := service.NewService(repo, &conf.StorageConfig)
+
 	logger, _ := zap.NewDevelopment()
 	h := NewHandler(s, logger).Handler()
 	ts := httptest.NewServer(h)
@@ -283,12 +269,11 @@ func TestGetMetricJson(t *testing.T) {
 
 	testCounter := domain.Counter(1)
 	testGauge := domain.Gauge(1.0001)
-	testGaugeName := fmt.Sprintf("testGauge%d", rand.Int())
-	testCounterName := fmt.Sprintf("testCounter%d", rand.Int())
-	// save some values
-	ctx := context.Background()
-	_ = s.SetGauge(ctx, testGaugeName, testGauge)
-	_ = s.IncreaseCounter(ctx, testCounterName, testCounter)
+
+	_ = repo.EXPECT().GetCounter(gomock.Any(), "testCounter").Return(testCounter, nil)
+	_ = repo.EXPECT().GetGauge(gomock.Any(), "testGauge").Return(testGauge, nil)
+	_ = repo.EXPECT().GetGauge(gomock.Any(), gomock.Any()).Return(domain.Gauge(0), errors.ErrNotExist)
+	_ = repo.EXPECT().GetCounter(gomock.Any(), gomock.Any()).Return(domain.Counter(0), errors.ErrNotExist)
 
 	type want struct {
 		code        int
@@ -309,13 +294,13 @@ func TestGetMetricJson(t *testing.T) {
 			args: args{
 				method: http.MethodPost,
 				body: map[string]interface{}{
-					"id":   testCounterName,
+					"id":   "testCounter",
 					"type": "counter",
 				},
 			},
 			want: want{
 				code:        http.StatusOK,
-				response:    `{"id":"` + testCounterName + `","type":"counter","delta":1}`,
+				response:    `{"id":"testCounter","type":"counter","delta":1}`,
 				contentType: "application/json; charset=utf-8",
 			},
 		},
@@ -324,13 +309,13 @@ func TestGetMetricJson(t *testing.T) {
 			args: args{
 				method: http.MethodPost,
 				body: map[string]interface{}{
-					"id":   testGaugeName,
+					"id":   "testGauge",
 					"type": "gauge",
 				},
 			},
 			want: want{
 				code:        http.StatusOK,
-				response:    `{"id":"` + testGaugeName + `","type":"gauge","value":1.0001}`,
+				response:    `{"id":"testGauge","type":"gauge","value":1.0001}`,
 				contentType: "application/json; charset=utf-8",
 			},
 		},
@@ -339,7 +324,7 @@ func TestGetMetricJson(t *testing.T) {
 			args: args{
 				method: http.MethodGet,
 				body: map[string]interface{}{
-					"id":   testGaugeName,
+					"id":   "testGauge",
 					"type": "gauge",
 				},
 			},
@@ -352,7 +337,7 @@ func TestGetMetricJson(t *testing.T) {
 			args: args{
 				method: http.MethodPut,
 				body: map[string]interface{}{
-					"id":   testGaugeName,
+					"id":   "testGauge",
 					"type": "gauge",
 				},
 			},
@@ -416,7 +401,7 @@ func TestGetMetricJson(t *testing.T) {
 			args: args{
 				method: http.MethodPost,
 				body: map[string]interface{}{
-					"id": testCounterName,
+					"id": "testCounter",
 				},
 			},
 			want: want{
@@ -436,7 +421,7 @@ func TestGetMetricJson(t *testing.T) {
 			defer req.Context()
 
 			res, err := http.DefaultClient.Do(req)
-			require.NoError(t, err)
+			require.NoError(t, err, "request error")
 			var resBody []byte
 
 			// проверяем код ответа

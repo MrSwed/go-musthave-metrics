@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/config"
+	"github.com/MrSwed/go-musthave-metrics/internal/constant"
 	"github.com/MrSwed/go-musthave-metrics/internal/logger"
 	myMiddleware "github.com/MrSwed/go-musthave-metrics/internal/middleware"
 	"github.com/MrSwed/go-musthave-metrics/internal/service"
@@ -32,20 +32,36 @@ func (h *Handler) Handler() http.Handler {
 	h.r.Use(myMiddleware.Decompress(h.log))
 
 	h.r.Route("/", func(r chi.Router) {
+		r.Use(myMiddleware.TextHeader())
 		r.Get("/", h.GetListMetrics())
+		r.Get("/ping", h.GetDBPing())
 	})
 
-	h.r.Route(config.UpdateRoute, func(r chi.Router) {
+	h.r.Route(constant.UpdateRoute, func(r chi.Router) {
+		r.Use(myMiddleware.TextHeader())
 		r.Post(fmt.Sprintf("/{%s}/{%s}/{%s}",
-			config.MetricTypeParam, config.MetricNameParam, config.MetricValueParam),
+			constant.MetricTypeParam, constant.MetricNameParam, constant.MetricValueParam),
 			h.UpdateMetric())
-		r.Post("/", h.UpdateMetricJSON())
+
+		r.Route("/", func(r chi.Router) {
+			r.Use(myMiddleware.JSONHeader())
+			r.Post("/", h.UpdateMetricJSON())
+		})
+	})
+	h.r.Route(constant.UpdatesRoute, func(r chi.Router) {
+		r.Use(myMiddleware.JSONHeader())
+		r.Post("/", h.UpdateMetrics())
 	})
 
-	h.r.Route(config.ValueRoute, func(r chi.Router) {
+	h.r.Route(constant.ValueRoute, func(r chi.Router) {
+		r.Use(myMiddleware.TextHeader())
 		r.Get(fmt.Sprintf("/{%s}/{%s}",
-			config.MetricTypeParam, config.MetricNameParam), h.GetMetric())
-		r.Post("/", h.GetMetricJSON())
+			constant.MetricTypeParam, constant.MetricNameParam), h.GetMetric())
+
+		r.Route("/", func(r chi.Router) {
+			r.Use(myMiddleware.JSONHeader())
+			r.Post("/", h.GetMetricJSON())
+		})
 	})
 
 	return h.r
