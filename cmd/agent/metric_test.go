@@ -1,6 +1,8 @@
 package main
 
 import (
+	"github.com/MrSwed/go-musthave-metrics/internal/agent/app"
+	myErr "github.com/MrSwed/go-musthave-metrics/internal/agent/error"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -54,27 +56,27 @@ func TestMetric_set(t *testing.T) {
 			mKey:    "someCounter",
 			mType:   "counter",
 			mValue:  "string",
-			wantErr: errBadCounterValue,
+			wantErr: myErr.ErrBadCounterValue,
 		},
 		{
 			name:    "Set gauge string, Error",
 			mKey:    "someCounter",
 			mType:   "gauge",
 			mValue:  "string",
-			wantErr: errBadGaugeValue,
+			wantErr: myErr.ErrBadGaugeValue,
 		},
 		{
 			name:    "Set unknown type",
 			mKey:    "someKey",
 			mType:   "unknownType",
 			mValue:  100,
-			wantErr: errBadMetricType,
+			wantErr: myErr.ErrBadMetricType,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := newMetric(tt.mKey, tt.mType)
-			err := m.set(tt.mValue)
+			m := app.NewMetric(tt.mKey, tt.mType)
+			err := m.Set(tt.mValue)
 			if tt.wantErr == nil {
 				require.NoError(t, err)
 			} else {
