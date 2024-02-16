@@ -1,4 +1,4 @@
-package main
+package app
 
 import (
 	"bytes"
@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/MrSwed/go-musthave-metrics/internal/agent/config"
+	"github.com/MrSwed/go-musthave-metrics/internal/agent/constant"
 	"math/rand"
 	"net/http"
 	"reflect"
@@ -13,14 +15,14 @@ import (
 	"sync"
 )
 
-type metricsCollects struct {
+type MetricsCollects struct {
 	runtime.MemStats
 	PollCount   int64
 	RandomValue float64
 	m           sync.RWMutex
 }
 
-func (m *metricsCollects) getMetrics() {
+func (m *MetricsCollects) GetMetrics() {
 	m.m.Lock()
 	defer m.m.Unlock()
 	runtime.ReadMemStats(&m.MemStats)
@@ -28,14 +30,14 @@ func (m *metricsCollects) getMetrics() {
 	m.RandomValue = rand.Float64()
 }
 
-func (m *metricsCollects) sendMetrics(serverAddress string, lists metricLists) (err error) {
+func (m *MetricsCollects) SendMetrics(serverAddress string, lists config.MetricLists) (err error) {
 	var (
-		metrics []*metric
+		metrics []*Metric
 		er      error
 	)
 
 	mRefVal := reflect.Indirect(reflect.ValueOf(m))
-	urlStr := serverAddress + baseURL
+	urlStr := serverAddress + constant.BaseURL
 
 	lRefVal := reflect.ValueOf(lists)
 	lRefType := reflect.TypeOf(lists)
@@ -61,8 +63,8 @@ func (m *metricsCollects) sendMetrics(serverAddress string, lists metricLists) (
 					err = errors.Join(err, fmt.Errorf("unknown metric name %s", mName))
 					continue
 				}
-				oneMetric := newMetric(mName, mType)
-				if er = oneMetric.set(v); er != nil {
+				oneMetric := NewMetric(mName, mType)
+				if er = oneMetric.Set(v); er != nil {
 					err = errors.Join(err, er)
 					continue
 				}

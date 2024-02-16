@@ -3,6 +3,9 @@ package main
 import (
 	"context"
 	"errors"
+	"github.com/MrSwed/go-musthave-metrics/internal/agent/app"
+	"github.com/MrSwed/go-musthave-metrics/internal/agent/config"
+	"github.com/MrSwed/go-musthave-metrics/internal/agent/constant"
 	"log"
 	"net/url"
 	"os"
@@ -15,7 +18,7 @@ import (
 func main() {
 	var (
 		wg   sync.WaitGroup
-		conf = new(config)
+		conf = new(config.Config)
 	)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -27,9 +30,9 @@ func main() {
   Url for collect metric: %s%s
   Report interval: %d
   Poll interval: %d
-`, conf.serverAddress, baseURL, conf.reportInterval, conf.pollInterval)
+`, conf.ServerAddress, constant.BaseURL, conf.ReportInterval, conf.PollInterval)
 
-	m := new(metricsCollects)
+	m := new(app.MetricsCollects)
 
 	// collect metrics
 	wg.Add(1)
@@ -37,9 +40,9 @@ func main() {
 		defer wg.Done()
 		for {
 			select {
-			case <-time.After(time.Duration(conf.pollInterval) * time.Second):
+			case <-time.After(time.Duration(conf.PollInterval) * time.Second):
 				log.Println("Collect metrics")
-				m.getMetrics()
+				m.GetMetrics()
 			case <-ctx.Done():
 				log.Println("Metrics collector is stopped")
 				return
@@ -54,16 +57,16 @@ func main() {
 		urlErr := &url.Error{}
 		for {
 			select {
-			case <-time.After(time.Duration(conf.reportInterval) * time.Second):
-				for i := 0; i <= len(Backoff); i++ {
-					if err := m.sendMetrics(conf.serverAddress, conf.metricLists); err != nil {
+			case <-time.After(time.Duration(conf.ReportInterval) * time.Second):
+				for i := 0; i <= len(config.Backoff); i++ {
+					if err := m.SendMetrics(conf.ServerAddress, conf.MetricLists); err != nil {
 						if !errors.As(err, &urlErr) {
 							log.Println(err)
 							break
 						}
 						log.Printf("try %d: %s", i+1, err)
-						if i < len(Backoff) {
-							time.Sleep(Backoff[i])
+						if i < len(config.Backoff) {
+							time.Sleep(config.Backoff[i])
 						}
 					} else {
 						log.Printf("%d metrics sent", len(conf.GaugesList)+len(conf.CountersList))

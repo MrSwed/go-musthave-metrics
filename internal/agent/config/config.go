@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"flag"
@@ -8,51 +8,45 @@ import (
 	"time"
 )
 
-const (
-	baseURL     = "/updates"
-	gaugeType   = "gauge"
-	counterType = "counter"
-)
-
 var Backoff = [3]time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second}
 
-type config struct {
-	serverAddress  string
-	reportInterval int
-	pollInterval   int
-	metricLists
+type Config struct {
+	ServerAddress  string
+	ReportInterval int
+	PollInterval   int
+	MetricLists
 }
 
-type metricLists struct {
+type MetricLists struct {
 	GaugesList   []string `type:"gauge"`
 	CountersList []string `type:"counter"`
 }
 
-func (c *config) parseFlags() {
-	flag.StringVar(&c.serverAddress, "a", "localhost:8080", "Provide the address of the metrics collection server")
-	flag.IntVar(&c.reportInterval, "r", 10, "Provide the interval in seconds for send report metrics")
-	flag.IntVar(&c.pollInterval, "p", 2, "Provide the interval in seconds for update metrics")
+func (c *Config) parseFlags() {
+	flag.StringVar(&c.ServerAddress, "a", "localhost:8080", "Provide the address of the metrics collection server")
+	flag.IntVar(&c.ReportInterval, "r", 10, "Provide the interval in seconds for send report metrics")
+	flag.IntVar(&c.PollInterval, "p", 2, "Provide the interval in seconds for update metrics")
 	flag.Parse()
 }
 
-func (c *config) getEnv() {
+func (c *Config) getEnv() {
 	addressEnv, reportIntervalEnv, pollIntervalEnv := os.Getenv("ADDRESS"), os.Getenv("REPORT_INTERVAL"), os.Getenv("POLL_INTERVAL")
 	if addressEnv != "" {
-		c.serverAddress = addressEnv
+		c.ServerAddress = addressEnv
 	}
 	if reportIntervalEnv != "" {
 		if v, err := strconv.Atoi(reportIntervalEnv); err == nil {
-			c.reportInterval = v
+			c.ReportInterval = v
 		}
 	}
 	if pollIntervalEnv != "" {
 		if v, err := strconv.Atoi(pollIntervalEnv); err == nil {
-			c.pollInterval = v
+			c.PollInterval = v
 		}
 	}
 }
 
-func (c *config) setGaugesList(m ...string) {
+func (c *Config) setGaugesList(m ...string) {
 	if len(m) > 0 {
 		c.GaugesList = m
 	} else {
@@ -89,7 +83,7 @@ func (c *config) setGaugesList(m ...string) {
 	}
 }
 
-func (c *config) setCountersList(m ...string) {
+func (c *Config) setCountersList(m ...string) {
 	if len(m) > 0 {
 		c.CountersList = m
 	} else {
@@ -99,11 +93,11 @@ func (c *config) setCountersList(m ...string) {
 	}
 }
 
-func (c *config) Config() {
+func (c *Config) Config() {
 	c.parseFlags()
 	c.getEnv()
-	if !strings.HasPrefix(c.serverAddress, "http://") && !strings.HasPrefix(c.serverAddress, "https://") {
-		c.serverAddress = "http://" + c.serverAddress
+	if !strings.HasPrefix(c.ServerAddress, "http://") && !strings.HasPrefix(c.ServerAddress, "https://") {
+		c.ServerAddress = "http://" + c.ServerAddress
 	}
 	// metric list can be set later from args or env
 	// move this to the appropriate functions

@@ -1,33 +1,28 @@
-package main
+package app
 
 import (
-	"errors"
 	"fmt"
+	"github.com/MrSwed/go-musthave-metrics/internal/agent/constant"
+	myErr "github.com/MrSwed/go-musthave-metrics/internal/agent/error"
 )
 
-var (
-	errBadGaugeValue   = errors.New("bad gauge value")
-	errBadCounterValue = errors.New("bad counter value")
-	errBadMetricType   = errors.New("unknown metric type")
-)
-
-type metric struct {
+type Metric struct {
 	ID    string   `json:"id"`
 	MType string   `json:"type"`
 	Delta *int64   `json:"delta,omitempty"`
 	Value *float64 `json:"value,omitempty"`
 }
 
-func newMetric(id, mType string) *metric {
-	return &metric{
+func NewMetric(id, mType string) *Metric {
+	return &Metric{
 		ID:    id,
 		MType: mType,
 	}
 }
 
-func (m *metric) set(v interface{}) (err error) {
+func (m *Metric) Set(v interface{}) (err error) {
 	switch m.MType {
-	case gaugeType:
+	case constant.GaugeType:
 		var gv float64
 		switch g := v.(type) {
 		case float64:
@@ -45,10 +40,10 @@ func (m *metric) set(v interface{}) (err error) {
 		case uint64:
 			gv = float64(g)
 		default:
-			return fmt.Errorf("%w %v", errBadGaugeValue, v)
+			return fmt.Errorf("%w %v", myErr.ErrBadGaugeValue, v)
 		}
 		m.Value = &gv
-	case counterType:
+	case constant.CounterType:
 		var cv int64
 		switch c := v.(type) {
 		case int64:
@@ -64,11 +59,11 @@ func (m *metric) set(v interface{}) (err error) {
 		case float64:
 			cv = int64(c)
 		default:
-			return fmt.Errorf("%w %v", errBadCounterValue, v)
+			return fmt.Errorf("%w %v", myErr.ErrBadCounterValue, v)
 		}
 		m.Delta = &cv
 	default:
-		err = fmt.Errorf("%w %s", errBadMetricType, m.MType)
+		err = fmt.Errorf("%w %s", myErr.ErrBadMetricType, m.MType)
 		return
 	}
 	return nil
