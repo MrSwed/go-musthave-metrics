@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/MrSwed/go-musthave-metrics/internal/agent/config"
 	"github.com/MrSwed/go-musthave-metrics/internal/agent/constant"
+	myErr "github.com/MrSwed/go-musthave-metrics/internal/agent/error"
 	"io"
 	"math/rand"
 	"net/http"
@@ -71,12 +72,12 @@ func (m *MetricsCollects) SendMetrics(serverAddress string, lists config.MetricL
 					v = refV.Interface()
 					m.m.RUnlock()
 				} else {
-					err = errors.Join(err, fmt.Errorf("unknown metric name %s", mName))
+					err = errors.Join(err, myErr.ErrWrap(fmt.Errorf("unknown metric name %s", mName)))
 					continue
 				}
 				oneMetric := NewMetric(mName, mType)
 				if er = oneMetric.Set(v); er != nil {
-					err = errors.Join(err, er)
+					err = errors.Join(err, myErr.ErrWrap(er))
 					continue
 				}
 				metrics = append(metrics, oneMetric)
@@ -86,24 +87,24 @@ func (m *MetricsCollects) SendMetrics(serverAddress string, lists config.MetricL
 
 	var body []byte
 	if body, er = json.Marshal(metrics); er != nil {
-		err = errors.Join(err, er)
+		err = errors.Join(err, myErr.ErrWrap(er))
 		return
 	}
 	compressedBody := new(bytes.Buffer)
 
 	zb := gzip.NewWriter(compressedBody)
 	if _, er = zb.Write(body); er != nil {
-		err = errors.Join(err, er)
+		err = errors.Join(err, myErr.ErrWrap(er))
 		return
 	}
 
 	if er = zb.Close(); er != nil {
-		err = errors.Join(err, er)
+		err = errors.Join(err, myErr.ErrWrap(er))
 		return
 	}
 	var req *http.Request
 	if req, er = http.NewRequest("POST", urlStr, compressedBody); er != nil {
-		err = errors.Join(err, er)
+		err = errors.Join(err, myErr.ErrWrap(er))
 		return
 	}
 	req.Header.Set("Content-Encoding", "gzip")
@@ -112,7 +113,7 @@ func (m *MetricsCollects) SendMetrics(serverAddress string, lists config.MetricL
 	if m.c != nil && m.c.Key != "" {
 		h := hmac.New(sha256.New, []byte(m.c.Key))
 		if _, err = h.Write(compressedBody.Bytes()); err != nil {
-			err = errors.Join(err, er)
+			err = errors.Join(err, myErr.ErrWrap(er))
 			return
 		}
 		req.Header.Set("HashSHA256", hex.EncodeToString(h.Sum(nil)))
@@ -120,17 +121,15 @@ func (m *MetricsCollects) SendMetrics(serverAddress string, lists config.MetricL
 
 	var res *http.Response
 	if res, er = http.DefaultClient.Do(req); er != nil {
-		err = errors.Join(err, er)
+		err = errors.Join(err, myErr.ErrWrap(er))
 		return
 	}
 	var resultBody []byte
-	if resultBody, er = io.ReadAll(res.Body); er != nil && !errors.Is(er, io.EOF) {
-		err = errors.Join(err, er)
-		return
+	if resultBody, er = io.ReadAll(res.Body); er != nil {
+		err = errors.Join(err, myErr.ErrWrap(er))
 	}
 	if er = res.Body.Close(); er != nil {
-		err = errors.Join(err, er)
-		return
+		err = errors.Join(err, myErr.ErrWrap(er))
 	}
 	if res.StatusCode != http.StatusOK {
 		err = errors.Join(err, fmt.Errorf("post to %s with body: %s. Get: statusCode: %d;  answer body: %s", urlStr, body, res.StatusCode, resultBody))

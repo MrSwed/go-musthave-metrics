@@ -30,7 +30,9 @@ func main() {
   Url for collect metric: %s%s
   Report interval: %d
   Poll interval: %d
-`, conf.ServerAddress, constant.BaseURL, conf.ReportInterval, conf.PollInterval)
+  Key: %s
+  Metric count: %d
+`, conf.ServerAddress, constant.BaseURL, conf.ReportInterval, conf.PollInterval, conf.Key, len(conf.GaugesList)+len(conf.CountersList))
 
 	m := app.NewMetricsCollects(conf)
 
