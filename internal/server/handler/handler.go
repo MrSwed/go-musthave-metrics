@@ -30,8 +30,17 @@ func NewHandler(s *service.Service, c *config.WEB, log *zap.Logger) *Handler {
 	return &Handler{s: s, c: c, log: log}
 }
 
-func signResponse(r http.ResponseWriter, key string, data []byte) {
-	if key == "" || len(data) == 0 {
+func signData(key string, data []byte) string {
+	if key == "" {
+		return ""
+	}
+	h := hmac.New(sha256.New, []byte(key))
+	h.Write(data)
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+func setHeaderSHA(r http.ResponseWriter, key string, data []byte) {
+	if signData(key, data) == "" {
 		return
 	}
 	h := hmac.New(sha256.New, []byte(key))
