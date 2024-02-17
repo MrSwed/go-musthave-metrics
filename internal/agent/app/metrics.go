@@ -90,6 +90,7 @@ func (m *MetricsCollects) SendMetrics(serverAddress string, lists config.MetricL
 		err = errors.Join(err, myErr.ErrWrap(er))
 		return
 	}
+
 	compressedBody := new(bytes.Buffer)
 
 	zb := gzip.NewWriter(compressedBody)
@@ -112,7 +113,7 @@ func (m *MetricsCollects) SendMetrics(serverAddress string, lists config.MetricL
 
 	if m.c != nil && m.c.Key != "" {
 		h := hmac.New(sha256.New, []byte(m.c.Key))
-		if _, err = h.Write(compressedBody.Bytes()); err != nil {
+		if _, err = h.Write(body); err != nil {
 			err = errors.Join(err, myErr.ErrWrap(er))
 			return
 		}

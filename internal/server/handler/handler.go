@@ -51,9 +51,9 @@ func setHeaderSHA(r http.ResponseWriter, key string, data []byte) {
 func (h *Handler) Handler() http.Handler {
 	h.r = chi.NewRouter()
 	h.r.Use(logger.Logger(h.log))
-	h.r.Use(myMiddleware.CheckSign(h.c, h.log))
 	h.r.Use(middleware.Compress(gzip.DefaultCompression, "application/json", "text/html"))
 	h.r.Use(myMiddleware.Decompress(h.log))
+	h.r.Use(myMiddleware.CheckSign(h.c, h.log))
 
 	h.r.With(myMiddleware.TextHeader()).Route("/", func(r chi.Router) {
 		r.Get("/", h.GetListMetrics())
