@@ -1253,3 +1253,189 @@ func TestGzip(t *testing.T) {
 		})
 	}
 }
+
+func TestHashKey(t *testing.T) {
+	repo := repository.NewRepository(&confTest.StorageConfig, dbTest)
+	s := service.NewService(repo, &confTest.StorageConfig)
+	logger, _ := zap.NewDevelopment()
+	secretKey := "secretKey"
+	h := NewHandler(s, &config.WEB{Key: secretKey}, logger).Handler()
+
+	ts := httptest.NewServer(h)
+	defer ts.Close()
+
+	data1 := []domain.Metric{{ID: "testCounter1", MType: "counter", Delta: &[]domain.Counter{1}[0]}, {ID: "testGauge", MType: "gauge", Value: &[]domain.Gauge{100.0015}[0]}}
+	dataBody1, err := json.Marshal(data1)
+	require.NoError(t, err)
+	data2 := []domain.Metric{{ID: "testCounter2", MType: "counter", Delta: &[]domain.Counter{1}[0]}, {ID: "testGauge", MType: "gauge", Value: &[]domain.Gauge{100.0015}[0]}}
+	dataBody2, err := json.Marshal(data2)
+	require.NoError(t, err)
+
+	type want struct {
+		code        int
+		response    []domain.Metric
+		contentType string
+		headers     map[string]string
+	}
+	type args struct {
+		method  string
+		headers map[string]string
+		body    []byte
+	}
+	tests := []struct {
+		name string
+		args args
+		want want
+	}{
+		{
+			name: "Save json right secret key. Ok",
+			args: args{
+				method: http.MethodPost,
+				body:   dataBody1,
+				headers: map[string]string{
+					"HashSHA256": signData(secretKey, dataBody1),
+				},
+			},
+			want: want{
+				code:        http.StatusOK,
+				response:    data1,
+				contentType: "application/json; charset=utf-8",
+				headers: map[string]string{
+					"HashSHA256": signData(secretKey, dataBody1),
+				},
+			},
+		},
+		{
+			name: "Save json right secret key (gzip). Ok",
+			args: args{
+				method: http.MethodPost,
+				body:   dataBody2,
+				headers: map[string]string{
+					"Accept-Encoding":  "gzip",
+					"Content-Encoding": "gzip",
+					"HashSHA256":       signData(secretKey, dataBody2),
+				},
+			},
+			want: want{
+				code:        http.StatusOK,
+				response:    data2,
+				contentType: "application/json; charset=utf-8",
+				headers: map[string]string{
+					"Content-Encoding": "gzip",
+					"HashSHA256":       signData(secretKey, dataBody2),
+				},
+			},
+		},
+		{
+			name: "Save json. WRONG secret key. ",
+			args: args{
+				method: http.MethodPost,
+				body:   dataBody1,
+				headers: map[string]string{
+					"HashSHA256": signData("wrong secret key", dataBody1),
+				},
+			},
+			want: want{
+				code: http.StatusBadRequest,
+			},
+		},
+		{
+			name: "Save json, WRONG secret key (gzip).",
+			args: args{
+				method: http.MethodPost,
+				body:   dataBody2,
+				headers: map[string]string{
+					"Accept-Encoding":  "gzip",
+					"Content-Encoding": "gzip",
+					"HashSHA256":       signData("wrong secret key", dataBody2),
+				},
+			},
+			want: want{
+				code: http.StatusBadRequest,
+			},
+		},
+		{
+			name: "Save json, NO secret key (gzip).",
+			args: args{
+				method: http.MethodPost,
+				body:   dataBody1,
+				headers: map[string]string{
+					"Accept-Encoding":  "gzip",
+					"Content-Encoding": "gzip",
+				},
+			},
+			want: want{
+				code: http.StatusBadRequest,
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			b := new(bytes.Buffer)
+			b.Write(test.args.body)
+			if len(test.args.headers) > 0 && test.args.headers["Content-Encoding"] == "gzip" {
+				compB := new(bytes.Buffer)
+				w := gzip.NewWriter(compB)
+				_, err = w.Write(b.Bytes())
+				b = compB
+				require.NoError(t, err)
+
+				err = w.Flush()
+				require.NoError(t, err)
+
+				err = w.Close()
+				require.NoError(t, err)
+			}
+
+			req, err := http.NewRequest(test.args.method, ts.URL+constant.UpdatesRoute, b)
+			require.NoError(t, err)
+
+			for k, v := range test.args.headers {
+				req.Header.Add(k, v)
+			}
+			res, err := http.DefaultClient.Do(req)
+			require.NoError(t, err)
+			defer func() {
+				err := res.Body.Close()
+				require.NoError(t, err)
+			}()
+
+			var resBody []byte
+
+			// проверяем код ответа
+			require.Equal(t, test.want.code, res.StatusCode)
+			resBody, err = io.ReadAll(res.Body)
+			require.NoError(t, err)
+
+			for k, v := range test.want.headers {
+				assert.True(t, res.Header.Get(k) == v)
+			}
+
+			if len(test.want.response) > 0 {
+				assert.True(t, len(resBody) > 0)
+				if len(test.args.headers) > 0 && test.args.headers["Accept-Encoding"] == "gzip" {
+					b := bytes.NewBuffer(resBody)
+					r, err := gzip.NewReader(b)
+					if !errors.Is(err, io.EOF) {
+						require.NoError(t, err)
+					}
+					var resB bytes.Buffer
+					_, err = resB.ReadFrom(r)
+					require.NoError(t, err)
+
+					resBody = resB.Bytes()
+					err = r.Close()
+					require.NoError(t, err)
+				}
+				var data []domain.Metric
+				err = json.Unmarshal(resBody, &data)
+				assert.NoError(t, err)
+				assert.Equal(t, test.want.response, data)
+			}
+
+			if test.want.contentType != "" {
+				assert.Equal(t, test.want.contentType, res.Header.Get("Content-Type"))
+			}
+		})
+	}
+}
