@@ -46,37 +46,26 @@ func (h *Handler) Handler() http.Handler {
 	h.r.Use(middleware.Compress(gzip.DefaultCompression, "application/json", "text/html"))
 	h.r.Use(myMiddleware.Decompress(h.log))
 
-	h.r.Route("/", func(r chi.Router) {
-		r.Use(myMiddleware.TextHeader())
+	h.r.With(myMiddleware.TextHeader()).Route("/", func(r chi.Router) {
 		r.Get("/", h.GetListMetrics())
 		r.Get("/ping", h.GetDBPing())
 	})
 
 	h.r.Route(constant.UpdateRoute, func(r chi.Router) {
-		r.Use(myMiddleware.TextHeader())
-		r.Post(fmt.Sprintf("/{%s}/{%s}/{%s}",
+		r.With(myMiddleware.TextHeader()).Post(fmt.Sprintf("/{%s}/{%s}/{%s}",
 			constant.MetricTypeParam, constant.MetricNameParam, constant.MetricValueParam),
 			h.UpdateMetric())
 
-		r.Route("/", func(r chi.Router) {
-			r.Use(myMiddleware.JSONHeader())
-			r.Post("/", h.UpdateMetricJSON())
-		})
+		r.With(myMiddleware.JSONHeader()).Post("/", h.UpdateMetricJSON())
 	})
-	h.r.Route(constant.UpdatesRoute, func(r chi.Router) {
-		r.Use(myMiddleware.JSONHeader())
-		r.Post("/", h.UpdateMetrics())
-	})
+
+	h.r.With(myMiddleware.JSONHeader()).Post(constant.UpdatesRoute, h.UpdateMetrics())
 
 	h.r.Route(constant.ValueRoute, func(r chi.Router) {
-		r.Use(myMiddleware.TextHeader())
-		r.Get(fmt.Sprintf("/{%s}/{%s}",
+		r.With(myMiddleware.TextHeader()).Get(fmt.Sprintf("/{%s}/{%s}",
 			constant.MetricTypeParam, constant.MetricNameParam), h.GetMetric())
 
-		r.Route("/", func(r chi.Router) {
-			r.Use(myMiddleware.JSONHeader())
-			r.Post("/", h.GetMetricJSON())
-		})
+		r.With(myMiddleware.JSONHeader()).Post("/", h.GetMetricJSON())
 	})
 
 	return h.r
