@@ -1264,11 +1264,16 @@ func TestHashKey(t *testing.T) {
 	ts := httptest.NewServer(h)
 	defer ts.Close()
 
-	data1 := []domain.Metric{{ID: "testCounter1", MType: "counter", Delta: &[]domain.Counter{1}[0]}, {ID: "testGauge", MType: "gauge", Value: &[]domain.Gauge{100.0015}[0]}}
+	data1 := []domain.Metric{{ID: fmt.Sprintf("testCounter%d", rand.Int()), MType: "counter", Delta: &[]domain.Counter{1}[0]}, {ID: "testGauge", MType: "gauge", Value: &[]domain.Gauge{100.0015}[0]}}
 	dataBody1, err := json.Marshal(data1)
 	require.NoError(t, err)
-	data2 := []domain.Metric{{ID: "testCounter2", MType: "counter", Delta: &[]domain.Counter{1}[0]}, {ID: "testGauge", MType: "gauge", Value: &[]domain.Gauge{100.0015}[0]}}
+
+	data2 := []domain.Metric{{ID: fmt.Sprintf("testCounter%d", rand.Int()), MType: "counter", Delta: &[]domain.Counter{1}[0]}, {ID: "testGauge", MType: "gauge", Value: &[]domain.Gauge{100.0015}[0]}}
 	dataBody2, err := json.Marshal(data2)
+	require.NoError(t, err)
+
+	data3 := []domain.Metric{{ID: fmt.Sprintf("testCounter%d", rand.Int()), MType: "counter", Delta: &[]domain.Counter{1}[0]}, {ID: "testGauge", MType: "gauge", Value: &[]domain.Gauge{100.0015}[0]}}
+	dataBody3, err := json.Marshal(data3)
 	require.NoError(t, err)
 
 	type want struct {
@@ -1358,14 +1363,16 @@ func TestHashKey(t *testing.T) {
 			name: "Save json, NO secret key (gzip).",
 			args: args{
 				method: http.MethodPost,
-				body:   dataBody1,
+				body:   dataBody3,
 				headers: map[string]string{
 					"Accept-Encoding":  "gzip",
 					"Content-Encoding": "gzip",
 				},
 			},
 			want: want{
-				code: http.StatusBadRequest,
+				code:        http.StatusOK,
+				response:    data3,
+				contentType: "application/json; charset=utf-8",
 			},
 		},
 	}
