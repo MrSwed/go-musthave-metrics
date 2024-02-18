@@ -112,17 +112,17 @@ func (mr *MockRepositoryMockRecorder) MemStore(arg0 interface{}) *gomock.Call {
 }
 
 // Ping mocks base method.
-func (m *MockRepository) Ping() error {
+func (m *MockRepository) Ping(arg0 context.Context) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Ping")
+	ret := m.ctrl.Call(m, "Ping", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Ping indicates an expected call of Ping.
-func (mr *MockRepositoryMockRecorder) Ping() *gomock.Call {
+func (mr *MockRepositoryMockRecorder) Ping(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Ping", reflect.TypeOf((*MockRepository)(nil).Ping))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Ping", reflect.TypeOf((*MockRepository)(nil).Ping), arg0)
 }
 
 // RestoreFromFile mocks base method.

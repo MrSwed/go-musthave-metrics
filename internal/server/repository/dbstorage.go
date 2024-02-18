@@ -47,12 +47,12 @@ func retryFunc(fn func() error) (err error) {
 	return
 }
 
-func (r *DBStorageRepo) Ping() (err error) {
+func (r *DBStorageRepo) Ping(ctx context.Context) (err error) {
 	if r.db == nil {
 		return fmt.Errorf("no db connected")
 	}
 	err = retryFunc(func() (err error) {
-		err = r.db.Ping()
+		err = r.db.PingContext(ctx)
 		return
 	})
 	return

@@ -17,7 +17,7 @@ type DataStorage interface {
 	GetAllCounters(ctx context.Context) (domain.Counters, error)
 	GetAllGauges(ctx context.Context) (domain.Gauges, error)
 	SetMetrics(ctx context.Context, metrics []domain.Metric) ([]domain.Metric, error)
-	Ping() error
+	Ping(ctx context.Context) error
 	MemStore(ctx context.Context) (*MemStorageRepo, error)
 }
 

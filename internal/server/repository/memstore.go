@@ -32,7 +32,7 @@ func NewMemRepository() *MemStorageRepo {
 	}
 }
 
-func (r *MemStorageRepo) Ping() (err error) {
+func (r *MemStorageRepo) Ping(ctx context.Context) (err error) {
 	return
 }
 

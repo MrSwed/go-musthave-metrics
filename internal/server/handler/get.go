@@ -136,7 +136,9 @@ func (h *Handler) GetListMetrics() func(w http.ResponseWriter, r *http.Request) 
 
 func (h *Handler) GetDBPing() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if err := h.s.CheckDB(); err != nil {
+		ctx, cancel := context.WithTimeout(r.Context(), constant.ServerOperationTimeout*time.Second)
+		defer cancel()
+		if err := h.s.CheckDB(ctx); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			h.log.Error("Error ping", zap.Error(err))
 			return
