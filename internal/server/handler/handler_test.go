@@ -660,12 +660,12 @@ func TestUpdateMetricJson(t *testing.T) {
 	ts := httptest.NewServer(h)
 	defer ts.Close()
 
+	testCounterName := fmt.Sprintf("testCounter%d", rand.Int())
 	type want struct {
 		code        int
 		response    domain.Metric
 		contentType string
 	}
-
 	type args struct {
 		method string
 		body   interface{}
@@ -680,14 +680,14 @@ func TestUpdateMetricJson(t *testing.T) {
 			args: args{
 				method: http.MethodPost,
 				body: map[string]interface{}{
-					"id":    "testCounter",
+					"id":    testCounterName,
 					"type":  "counter",
 					"delta": 1,
 				},
 			},
 			want: want{
 				code:        http.StatusOK,
-				response:    domain.Metric{ID: "testCounter", MType: "counter", Delta: &[]domain.Counter{1}[0]},
+				response:    domain.Metric{ID: testCounterName, MType: "counter", Delta: &[]domain.Counter{1}[0]},
 				contentType: "application/json; charset=utf-8",
 			},
 		},
@@ -756,7 +756,7 @@ func TestUpdateMetricJson(t *testing.T) {
 			args: args{
 				method: http.MethodPost,
 				body: map[string]interface{}{
-					"id":    "testCounter",
+					"id":    testCounterName,
 					"type":  "counter",
 					"delta": "ccc",
 				},
@@ -770,7 +770,7 @@ func TestUpdateMetricJson(t *testing.T) {
 			args: args{
 				method: http.MethodPost,
 				body: map[string]interface{}{
-					"id":    "testCounter",
+					"id":    testCounterName,
 					"delta": 100,
 				},
 			},
@@ -783,7 +783,7 @@ func TestUpdateMetricJson(t *testing.T) {
 			args: args{
 				method: http.MethodPost,
 				body: map[string]interface{}{
-					"id":    "testCounter",
+					"id":    testCounterName,
 					"type":  "counter",
 					"delta": 1.1,
 				},
@@ -797,7 +797,7 @@ func TestUpdateMetricJson(t *testing.T) {
 			args: args{
 				method: http.MethodPost,
 				body: map[string]interface{}{
-					"id":    "testCounter",
+					"id":    testCounterName,
 					"type":  "unknown",
 					"delta": 122,
 				},
@@ -892,6 +892,8 @@ func TestUpdateMetrics(t *testing.T) {
 	ts := httptest.NewServer(h)
 	defer ts.Close()
 
+	testCounterName := fmt.Sprintf("testCounter%d", rand.Int())
+
 	type want struct {
 		code        int
 		response    []domain.Metric
@@ -913,7 +915,7 @@ func TestUpdateMetrics(t *testing.T) {
 				method: http.MethodPost,
 				body: []map[string]interface{}{
 					{
-						"id":    "testCounter",
+						"id":    testCounterName,
 						"type":  "counter",
 						"delta": 1,
 					},
@@ -926,7 +928,7 @@ func TestUpdateMetrics(t *testing.T) {
 			},
 			want: want{
 				code:        http.StatusOK,
-				response:    []domain.Metric{{ID: "testCounter", MType: "counter", Delta: &[]domain.Counter{1}[0]}, {ID: "testGauge", MType: "gauge", Value: &[]domain.Gauge{100.0015}[0]}},
+				response:    []domain.Metric{{ID: testCounterName, MType: "counter", Delta: &[]domain.Counter{1}[0]}, {ID: "testGauge", MType: "gauge", Value: &[]domain.Gauge{100.0015}[0]}},
 				contentType: "application/json; charset=utf-8",
 			},
 		},
@@ -936,7 +938,7 @@ func TestUpdateMetrics(t *testing.T) {
 				method: http.MethodPost,
 				body: []map[string]interface{}{
 					{
-						"id":    "testCounter",
+						"id":    testCounterName,
 						"type":  "unknownType",
 						"delta": 1,
 					},
@@ -957,7 +959,7 @@ func TestUpdateMetrics(t *testing.T) {
 				method: http.MethodPost,
 				body: []map[string]interface{}{
 					{
-						"id":    "testCounter",
+						"id":    testCounterName,
 						"delta": 1,
 					},
 					{
@@ -977,7 +979,7 @@ func TestUpdateMetrics(t *testing.T) {
 				method: http.MethodPost,
 				body: []map[string]interface{}{
 					{
-						"id":    "testCounter",
+						"id":    testCounterName,
 						"type":  "unknownType",
 						"delta": 1.1,
 					},
@@ -998,7 +1000,7 @@ func TestUpdateMetrics(t *testing.T) {
 				method: http.MethodPost,
 				body: []map[string]interface{}{
 					{
-						"id":    "testCounter",
+						"id":    testCounterName,
 						"type":  "unknownType",
 						"delta": "ddd",
 					},
@@ -1019,7 +1021,7 @@ func TestUpdateMetrics(t *testing.T) {
 				method: http.MethodPost,
 				body: []map[string]interface{}{
 					{
-						"id":    "testCounter",
+						"id":    testCounterName,
 						"type":  "gauge",
 						"delta": 1,
 					},
@@ -1078,6 +1080,10 @@ func TestGzip(t *testing.T) {
 	ts := httptest.NewServer(h)
 	defer ts.Close()
 
+	testCounterName1 := fmt.Sprintf("testCounter%d", rand.Int())
+	testCounterName2 := fmt.Sprintf("testCounter%d", rand.Int())
+	testCounterName3 := fmt.Sprintf("testCounter%d", rand.Int())
+
 	type want struct {
 		code        int
 		response    []domain.Metric
@@ -1094,14 +1100,13 @@ func TestGzip(t *testing.T) {
 		args args
 		want want
 	}{
-
 		{
 			name: "Gzip compress answer at save json. Ok",
 			args: args{
 				method: http.MethodPost,
 				body: []map[string]interface{}{
 					{
-						"id":    "testCounter1",
+						"id":    testCounterName1,
 						"type":  "counter",
 						"delta": 1,
 					},
@@ -1117,7 +1122,7 @@ func TestGzip(t *testing.T) {
 			},
 			want: want{
 				code:        http.StatusOK,
-				response:    []domain.Metric{{ID: "testCounter1", MType: "counter", Delta: &[]domain.Counter{1}[0]}, {ID: "testGauge", MType: "gauge", Value: &[]domain.Gauge{100.0015}[0]}},
+				response:    []domain.Metric{{ID: testCounterName1, MType: "counter", Delta: &[]domain.Counter{1}[0]}, {ID: "testGauge", MType: "gauge", Value: &[]domain.Gauge{100.0015}[0]}},
 				contentType: "application/json; charset=utf-8",
 				headers: map[string]string{
 					"Content-Encoding": "gzip",
@@ -1130,7 +1135,7 @@ func TestGzip(t *testing.T) {
 				method: http.MethodPost,
 				body: []map[string]interface{}{
 					{
-						"id":    "testCounter2",
+						"id":    testCounterName2,
 						"type":  "counter",
 						"delta": 1,
 					},
@@ -1146,7 +1151,7 @@ func TestGzip(t *testing.T) {
 			},
 			want: want{
 				code:        http.StatusOK,
-				response:    []domain.Metric{{ID: "testCounter2", MType: "counter", Delta: &[]domain.Counter{1}[0]}, {ID: "testGauge", MType: "gauge", Value: &[]domain.Gauge{100.0015}[0]}},
+				response:    []domain.Metric{{ID: testCounterName2, MType: "counter", Delta: &[]domain.Counter{1}[0]}, {ID: "testGauge", MType: "gauge", Value: &[]domain.Gauge{100.0015}[0]}},
 				contentType: "application/json; charset=utf-8",
 			},
 		},
@@ -1156,7 +1161,7 @@ func TestGzip(t *testing.T) {
 				method: http.MethodPost,
 				body: []map[string]interface{}{
 					{
-						"id":    "testCounter3",
+						"id":    testCounterName3,
 						"type":  "counter",
 						"delta": 1,
 					},
@@ -1173,7 +1178,7 @@ func TestGzip(t *testing.T) {
 			},
 			want: want{
 				code:        http.StatusOK,
-				response:    []domain.Metric{{ID: "testCounter3", MType: "counter", Delta: &[]domain.Counter{1}[0]}, {ID: "testGauge", MType: "gauge", Value: &[]domain.Gauge{100.0015}[0]}},
+				response:    []domain.Metric{{ID: testCounterName3, MType: "counter", Delta: &[]domain.Counter{1}[0]}, {ID: "testGauge", MType: "gauge", Value: &[]domain.Gauge{100.0015}[0]}},
 				contentType: "application/json; charset=utf-8",
 				headers: map[string]string{
 					"Content-Encoding": "gzip",
