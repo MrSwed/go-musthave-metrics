@@ -51,7 +51,7 @@ func TextHeader() func(next http.Handler) http.Handler {
 func CheckSign(conf *config.WEB, l *zap.Logger) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-			if conf != nil && conf.Key != "" {
+			if conf != nil && conf.Key != "" && r.Header.Get("HashSHA256") != "" {
 				getSha, err := hex.DecodeString(r.Header.Get("HashSHA256"))
 				if len(getSha) == 0 || err != nil {
 					rw.WriteHeader(http.StatusBadRequest)
