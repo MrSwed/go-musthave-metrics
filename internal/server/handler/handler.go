@@ -68,7 +68,9 @@ func (h *Handler) Handler() http.Handler {
 		r.With(myMiddleware.JSONHeader()).Post("/", h.UpdateMetricJSON())
 	})
 
-	h.r.With(myMiddleware.JSONHeader()).Post(constant.UpdatesRoute, h.UpdateMetrics())
+	h.r.Route(constant.UpdatesRoute, func(r chi.Router) {
+		r.With(myMiddleware.JSONHeader()).Post("/", h.UpdateMetrics())
+	})
 
 	h.r.Route(constant.ValueRoute, func(r chi.Router) {
 		r.With(myMiddleware.TextHeader()).Get(fmt.Sprintf("/{%s}/{%s}",
