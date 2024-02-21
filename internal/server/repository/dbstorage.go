@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/MrSwed/go-musthave-metrics/internal/server/constant"
@@ -49,7 +48,7 @@ func retryFunc(fn func() error) (err error) {
 
 func (r *DBStorageRepo) Ping(ctx context.Context) (err error) {
 	if r.db == nil {
-		return fmt.Errorf("no db connected")
+		return myErr.ErrNoDBConnected
 	}
 	err = retryFunc(func() (err error) {
 		err = r.db.PingContext(ctx)
