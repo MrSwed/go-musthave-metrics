@@ -9,4 +9,5 @@ const (
 	EnvNameReportInterval = "REPORT_INTERVAL"
 	EnvNamePollInterval   = "POLL_INTERVAL"
 	EnvNameKey            = "KEY"
+	EnvNameRateLimit      = "RATE_LIMIT"
 )
