@@ -24,6 +24,7 @@ import (
 
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/mem"
+	"golang.org/x/sync/errgroup"
 )
 
 type MetricsCollects struct {
@@ -118,17 +119,51 @@ func (m *MetricsCollects) ListMetrics() (metrics []*Metric, err error) {
 	return
 }
 
-func (m *MetricsCollects) SendMetrics(serverAddress string) (err error) {
+func (m *MetricsCollects) SendMetrics() (n int, err error) {
 	var (
 		metrics []*Metric
 		er      error
+		wg      sync.WaitGroup
 	)
 
-	urlStr := serverAddress + constant.BaseURL
 	if metrics, er = m.ListMetrics(); er != nil {
 		err = errors.Join(err, myErr.ErrWrap(er))
 	}
+	n = len(metrics)
 
+	semaphore := NewSemaphore(m.c.RateLimit)
+	sendCount := 1
+	if m.c.SendSize > 0 && m.c.SendSize < len(metrics) {
+		sendCount = len(metrics) / m.c.SendSize
+		if len(metrics)%m.c.SendSize > 0 {
+			sendCount++
+		}
+	}
+	g := new(errgroup.Group)
+	for s := 0; s < sendCount; s++ {
+		wg.Add(1)
+		start, finish := s*m.c.SendSize, (s+1)*m.c.SendSize
+		if finish > len(metrics) || finish == 0 {
+			finish = len(metrics)
+		}
+		g.Go(func() (err error) {
+			func(metrics []*Metric) {
+				semaphore.Acquire()
+				defer wg.Done()
+				defer semaphore.Release()
+				err = m.request(metrics)
+			}(metrics[start:finish])
+			return err
+		})
+	}
+	if er = g.Wait(); err != nil {
+		err = errors.Join(err, myErr.ErrWrap(er))
+	}
+	return
+}
+
+func (m *MetricsCollects) request(metrics []*Metric) (err error) {
+	var er error
 	var body []byte
 	if body, er = json.Marshal(metrics); er != nil {
 		err = errors.Join(err, myErr.ErrWrap(er))
@@ -143,6 +178,7 @@ func (m *MetricsCollects) SendMetrics(serverAddress string) (err error) {
 		return
 	}
 
+	urlStr := m.c.ServerAddress + constant.BaseURL
 	if er = zb.Close(); er != nil {
 		err = errors.Join(err, myErr.ErrWrap(er))
 		return

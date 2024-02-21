@@ -30,9 +30,12 @@ func main() {
   Url for collect metric: %s%s
   Report interval: %d
   Poll interval: %d
+  Rate limit: %d
+  Number of metrics at once: %d
   Key: %s
-  Metric count: %d
-`, conf.ServerAddress, constant.BaseURL, conf.ReportInterval, conf.PollInterval, conf.Key, len(conf.GaugesList)+len(conf.CountersList))
+  Metric names count: %d
+`, conf.ServerAddress, constant.BaseURL, conf.ReportInterval, conf.PollInterval,
+		conf.RateLimit, conf.SendSize, conf.Key, len(conf.GaugesList)+len(conf.CountersList))
 
 	m := app.NewMetricsCollects(conf)
 
@@ -79,7 +82,7 @@ func main() {
 			select {
 			case <-time.After(time.Duration(conf.ReportInterval) * time.Second):
 				for i := 0; i <= len(config.Backoff); i++ {
-					if err := m.SendMetrics(conf.ServerAddress); err != nil {
+					if n, err := m.SendMetrics(); err != nil {
 						if !errors.As(err, &urlErr) {
 							log.Println(err)
 							break
@@ -95,7 +98,7 @@ func main() {
 							}
 						}
 					} else {
-						log.Printf("%d metrics sent", len(conf.GaugesList)+len(conf.CountersList))
+						log.Printf("%d metrics sent", n)
 						break
 					}
 				}

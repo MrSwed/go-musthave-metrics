@@ -18,6 +18,7 @@ type Config struct {
 	PollInterval   int
 	RateLimit      int
 	Key            string
+	SendSize       int
 	MetricLists
 }
 
@@ -31,7 +32,8 @@ func (c *Config) parseFlags() {
 	flag.IntVar(&c.ReportInterval, "r", 10, "Provide the interval in seconds for send report metrics")
 	flag.IntVar(&c.PollInterval, "p", 2, "Provide the interval in seconds for update metrics")
 	flag.StringVar(&c.Key, "k", "", "Provide the key")
-	flag.IntVar(&c.RateLimit, "l", 1, "Provide the ")
+	flag.IntVar(&c.RateLimit, "l", 1, "Provide the rate limit - number of concurrent outgoing requests")
+	flag.IntVar(&c.SendSize, "s", 10, "Provide the number of metrics send at once. 0 - send all")
 	flag.Parse()
 }
 
