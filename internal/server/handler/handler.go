@@ -40,12 +40,11 @@ func signData(key string, data []byte) string {
 }
 
 func setHeaderSHA(r http.ResponseWriter, key string, data []byte) {
-	if signData(key, data) == "" {
+	var sign string
+	if sign = signData(key, data); sign == "" {
 		return
 	}
-	h := hmac.New(sha256.New, []byte(key))
-	h.Write(data)
-	r.Header().Set("HashSHA256", hex.EncodeToString(h.Sum(nil)))
+	r.Header().Set("HashSHA256", sign)
 }
 
 func (h *Handler) Handler() http.Handler {
