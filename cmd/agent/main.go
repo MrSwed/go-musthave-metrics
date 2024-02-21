@@ -36,17 +36,35 @@ func main() {
 
 	m := app.NewMetricsCollects(conf)
 
-	// collect metrics
+	// collect runtime metrics
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		for {
 			select {
 			case <-time.After(time.Duration(conf.PollInterval) * time.Second):
-				log.Println("Collect metrics")
+				log.Println("Collect runtime metrics")
 				m.GetMetrics()
 			case <-ctx.Done():
-				log.Println("Metrics collector is stopped")
+				log.Println("Runtime metrics collector is stopped")
+				return
+			}
+		}
+	}()
+
+	// collect psutil metrics
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for {
+			select {
+			case <-time.After(time.Duration(conf.PollInterval) * time.Second):
+				log.Println("Collect psutil metrics")
+				if err := m.GetGopMetrics(); err != nil {
+					log.Println("Error", err.Error())
+				}
+			case <-ctx.Done():
+				log.Println("PSUtil metrics collector is stopped")
 				return
 			}
 		}

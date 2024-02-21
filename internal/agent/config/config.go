@@ -90,6 +90,9 @@ func (c *Config) setGaugesList(m ...string) {
 			"Sys",
 			"TotalAlloc",
 			"RandomValue",
+			"TotalMemory",
+			"FreeMemory",
+			"CPUutilization",
 		}
 	}
 }

@@ -9,23 +9,32 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/MrSwed/go-musthave-metrics/internal/agent/config"
-	"github.com/MrSwed/go-musthave-metrics/internal/agent/constant"
-	myErr "github.com/MrSwed/go-musthave-metrics/internal/agent/error"
 	"io"
 	"math/rand"
 	"net/http"
 	"reflect"
 	"runtime"
+	"strconv"
 	"sync"
+	"time"
+
+	"github.com/MrSwed/go-musthave-metrics/internal/agent/config"
+	"github.com/MrSwed/go-musthave-metrics/internal/agent/constant"
+	myErr "github.com/MrSwed/go-musthave-metrics/internal/agent/error"
+
+	"github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v3/mem"
 )
 
 type MetricsCollects struct {
 	runtime.MemStats
-	PollCount   int64
-	RandomValue float64
-	m           sync.RWMutex
-	c           *config.Config
+	PollCount      int64
+	RandomValue    float64
+	TotalMemory    float64
+	FreeMemory     float64
+	CPUutilization []float64
+	m              sync.RWMutex
+	c              *config.Config
 }
 
 func NewMetricsCollects(c *config.Config) *MetricsCollects {
@@ -40,6 +49,23 @@ func (m *MetricsCollects) GetMetrics() {
 	runtime.ReadMemStats(&m.MemStats)
 	m.PollCount++
 	m.RandomValue = rand.Float64()
+}
+
+func (m *MetricsCollects) GetGopMetrics() error {
+	m.m.Lock()
+	defer m.m.Unlock()
+	vmst, err := mem.VirtualMemory()
+	if err != nil {
+		return err
+	}
+	m.FreeMemory = float64(vmst.Free)
+	m.TotalMemory = float64(vmst.Total)
+
+	m.CPUutilization, err = cpu.Percent(time.Second*1, true)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (m *MetricsCollects) SendMetrics(serverAddress string, lists config.MetricLists) (err error) {
@@ -75,12 +101,24 @@ func (m *MetricsCollects) SendMetrics(serverAddress string, lists config.MetricL
 					err = errors.Join(err, myErr.ErrWrap(fmt.Errorf("unknown metric name %s", mName)))
 					continue
 				}
-				oneMetric := NewMetric(mName, mType)
-				if er = oneMetric.Set(v); er != nil {
-					err = errors.Join(err, myErr.ErrWrap(er))
-					continue
+				switch g := v.(type) {
+				case []float64:
+					for ind := range g {
+						oneMetric := NewMetric(mName+strconv.FormatInt(int64(ind+1), 10), mType)
+						if er = oneMetric.Set(g[i]); er != nil {
+							err = errors.Join(err, myErr.ErrWrap(er))
+							continue
+						}
+						metrics = append(metrics, oneMetric)
+					}
+				default:
+					oneMetric := NewMetric(mName, mType)
+					if er = oneMetric.Set(v); er != nil {
+						err = errors.Join(err, myErr.ErrWrap(er))
+						continue
+					}
+					metrics = append(metrics, oneMetric)
 				}
-				metrics = append(metrics, oneMetric)
 			}
 		}
 	}
