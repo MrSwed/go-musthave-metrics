@@ -79,7 +79,7 @@ func main() {
 			select {
 			case <-time.After(time.Duration(conf.ReportInterval) * time.Second):
 				for i := 0; i <= len(config.Backoff); i++ {
-					if err := m.SendMetrics(conf.ServerAddress, conf.MetricLists); err != nil {
+					if err := m.SendMetrics(conf.ServerAddress); err != nil {
 						if !errors.As(err, &urlErr) {
 							log.Println(err)
 							break

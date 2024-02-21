@@ -68,17 +68,12 @@ func (m *MetricsCollects) GetGopMetrics() error {
 	return nil
 }
 
-func (m *MetricsCollects) SendMetrics(serverAddress string, lists config.MetricLists) (err error) {
-	var (
-		metrics []*Metric
-		er      error
-	)
+func (m *MetricsCollects) ListMetrics() (metrics []*Metric, err error) {
+	var er error
 
 	mRefVal := reflect.Indirect(reflect.ValueOf(m))
-	urlStr := serverAddress + constant.BaseURL
-
-	lRefVal := reflect.ValueOf(lists)
-	lRefType := reflect.TypeOf(lists)
+	lRefVal := reflect.ValueOf(m.c.MetricLists)
+	lRefType := reflect.TypeOf(m.c.MetricLists)
 	var mType string
 	for i := 0; i < lRefVal.NumField(); i++ {
 		if mType = lRefType.Field(i).Tag.Get("type"); mType == "" {
@@ -90,9 +85,7 @@ func (m *MetricsCollects) SendMetrics(serverAddress string, lists config.MetricL
 		}
 		if list, ok := lItemRef.Interface().([]string); ok {
 			for _, mName := range list {
-				var (
-					v interface{}
-				)
+				var v interface{}
 				if refV := mRefVal.FieldByName(mName); refV.IsValid() {
 					m.m.RLock()
 					v = refV.Interface()
@@ -103,8 +96,8 @@ func (m *MetricsCollects) SendMetrics(serverAddress string, lists config.MetricL
 				}
 				switch g := v.(type) {
 				case []float64:
-					for ind := range g {
-						oneMetric := NewMetric(mName+strconv.FormatInt(int64(ind+1), 10), mType)
+					for idx := range g {
+						oneMetric := NewMetric(mName+strconv.FormatInt(int64(idx+1), 10), mType)
 						if er = oneMetric.Set(g[i]); er != nil {
 							err = errors.Join(err, myErr.ErrWrap(er))
 							continue
@@ -121,6 +114,19 @@ func (m *MetricsCollects) SendMetrics(serverAddress string, lists config.MetricL
 				}
 			}
 		}
+	}
+	return
+}
+
+func (m *MetricsCollects) SendMetrics(serverAddress string) (err error) {
+	var (
+		metrics []*Metric
+		er      error
+	)
+
+	urlStr := serverAddress + constant.BaseURL
+	if metrics, er = m.ListMetrics(); er != nil {
+		err = errors.Join(err, myErr.ErrWrap(er))
 	}
 
 	var body []byte
