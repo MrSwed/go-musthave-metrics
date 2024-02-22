@@ -3,6 +3,7 @@ package app
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
@@ -10,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"math/rand"
 	"net/http"
 	"reflect"
@@ -119,11 +121,12 @@ func (m *MetricsCollects) ListMetrics() (metrics []*Metric, err error) {
 	return
 }
 
-func (m *MetricsCollects) SendMetrics() (n int, err error) {
+func (m *MetricsCollects) SendMetrics(ctx context.Context) (n int, err error) {
 	var (
 		metrics []*Metric
 		er      error
 		wg      sync.WaitGroup
+		g       *errgroup.Group
 	)
 
 	if metrics, er = m.ListMetrics(); er != nil {
@@ -139,8 +142,14 @@ func (m *MetricsCollects) SendMetrics() (n int, err error) {
 			sendCount++
 		}
 	}
-	g := new(errgroup.Group)
+	g, ctx = errgroup.WithContext(ctx)
 	for s := 0; s < sendCount; s++ {
+		select {
+		case <-ctx.Done():
+			log.Print("ctx done, do not send parts")
+			return
+		default:
+		}
 		wg.Add(1)
 		start, finish := s*m.c.SendSize, (s+1)*m.c.SendSize
 		if finish > len(metrics) || finish == 0 {
@@ -156,7 +165,7 @@ func (m *MetricsCollects) SendMetrics() (n int, err error) {
 			return err
 		})
 	}
-	if er = g.Wait(); err != nil {
+	if er = g.Wait(); er != nil {
 		err = errors.Join(err, myErr.ErrWrap(er))
 	}
 	return

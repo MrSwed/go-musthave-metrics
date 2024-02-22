@@ -82,7 +82,7 @@ func main() {
 			select {
 			case <-time.After(time.Duration(conf.ReportInterval) * time.Second):
 				for i := 0; i <= len(config.Backoff); i++ {
-					if n, err := m.SendMetrics(); err != nil {
+					if n, err := m.SendMetrics(ctx); err != nil {
 						if !errors.As(err, &urlErr) {
 							log.Println(err)
 							break
@@ -92,7 +92,7 @@ func main() {
 							log.Printf("wait %d second before next try", config.Backoff[i]/time.Second)
 							select {
 							case <-ctx.Done():
-								log.Print("ctx done, no try more ")
+								log.Print("ctx done, do not try more")
 								return
 							case <-time.After(config.Backoff[i]):
 							}
