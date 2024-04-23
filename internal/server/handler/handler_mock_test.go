@@ -15,6 +15,7 @@ import (
 	"github.com/MrSwed/go-musthave-metrics/internal/server/errors"
 	mocks "github.com/MrSwed/go-musthave-metrics/internal/server/mock/repository"
 	"github.com/MrSwed/go-musthave-metrics/internal/server/service"
+	"github.com/go-chi/chi/v5"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -31,7 +32,7 @@ func TestMockGetMetric(t *testing.T) {
 	s := service.NewService(repo, &conf.StorageConfig)
 
 	logger, _ := zap.NewDevelopment()
-	h := NewHandler(s, &conf.WEB, logger).Handler()
+	h := NewHandler(chi.NewRouter(), s, &conf.WEB, logger).Handler()
 	ts := httptest.NewServer(h)
 	defer ts.Close()
 
@@ -171,7 +172,7 @@ func TestMockGetListMetrics(t *testing.T) {
 	s := service.NewService(repo, &conf.StorageConfig)
 
 	logger, _ := zap.NewDevelopment()
-	h := NewHandler(s, &conf.WEB, logger).Handler()
+	h := NewHandler(chi.NewRouter(), s, &conf.WEB, logger).Handler()
 
 	ts := httptest.NewServer(h)
 	defer ts.Close()
@@ -260,7 +261,7 @@ func TestMockGetMetricJson(t *testing.T) {
 	s := service.NewService(repo, &conf.StorageConfig)
 
 	logger, _ := zap.NewDevelopment()
-	h := NewHandler(s, &conf.WEB, logger).Handler()
+	h := NewHandler(chi.NewRouter(), s, &conf.WEB, logger).Handler()
 	ts := httptest.NewServer(h)
 	defer ts.Close()
 
@@ -450,7 +451,7 @@ func TestMockUpdateMetric(t *testing.T) {
 
 	s := service.NewService(repo, &conf.StorageConfig)
 	logger, _ := zap.NewDevelopment()
-	h := NewHandler(s, &conf.WEB, logger).Handler()
+	h := NewHandler(chi.NewRouter(), s, &conf.WEB, logger).Handler()
 	ts := httptest.NewServer(h)
 	defer ts.Close()
 
@@ -651,7 +652,7 @@ func TestMockUpdateMetricJson(t *testing.T) {
 
 	s := service.NewService(repo, &conf.StorageConfig)
 	logger, _ := zap.NewDevelopment()
-	h := NewHandler(s, &conf.WEB, logger).Handler()
+	h := NewHandler(chi.NewRouter(), s, &conf.WEB, logger).Handler()
 	ts := httptest.NewServer(h)
 	defer ts.Close()
 
@@ -894,7 +895,7 @@ func TestMockUpdateMetrics(t *testing.T) {
 
 	s := service.NewService(repo, &conf.StorageConfig)
 	logger, _ := zap.NewDevelopment()
-	h := NewHandler(s, &conf.WEB, logger).Handler()
+	h := NewHandler(chi.NewRouter(), s, &conf.WEB, logger).Handler()
 
 	ts := httptest.NewServer(h)
 	defer ts.Close()
