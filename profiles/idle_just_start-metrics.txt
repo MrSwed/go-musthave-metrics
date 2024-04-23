@@ -1,0 +1,126 @@
+Total: 4.31MB
+ROUTINE ======================== github.com/MrSwed/go-musthave-metrics/internal/server/handler.(*Handler).Handler.CheckSign.func7.1 in /home/sergey/GolandProjects/yandex-practic/go-musthave-metrics/internal/server/middleware/middleware.go
+         0     1.76MB (flat, cum) 40.95% of Total
+         .          .     53:		return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+         .          .     54:			if conf != nil && conf.Key != "" && r.Header.Get("HashSHA256") != "" {
+         .          .     55:				getSha, err := hex.DecodeString(r.Header.Get("HashSHA256"))
+         .          .     56:				if len(getSha) == 0 || err != nil {
+         .          .     57:					rw.WriteHeader(http.StatusBadRequest)
+         .          .     58:					if _, err = rw.Write([]byte("Bad HashKey")); err != nil {
+         .          .     59:						l.Error("Error return answer", zap.Error(err))
+         .          .     60:					}
+         .          .     61:					return
+         .          .     62:				}
+         .          .     63:				h := hmac.New(sha256.New, []byte(conf.Key))
+         .          .     64:				body, err := io.ReadAll(r.Body)
+         .          .     65:				if err != nil {
+         .          .     66:					rw.WriteHeader(http.StatusInternalServerError)
+         .          .     67:					l.Error(err.Error())
+         .          .     68:					return
+         .          .     69:				}
+         .          .     70:				r.Body = io.NopCloser(bytes.NewReader(body))
+         .          .     71:				h.Write(body)
+         .          .     72:				if !bytes.Equal(getSha, h.Sum(nil)) {
+         .          .     73:					rw.WriteHeader(http.StatusBadRequest)
+         .          .     74:					if _, err = rw.Write([]byte("Bad HashKey")); err != nil {
+         .          .     75:						l.Error("Error return answer", zap.Error(err))
+         .          .     76:					}
+         .          .     77:					return
+         .          .     78:				}
+         .          .     79:			}
+         .     1.76MB     80:			next.ServeHTTP(rw, r)
+         .          .     81:		})
+         .          .     82:	}
+         .          .     83:}
+ROUTINE ======================== github.com/MrSwed/go-musthave-metrics/internal/server/handler.(*Handler).Handler.Decompress.func6.1 in /home/sergey/GolandProjects/yandex-practic/go-musthave-metrics/internal/server/middleware/middleware.go
+         0     1.76MB (flat, cum) 40.95% of Total
+         .          .     17:		return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+         .          .     18:			if r.Header.Get(`Content-Encoding`) == `gzip` {
+         .          .     19:				gz, err := gzip.NewReader(r.Body)
+         .          .     20:				if err == nil {
+         .          .     21:					r.Body = gz
+         .          .     22:					err = gz.Close()
+         .          .     23:				}
+         .          .     24:				if err != nil {
+         .          .     25:					l.Error("gzip", zap.Error(err))
+         .          .     26:				}
+         .          .     27:			}
+         .     1.76MB     28:			next.ServeHTTP(rw, r)
+         .          .     29:		})
+         .          .     30:	}
+         .          .     31:}
+         .          .     32:
+         .          .     33:func JSONHeader() func(next http.Handler) http.Handler {
+ROUTINE ======================== github.com/MrSwed/go-musthave-metrics/internal/server/handler.(*Handler).Handler.Logger.func5.1 in /home/sergey/GolandProjects/yandex-practic/go-musthave-metrics/internal/server/logger/logger.go
+         0     1.76MB (flat, cum) 40.95% of Total
+         .          .     14:		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+         .          .     15:			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
+         .          .     16:			t1 := time.Now()
+         .          .     17:			defer func() {
+         .          .     18:				scheme := "http"
+         .          .     19:				if r.TLS != nil {
+         .          .     20:					scheme = "https"
+         .          .     21:				}
+         .          .     22:				l.Info("Served",
+         .          .     23:					zap.Int("status", ww.Status()),
+         .          .     24:					zap.String("method", r.Method),
+         .          .     25:					zap.String("URI", fmt.Sprintf("%s://%s%s %s", scheme, r.Host, r.RequestURI, r.Proto)),
+         .          .     26:					zap.Int("size", ww.BytesWritten()),
+         .          .     27:					zap.Duration("time", time.Since(t1)),
+         .          .     28:					zap.String("from", r.RemoteAddr),
+         .          .     29:				)
+         .          .     30:			}()
+         .     1.76MB     31:			next.ServeHTTP(ww, r)
+         .          .     32:		})
+         .          .     33:	}
+         .          .     34:}
+ROUTINE ======================== github.com/MrSwed/go-musthave-metrics/internal/server/handler.(*Handler).Handler.func3.(*Handler).UpdateMetrics.func2 in /home/sergey/GolandProjects/yandex-practic/go-musthave-metrics/internal/server/handler/update.go
+         0     1.76MB (flat, cum) 40.95% of Total
+         .          .    110:	return func(w http.ResponseWriter, r *http.Request) {
+         .          .    111:		var metrics []domain.Metric
+         .          .    112:		err := json.NewDecoder(r.Body).Decode(&metrics)
+         .          .    113:		if err != nil {
+         .          .    114:			w.WriteHeader(http.StatusBadRequest)
+         .          .    115:			if _, err := w.Write([]byte("Bad input json")); err != nil {
+         .          .    116:				h.log.Error("Error return answer", zap.Error(err))
+         .          .    117:			}
+         .          .    118:			return
+         .          .    119:		}
+         .          .    120:		ctx, cancel := context.WithTimeout(r.Context(), constant.ServerOperationTimeout*time.Second)
+         .          .    121:		defer cancel()
+         .          .    122:
+         .          .    123:		if metrics, err = h.s.SetMetrics(ctx, metrics); err != nil {
+         .          .    124:			if errors.As(err, &validator.ValidationErrors{}) {
+         .          .    125:				w.WriteHeader(http.StatusBadRequest)
+         .          .    126:				if _, err := w.Write([]byte("Bad input data: " + err.Error())); err != nil {
+         .          .    127:					h.log.Error("Error return answer", zap.Error(err))
+         .          .    128:				}
+         .          .    129:			} else {
+         .          .    130:				h.log.Error("Error set metric", zap.Error(err))
+         .          .    131:				w.WriteHeader(http.StatusInternalServerError)
+         .          .    132:			}
+         .          .    133:			return
+         .          .    134:		}
+         .          .    135:		var out []byte
+         .          .    136:		if out, err = json.Marshal(metrics); err != nil {
+         .          .    137:			h.log.Error("Error marshal metrics", zap.Error(err))
+         .          .    138:			w.WriteHeader(http.StatusInternalServerError)
+         .          .    139:			return
+         .          .    140:		}
+         .          .    141:		setHeaderSHA(w, h.c.Key, out)
+         .          .    142:		w.WriteHeader(http.StatusOK)
+         .     1.76MB    143:		if _, err := w.Write(out); err != nil {
+         .          .    144:			h.log.Error("Error return answer", zap.Error(err))
+         .          .    145:		}
+         .          .    146:	}
+         .          .    147:}
+ROUTINE ======================== github.com/MrSwed/go-musthave-metrics/internal/server/handler.(*Handler).Handler.func3.JSONHeader.func1.1 in /home/sergey/GolandProjects/yandex-practic/go-musthave-metrics/internal/server/middleware/middleware.go
+         0     1.76MB (flat, cum) 40.95% of Total
+         .          .     35:		return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+         .          .     36:			rw.Header().Set("Content-Type", "application/json; charset=utf-8")
+         .     1.76MB     37:			next.ServeHTTP(rw, r)
+         .          .     38:		})
+         .          .     39:	}
+         .          .     40:}
+         .          .     41:
+         .          .     42:func TextHeader() func(next http.Handler) http.Handler {
