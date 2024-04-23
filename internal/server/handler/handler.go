@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net/http"
+	_ "net/http/pprof"
 
 	"github.com/MrSwed/go-musthave-metrics/internal/server/config"
 	"github.com/MrSwed/go-musthave-metrics/internal/server/constant"

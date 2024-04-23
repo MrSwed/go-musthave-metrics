@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	_ "net/http/pprof"
 	"os/signal"
 	"sync"
 	"syscall"
