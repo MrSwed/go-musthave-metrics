@@ -18,6 +18,7 @@ func NewMetricDBService(r repository.Repository) *MetricsDBService {
 	return &MetricsDBService{r: r}
 }
 
+// CheckDB check is storage alive
 func (s *MetricsDBService) CheckDB(ctx context.Context) error {
 	return s.r.Ping(ctx)
 }

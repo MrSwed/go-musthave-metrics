@@ -29,6 +29,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+// MetricsCollects metrics collection
 type MetricsCollects struct {
 	runtime.MemStats
 	PollCount      int64
@@ -46,6 +47,7 @@ func NewMetricsCollects(c *config.Config) *MetricsCollects {
 	}
 }
 
+// GetMetrics reg runtime MemStats metrics
 func (m *MetricsCollects) GetMetrics() {
 	m.m.Lock()
 	defer m.m.Unlock()
@@ -54,6 +56,7 @@ func (m *MetricsCollects) GetMetrics() {
 	m.RandomValue = rand.Float64()
 }
 
+// GetGopMetrics get memory and cpu metrics by gopsutil
 func (m *MetricsCollects) GetGopMetrics() error {
 	m.m.Lock()
 	defer m.m.Unlock()
@@ -71,6 +74,7 @@ func (m *MetricsCollects) GetGopMetrics() error {
 	return nil
 }
 
+// ListMetrics create metrics collection
 func (m *MetricsCollects) ListMetrics() (metrics []*Metric, err error) {
 	var er error
 
@@ -121,6 +125,7 @@ func (m *MetricsCollects) ListMetrics() (metrics []*Metric, err error) {
 	return
 }
 
+// SendMetrics send metrics collection
 func (m *MetricsCollects) SendMetrics(ctx context.Context) (n int, err error) {
 	var (
 		metrics []*Metric

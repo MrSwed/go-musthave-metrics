@@ -9,6 +9,7 @@ import (
 	"github.com/MrSwed/go-musthave-metrics/internal/server/config"
 )
 
+// FileStorage handle file storage methods
 type FileStorage interface {
 	SaveToFile(m *MemStorageRepo) error
 	RestoreFromFile(m *MemStorageRepo) error
@@ -24,6 +25,7 @@ func NewFileStorageRepository(c *config.StorageConfig) *FileStorageRepo {
 	}
 }
 
+// RestoreFromFile restore storage from file
 func (f *FileStorageRepo) RestoreFromFile(m *MemStorageRepo) (err error) {
 	if f.c.FileStoragePath == "" {
 		return fmt.Errorf("no storage file provided")
@@ -39,6 +41,7 @@ func (f *FileStorageRepo) RestoreFromFile(m *MemStorageRepo) (err error) {
 	return json.Unmarshal(data, &m)
 }
 
+// SaveToFile save storage to file
 func (f *FileStorageRepo) SaveToFile(m *MemStorageRepo) error {
 	if f.c.FileStoragePath == "" {
 		return fmt.Errorf("no storage file provided")

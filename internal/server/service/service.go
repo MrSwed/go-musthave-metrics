@@ -12,6 +12,7 @@ type Service struct {
 	MetricsFile
 }
 
+// NewService return main service methods
 func NewService(r repository.Repository, c *config.StorageConfig) *Service {
 	mainService := NewMetricService(r, c)
 	return &Service{

@@ -11,7 +11,6 @@ import (
 
 	"github.com/MrSwed/go-musthave-metrics/internal/server/config"
 	"github.com/MrSwed/go-musthave-metrics/internal/server/constant"
-	"github.com/MrSwed/go-musthave-metrics/internal/server/logger"
 	myMiddleware "github.com/MrSwed/go-musthave-metrics/internal/server/middleware"
 	"github.com/MrSwed/go-musthave-metrics/internal/server/service"
 
@@ -20,6 +19,8 @@ import (
 	"go.uber.org/zap"
 )
 
+// Handler
+// main handler
 type Handler struct {
 	s   *service.Service
 	app *chi.Mux
@@ -27,12 +28,9 @@ type Handler struct {
 	c   *config.WEB
 }
 
+// NewHandler return app handler
 func NewHandler(app *chi.Mux, s *service.Service, c *config.WEB, log *zap.Logger) *Handler {
 	return &Handler{app: app, s: s, c: c, log: log}
-}
-
-func (h *Handler) App() *chi.Mux {
-	return h.app
 }
 
 func signData(key string, data []byte) string {
@@ -52,8 +50,10 @@ func setHeaderSHA(r http.ResponseWriter, key string, data []byte) {
 	r.Header().Set("HashSHA256", sign)
 }
 
+// Handler
+// init app routes
 func (h *Handler) Handler() http.Handler {
-	h.app.Use(logger.Logger(h.log))
+	h.app.Use(myMiddleware.Logger(h.log))
 	h.app.Use(middleware.Compress(gzip.DefaultCompression, "application/json", "text/html"))
 	h.app.Use(myMiddleware.Decompress(h.log))
 	h.app.Use(myMiddleware.CheckSign(h.c, h.log))

@@ -9,16 +9,19 @@ import (
 	"github.com/MrSwed/go-musthave-metrics/internal/server/constant"
 )
 
+// StorageConfig file storage configs
 type StorageConfig struct {
 	FileStoreInterval int
 	FileStoragePath   string
 	StorageRestore    bool
 }
 
+// WEB  config
 type WEB struct {
 	Key string
 }
 
+// Config all configs
 type Config struct {
 	ServerAddress string
 	DatabaseDSN   string
@@ -37,10 +40,12 @@ func NewConfig() *Config {
 	}
 }
 
+// Init all configs
 func (c *Config) Init() *Config {
 	return c.withFlags().WithEnv().CleanSchemes()
 }
 
+// WithEnv gets ENV configs
 func (c *Config) WithEnv() *Config {
 	if addr, ok := os.LookupEnv(constant.EnvNameServerAddress); ok && addr != "" {
 		c.ServerAddress = addr
@@ -89,6 +94,7 @@ func (c *Config) withFlags() *Config {
 	return c
 }
 
+// CleanSchemes check and repair config parameters
 func (c *Config) CleanSchemes() *Config {
 	for _, v := range []string{"http://", "https://"} {
 		c.ServerAddress = strings.TrimPrefix(c.ServerAddress, v)

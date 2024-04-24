@@ -7,14 +7,17 @@ import (
 	"sync"
 )
 
+// Func shutdown function for Closer
 type Func func(ctx context.Context) error
 
+// Closer for graceful shutdown
 type Closer struct {
 	mu    sync.Mutex
 	funcs []Func
 	names []string
 }
 
+// Add shutdown service function
 func (c *Closer) Add(n string, f Func) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -22,6 +25,7 @@ func (c *Closer) Add(n string, f Func) {
 	c.funcs = append(c.funcs, f)
 }
 
+// Close initialize graceful shutdown - run all shutdwon functions
 func (c *Closer) Close(ctx context.Context) (err error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()

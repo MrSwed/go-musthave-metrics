@@ -21,6 +21,7 @@ func NewMetricsHTMLService(r repository.Repository) *MetricsHTMLService {
 	return &MetricsHTMLService{r: r}
 }
 
+// GetCountersHTMLPage get html page with all metrics
 func (s *MetricsHTMLService) GetCountersHTMLPage(ctx context.Context) (html []byte, err error) {
 	type lItem struct {
 		MType  string
@@ -49,6 +50,6 @@ func (s *MetricsHTMLService) GetCountersHTMLPage(ctx context.Context) (html []by
 			MValue: v,
 		}
 	}
-	html, err = helper.ParseEmailHTMLTemplate(constant.MetricListTpl, list)
+	html, err = helper.ParseHTMLTemplate(constant.MetricListTpl, list)
 	return
 }

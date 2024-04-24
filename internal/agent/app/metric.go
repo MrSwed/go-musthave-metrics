@@ -7,6 +7,7 @@ import (
 	myErr "github.com/MrSwed/go-musthave-metrics/internal/agent/error"
 )
 
+// Metric common metric structure for send
 type Metric struct {
 	ID    string   `json:"id"`
 	MType string   `json:"type"`
@@ -14,6 +15,7 @@ type Metric struct {
 	Value *float64 `json:"value,omitempty"`
 }
 
+// NewMetric create new metric
 func NewMetric(id, mType string) *Metric {
 	return &Metric{
 		ID:    id,
@@ -21,6 +23,7 @@ func NewMetric(id, mType string) *Metric {
 	}
 }
 
+// Set metric value
 func (m *Metric) Set(v interface{}) (err error) {
 	switch m.MType {
 	case constant.GaugeType:
