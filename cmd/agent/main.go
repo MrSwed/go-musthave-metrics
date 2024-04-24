@@ -3,9 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"github.com/MrSwed/go-musthave-metrics/internal/agent/app"
-	"github.com/MrSwed/go-musthave-metrics/internal/agent/config"
-	"github.com/MrSwed/go-musthave-metrics/internal/agent/constant"
 	"log"
 	"net/url"
 	"os"
@@ -13,6 +10,10 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/MrSwed/go-musthave-metrics/internal/agent/app"
+	"github.com/MrSwed/go-musthave-metrics/internal/agent/config"
+	"github.com/MrSwed/go-musthave-metrics/internal/agent/constant"
 )
 
 func main() {

@@ -6,10 +6,11 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"github.com/MrSwed/go-musthave-metrics/internal/server/config"
-	"go.uber.org/zap"
 	"io"
 	"net/http"
+
+	"github.com/MrSwed/go-musthave-metrics/internal/server/config"
+	"go.uber.org/zap"
 )
 
 func Decompress(l *zap.Logger) func(next http.Handler) http.Handler {

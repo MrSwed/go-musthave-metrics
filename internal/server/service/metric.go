@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+
 	"golang.org/x/net/context"
 
 	"github.com/MrSwed/go-musthave-metrics/internal/server/config"

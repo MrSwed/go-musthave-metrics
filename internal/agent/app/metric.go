@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+
 	"github.com/MrSwed/go-musthave-metrics/internal/agent/constant"
 	myErr "github.com/MrSwed/go-musthave-metrics/internal/agent/error"
 )

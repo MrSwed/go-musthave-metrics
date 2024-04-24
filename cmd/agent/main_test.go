@@ -1,9 +1,10 @@
 package main
 
 import (
+	"testing"
+
 	"github.com/MrSwed/go-musthave-metrics/internal/agent/app"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func Test_getMetrics(t *testing.T) {
