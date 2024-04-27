@@ -25,8 +25,6 @@ func NewConfigGetTest() (c *config.Config) {
 		if dbTest, err = sqlx.Open("postgres", c.DatabaseDSN); err != nil {
 			log.Fatal(err)
 		}
-	} else {
-		panic("DatabaseDSN required")
 	}
 	return
 }
@@ -37,6 +35,10 @@ var (
 )
 
 func BenchmarkDbStorageRepo_SetMetrics(b *testing.B) {
+	if dbTest == nil {
+		fmt.Println("DatabaseDSN required")
+		return
+	}
 	r := NewDBStorageRepository(dbTest)
 	const size = 100
 	metrics := make([]domain.Metric, size)
