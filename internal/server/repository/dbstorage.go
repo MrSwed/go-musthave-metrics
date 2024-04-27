@@ -160,6 +160,7 @@ func (r *DBStorageRepo) GetAllGauges(ctx context.Context) (data domain.Gauges, e
 
 // SetMetrics save several metrics to db
 func (r *DBStorageRepo) SetMetrics(ctx context.Context, metrics []domain.Metric) (newMetrics []domain.Metric, err error) {
+	newMetrics = make([]domain.Metric, len(metrics))
 	err = retryFunc(func() (err error) {
 		var tx *sqlx.Tx
 		tx, err = r.db.Beginx()
@@ -188,20 +189,18 @@ func (r *DBStorageRepo) SetMetrics(ctx context.Context, metrics []domain.Metric)
 			err = errors.Join(err, stmtC.Close())
 		}()
 
-		for _, metric := range metrics {
+		for i, metric := range metrics {
 			switch metric.MType {
 			case constant.MetricTypeGauge:
 				if _, err = stmtG.ExecContext(ctx, metric.ID, *metric.Value); err != nil {
 					return
 				}
-				newMetrics = append(newMetrics, metric)
 			case constant.MetricTypeCounter:
-				newMetric := metric
-				if err = stmtC.GetContext(ctx, newMetric.Delta, metric.ID, *metric.Delta); err != nil {
+				if err = stmtC.GetContext(ctx, metric.Delta, metric.ID, *metric.Delta); err != nil {
 					return
 				}
-				newMetrics = append(newMetrics, newMetric)
 			}
+			newMetrics[i] = metric
 		}
 		err = tx.Commit()
 		return
