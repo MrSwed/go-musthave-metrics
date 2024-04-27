@@ -96,28 +96,24 @@ func (r *MemStorageRepo) GetAllCounters(ctx context.Context) (domain.Counters, e
 
 // SetMetrics save several metrics to memory store
 func (r *MemStorageRepo) SetMetrics(ctx context.Context, metrics []domain.Metric) (newMetrics []domain.Metric, err error) {
-	for _, metric := range metrics {
+	newMetrics = make([]domain.Metric, len(metrics))
+	for i, metric := range metrics {
 		switch metric.MType {
 		case constant.MetricTypeGauge:
 			if err = r.SetGauge(ctx, metric.ID, *metric.Value); err != nil {
 				return
 			}
-			newMetrics = append(newMetrics, metric)
 		case constant.MetricTypeCounter:
 			var current domain.Counter
 			if current, err = r.GetCounter(ctx, metric.ID); err != nil && !errors.Is(err, myErr.ErrNotExist) {
 				return
 			}
-			delta := current + *metric.Delta
-			if err = r.SetCounter(ctx, metric.ID, delta); err != nil {
+			*metric.Delta += current
+			if err = r.SetCounter(ctx, metric.ID, *metric.Delta); err != nil {
 				return
 			}
-			newMetrics = append(newMetrics, domain.Metric{
-				ID:    metric.ID,
-				MType: metric.MType,
-				Delta: &delta,
-			})
 		}
+		newMetrics[i] = metric
 	}
 	return
 }
