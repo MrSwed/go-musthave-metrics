@@ -29,8 +29,8 @@ func (h *Handler) UpdateMetric() func(w http.ResponseWriter, r *http.Request) {
 		case constant.MetricTypeGauge:
 			if v, err := domain.ParseGauge(metricValStr); err != nil {
 				w.WriteHeader(http.StatusBadRequest)
-				if _, err := w.Write([]byte("Bad metric value")); err != nil {
-					h.log.Error("Error return answer", zap.Error(err))
+				if _, er := w.Write([]byte("Bad metric value")); er != nil {
+					h.log.Error("Error return answer", zap.Error(er))
 				}
 				return
 			} else {
@@ -41,16 +41,16 @@ func (h *Handler) UpdateMetric() func(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		case constant.MetricTypeCounter:
-			if v, err := domain.ParseCounter(metricValStr); err != nil {
+			if v, er := domain.ParseCounter(metricValStr); er != nil {
 				w.WriteHeader(http.StatusBadRequest)
 				if _, err := w.Write([]byte("Bad metric value")); err != nil {
 					h.log.Error("Error return answer", zap.Error(err))
 				}
 				return
 			} else {
-				if err = h.s.IncreaseCounter(ctx, metricKey, v); err != nil {
+				if er = h.s.IncreaseCounter(ctx, metricKey, v); er != nil {
 					w.WriteHeader(http.StatusInternalServerError)
-					h.log.Error("Error set counter", zap.Error(err))
+					h.log.Error("Error set counter", zap.Error(er))
 					return
 				}
 			}
@@ -81,7 +81,7 @@ func (h *Handler) UpdateMetricJSON() func(w http.ResponseWriter, r *http.Request
 		err := json.NewDecoder(r.Body).Decode(&metric)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			if _, err := w.Write([]byte("Bad input json")); err != nil {
+			if _, err = w.Write([]byte("Bad input json")); err != nil {
 				h.log.Error("Error return answer", zap.Error(err))
 			}
 			return
@@ -92,7 +92,7 @@ func (h *Handler) UpdateMetricJSON() func(w http.ResponseWriter, r *http.Request
 		if metric, err = h.s.SetMetric(ctx, metric); err != nil {
 			if errors.As(err, &validator.ValidationErrors{}) {
 				w.WriteHeader(http.StatusBadRequest)
-				if _, err := w.Write([]byte("Bad input data: " + err.Error())); err != nil {
+				if _, err = w.Write([]byte("Bad input data: " + err.Error())); err != nil {
 					h.log.Error("Error return answer", zap.Error(err))
 				}
 			} else {
@@ -126,7 +126,7 @@ func (h *Handler) UpdateMetrics() func(w http.ResponseWriter, r *http.Request) {
 		err := json.NewDecoder(r.Body).Decode(&metrics)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			if _, err := w.Write([]byte("Bad input json")); err != nil {
+			if _, err = w.Write([]byte("Bad input json")); err != nil {
 				h.log.Error("Error return answer", zap.Error(err))
 			}
 			return
@@ -137,7 +137,7 @@ func (h *Handler) UpdateMetrics() func(w http.ResponseWriter, r *http.Request) {
 		if metrics, err = h.s.SetMetrics(ctx, metrics); err != nil {
 			if errors.As(err, &validator.ValidationErrors{}) {
 				w.WriteHeader(http.StatusBadRequest)
-				if _, err := w.Write([]byte("Bad input data: " + err.Error())); err != nil {
+				if _, err = w.Write([]byte("Bad input data: " + err.Error())); err != nil {
 					h.log.Error("Error return answer", zap.Error(err))
 				}
 			} else {
@@ -154,8 +154,8 @@ func (h *Handler) UpdateMetrics() func(w http.ResponseWriter, r *http.Request) {
 		}
 		setHeaderSHA(w, h.c.Key, out)
 		w.WriteHeader(http.StatusOK)
-		if _, err := w.Write(out); err != nil {
-			h.log.Error("Error return answer", zap.Error(err))
+		if _, er := w.Write(out); er != nil {
+			h.log.Error("Error return answer", zap.Error(er))
 		}
 	}
 }

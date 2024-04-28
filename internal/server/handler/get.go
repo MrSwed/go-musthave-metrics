@@ -83,24 +83,24 @@ func (h *Handler) GetMetricJSON() func(w http.ResponseWriter, r *http.Request) {
 
 		switch metric.MType {
 		case constant.MetricTypeGauge:
-			if gauge, err := h.s.GetGauge(ctx, metric.ID); err != nil {
-				if errors.Is(err, myErr.ErrNotExist) {
+			if gauge, er := h.s.GetGauge(ctx, metric.ID); er != nil {
+				if errors.Is(er, myErr.ErrNotExist) {
 					w.WriteHeader(http.StatusNotFound)
 				} else {
 					w.WriteHeader(http.StatusInternalServerError)
-					h.log.Error("Error get gauge", zap.Error(err))
+					h.log.Error("Error get gauge", zap.Error(er))
 				}
 				return
 			} else {
 				metric.Value = &gauge
 			}
 		case constant.MetricTypeCounter:
-			if count, err := h.s.GetCounter(ctx, metric.ID); err != nil {
-				if errors.Is(err, myErr.ErrNotExist) {
+			if count, er := h.s.GetCounter(ctx, metric.ID); er != nil {
+				if errors.Is(er, myErr.ErrNotExist) {
 					w.WriteHeader(http.StatusNotFound)
 				} else {
 					w.WriteHeader(http.StatusInternalServerError)
-					h.log.Error("Error get counter", zap.Error(err))
+					h.log.Error("Error get counter", zap.Error(er))
 				}
 				return
 			} else {

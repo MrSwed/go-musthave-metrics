@@ -148,7 +148,7 @@ func TestMockGetMetric(t *testing.T) {
 			require.Equal(t, test.want.code, res.StatusCode)
 			func() {
 				defer func(Body io.ReadCloser) {
-					err := Body.Close()
+					err = Body.Close()
 					require.NoError(t, err)
 				}(res.Body)
 				resBody, err = io.ReadAll(res.Body)
@@ -236,7 +236,7 @@ func TestMockGetListMetrics(t *testing.T) {
 			require.Equal(t, test.want.code, res.StatusCode)
 			func() {
 				defer func(Body io.ReadCloser) {
-					err := Body.Close()
+					err = Body.Close()
 					require.NoError(t, err)
 				}(res.Body)
 				resBody, err = io.ReadAll(res.Body)
@@ -425,7 +425,7 @@ func TestMockGetMetricJson(t *testing.T) {
 			require.Equal(t, test.want.code, res.StatusCode)
 			func() {
 				defer func(Body io.ReadCloser) {
-					err := Body.Close()
+					err = Body.Close()
 					require.NoError(t, err)
 				}(res.Body)
 				resBody, err = io.ReadAll(res.Body)
@@ -629,7 +629,7 @@ func TestMockUpdateMetric(t *testing.T) {
 			require.Equal(t, test.want.code, res.StatusCode)
 			func() {
 				defer func(Body io.ReadCloser) {
-					err := Body.Close()
+					err = Body.Close()
 					require.NoError(t, err)
 				}(res.Body)
 				resBody, err = io.ReadAll(res.Body)
@@ -869,7 +869,7 @@ func TestMockUpdateMetricJson(t *testing.T) {
 			require.Equal(t, test.want.code, res.StatusCode)
 			func() {
 				defer func(Body io.ReadCloser) {
-					err := Body.Close()
+					err = Body.Close()
 					require.NoError(t, err)
 				}(res.Body)
 				resBody, err = io.ReadAll(res.Body)
@@ -1077,7 +1077,7 @@ func TestMockUpdateMetrics(t *testing.T) {
 			require.Equal(t, test.want.code, res.StatusCode)
 			func() {
 				defer func(Body io.ReadCloser) {
-					err := Body.Close()
+					err = Body.Close()
 					require.NoError(t, err)
 				}(res.Body)
 				resBody, err = io.ReadAll(res.Body)

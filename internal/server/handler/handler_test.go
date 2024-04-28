@@ -174,7 +174,7 @@ func TestGetMetric(t *testing.T) {
 			require.Equal(t, test.want.code, res.StatusCode)
 			func() {
 				defer func(Body io.ReadCloser) {
-					err := Body.Close()
+					err = Body.Close()
 					require.NoError(t, err)
 				}(res.Body)
 				resBody, err = io.ReadAll(res.Body)
@@ -259,7 +259,7 @@ func TestGetListMetrics(t *testing.T) {
 			require.Equal(t, test.want.code, res.StatusCode)
 			func() {
 				defer func(Body io.ReadCloser) {
-					err := Body.Close()
+					err = Body.Close()
 					require.NoError(t, err)
 				}(res.Body)
 				resBody, err = io.ReadAll(res.Body)
@@ -444,7 +444,7 @@ func TestGetMetricJson(t *testing.T) {
 			require.Equal(t, test.want.code, res.StatusCode)
 			func() {
 				defer func(Body io.ReadCloser) {
-					err := Body.Close()
+					err = Body.Close()
 					require.NoError(t, err)
 				}(res.Body)
 				resBody, err = io.ReadAll(res.Body)
@@ -637,7 +637,7 @@ func TestUpdateMetric(t *testing.T) {
 			require.Equal(t, test.want.code, res.StatusCode)
 			func() {
 				defer func(Body io.ReadCloser) {
-					err := Body.Close()
+					err = Body.Close()
 					require.NoError(t, err)
 				}(res.Body)
 				resBody, err = io.ReadAll(res.Body)
@@ -866,7 +866,7 @@ func TestUpdateMetricJson(t *testing.T) {
 			require.Equal(t, test.want.code, res.StatusCode)
 			func() {
 				defer func(Body io.ReadCloser) {
-					err := Body.Close()
+					err = Body.Close()
 					require.NoError(t, err)
 				}(res.Body)
 				resBody, err = io.ReadAll(res.Body)
@@ -1054,7 +1054,7 @@ func TestUpdateMetrics(t *testing.T) {
 			require.Equal(t, test.want.code, res.StatusCode)
 			func() {
 				defer func(Body io.ReadCloser) {
-					err := Body.Close()
+					err = Body.Close()
 					require.NoError(t, err)
 				}(res.Body)
 				resBody, err = io.ReadAll(res.Body)
@@ -1216,7 +1216,7 @@ func TestGzip(t *testing.T) {
 			res, err := http.DefaultClient.Do(req)
 			require.NoError(t, err)
 			defer func() {
-				err := res.Body.Close()
+				err = res.Body.Close()
 				require.NoError(t, err)
 			}()
 
@@ -1235,7 +1235,8 @@ func TestGzip(t *testing.T) {
 				assert.True(t, len(resBody) > 0)
 				if len(test.args.headers) > 0 && test.args.headers["Accept-Encoding"] == "gzip" {
 					b := bytes.NewBuffer(resBody)
-					r, err := gzip.NewReader(b)
+					var r *gzip.Reader
+					r, err = gzip.NewReader(b)
 					if !errors.Is(err, io.EOF) {
 						require.NoError(t, err)
 					}
@@ -1409,7 +1410,7 @@ func TestHashKey(t *testing.T) {
 			res, err := http.DefaultClient.Do(req)
 			require.NoError(t, err)
 			defer func() {
-				err := res.Body.Close()
+				err = res.Body.Close()
 				require.NoError(t, err)
 			}()
 
@@ -1428,7 +1429,8 @@ func TestHashKey(t *testing.T) {
 				assert.True(t, len(resBody) > 0)
 				if len(test.args.headers) > 0 && test.args.headers["Accept-Encoding"] == "gzip" {
 					b := bytes.NewBuffer(resBody)
-					r, err := gzip.NewReader(b)
+					var r *gzip.Reader
+					r, err = gzip.NewReader(b)
 					if !errors.Is(err, io.EOF) {
 						require.NoError(t, err)
 					}
