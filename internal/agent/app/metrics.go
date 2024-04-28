@@ -31,14 +31,14 @@ import (
 
 // MetricsCollects metrics collection
 type MetricsCollects struct {
-	runtime.MemStats
-	PollCount      int64
-	RandomValue    float64
-	TotalMemory    float64
-	FreeMemory     float64
-	CPUutilization []float64
-	m              sync.RWMutex
 	c              *config.Config
+	CPUutilization []float64
+	runtime.MemStats
+	PollCount   int64
+	RandomValue float64
+	TotalMemory float64
+	FreeMemory  float64
+	m           sync.RWMutex
 }
 
 func NewMetricsCollects(c *config.Config) *MetricsCollects {

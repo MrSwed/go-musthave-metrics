@@ -71,9 +71,9 @@ func TestGetMetric(t *testing.T) {
 	_ = s.IncreaseCounter(ctx, testCounterName, testCounter)
 
 	type want struct {
-		code        int
 		response    string
 		contentType string
+		code        int
 	}
 	type args struct {
 		method string
@@ -207,9 +207,9 @@ func TestGetListMetrics(t *testing.T) {
 	_ = s.IncreaseCounter(ctx, "testCounter", testCounter)
 
 	type want struct {
-		code            int
 		responseContain string
 		contentType     string
+		code            int
 	}
 	type args struct {
 		method string
@@ -293,13 +293,13 @@ func TestGetMetricJson(t *testing.T) {
 	_ = s.IncreaseCounter(ctx, testCounterName, testCounter)
 
 	type want struct {
-		code        int
 		response    domain.Metric
 		contentType string
+		code        int
 	}
 	type args struct {
-		method string
 		body   interface{}
+		method string
 	}
 	tests := []struct {
 		name string
@@ -472,9 +472,9 @@ func TestUpdateMetric(t *testing.T) {
 	defer ts.Close()
 
 	type want struct {
-		code        int
 		response    string
 		contentType string
+		code        int
 	}
 	type args struct {
 		method string
@@ -663,13 +663,13 @@ func TestUpdateMetricJson(t *testing.T) {
 
 	testCounterName := fmt.Sprintf("testCounter%d", rand.Int())
 	type want struct {
-		code        int
 		response    domain.Metric
 		contentType string
+		code        int
 	}
 	type args struct {
-		method string
 		body   interface{}
+		method string
 	}
 	tests := []struct {
 		name string
@@ -896,14 +896,14 @@ func TestUpdateMetrics(t *testing.T) {
 	testCounterName := fmt.Sprintf("testCounter%d", rand.Int())
 
 	type want struct {
-		code        int
-		response    []domain.Metric
 		contentType string
+		response    []domain.Metric
+		code        int
 	}
 
 	type args struct {
-		method string
 		body   interface{}
+		method string
 	}
 	tests := []struct {
 		name string
@@ -1086,19 +1086,19 @@ func TestGzip(t *testing.T) {
 	testCounterName3 := fmt.Sprintf("testCounter%d", rand.Int())
 
 	type want struct {
-		code        int
-		response    []domain.Metric
-		contentType string
 		headers     map[string]string
+		contentType string
+		response    []domain.Metric
+		code        int
 	}
 	type args struct {
-		method  string
-		headers map[string]string
 		body    interface{}
+		headers map[string]string
+		method  string
 	}
 	tests := []struct {
-		name string
 		args args
+		name string
 		want want
 	}{
 		{
@@ -1283,10 +1283,10 @@ func TestHashKey(t *testing.T) {
 	require.NoError(t, err)
 
 	type want struct {
-		code        int
-		response    []domain.Metric
-		contentType string
 		headers     map[string]string
+		contentType string
+		response    []domain.Metric
+		code        int
 	}
 	type args struct {
 		method  string

@@ -11,11 +11,11 @@ import (
 
 func TestMetric_set(t *testing.T) {
 	tests := []struct {
+		mValue  interface{}
+		wantErr error
 		name    string
 		mKey    string
 		mType   string
-		mValue  interface{}
-		wantErr error
 	}{
 		{
 			name:    "Set gauge float, Ok",

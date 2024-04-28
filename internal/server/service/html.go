@@ -24,8 +24,8 @@ func NewMetricsHTMLService(r repository.Repository) *MetricsHTMLService {
 // GetCountersHTMLPage get html page with all metrics
 func (s *MetricsHTMLService) GetCountersHTMLPage(ctx context.Context) (html []byte, err error) {
 	type lItem struct {
-		MType  string
 		MValue interface{}
+		MType  string
 	}
 	var (
 		counter domain.Counters

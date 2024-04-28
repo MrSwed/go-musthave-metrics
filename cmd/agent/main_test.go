@@ -10,8 +10,8 @@ import (
 func Test_getMetrics(t *testing.T) {
 
 	tests := []struct {
-		name string
 		m    *app.MetricsCollects
+		name string
 	}{
 		{
 			name: "Get metrics",

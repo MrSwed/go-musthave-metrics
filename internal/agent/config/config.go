@@ -13,13 +13,13 @@ import (
 var Backoff = [3]time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second}
 
 type Config struct {
-	ServerAddress  string
+	ServerAddress string
+	Key           string
+	MetricLists
 	ReportInterval int
 	PollInterval   int
 	RateLimit      int
-	Key            string
 	SendSize       int
-	MetricLists
 }
 
 type MetricLists struct {
