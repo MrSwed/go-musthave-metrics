@@ -15,6 +15,10 @@ import (
 	"go.uber.org/zap"
 )
 
+// UpdateMetric
+// update one metric from url params
+//
+//	POST http://server:port/update/metricType/metricName/metricValue
 func (h *Handler) UpdateMetric() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		action, metricKey, metricValStr := chi.URLParam(r, constant.MetricTypeParam), chi.URLParam(r, constant.MetricNameParam), chi.URLParam(r, constant.MetricValueParam)
@@ -66,6 +70,11 @@ func (h *Handler) UpdateMetric() func(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// UpdateMetricJSON
+// update one metric from json body
+//
+//	POST http://server:port/update
+//	BODY {"id":metricName,"type":metricType,"value":metricValue}
 func (h *Handler) UpdateMetricJSON() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var metric domain.Metric
@@ -106,6 +115,11 @@ func (h *Handler) UpdateMetricJSON() func(w http.ResponseWriter, r *http.Request
 	}
 }
 
+// UpdateMetrics
+// update several metrics from json body
+//
+//	POST http://server:port/updates
+//	BODY [{"id":metricName1,"type":metricType,"value":metricValue},{"id":metricName2,"type":metricType,"value":metricValue}]
 func (h *Handler) UpdateMetrics() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var metrics []domain.Metric

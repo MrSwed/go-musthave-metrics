@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+
 	"golang.org/x/net/context"
 
 	"github.com/MrSwed/go-musthave-metrics/internal/server/config"
@@ -31,6 +32,7 @@ func NewMetricService(r repository.Repository, c *config.StorageConfig) *Metrics
 	return &MetricsService{r: r, c: c}
 }
 
+// SetGauge save one gauge
 func (s *MetricsService) SetGauge(ctx context.Context, k string, v domain.Gauge) (err error) {
 	if err = s.r.SetGauge(ctx, k, v); err != nil {
 		return
@@ -43,6 +45,7 @@ func (s *MetricsService) SetGauge(ctx context.Context, k string, v domain.Gauge)
 	return
 }
 
+// IncreaseCounter set or increase counter if already exist
 func (s *MetricsService) IncreaseCounter(ctx context.Context, k string, v domain.Counter) (err error) {
 	var prev domain.Counter
 	if prev, err = s.r.GetCounter(ctx, k); err != nil && !errors.Is(err, myErr.ErrNotExist) {
@@ -61,16 +64,19 @@ func (s *MetricsService) IncreaseCounter(ctx context.Context, k string, v domain
 	}
 }
 
+// GetGauge get gauge value
 func (s *MetricsService) GetGauge(ctx context.Context, k string) (v domain.Gauge, err error) {
 	v, err = s.r.GetGauge(ctx, k)
 	return
 }
 
+// GetCounter get counter value
 func (s *MetricsService) GetCounter(ctx context.Context, k string) (v domain.Counter, err error) {
 	v, err = s.r.GetCounter(ctx, k)
 	return
 }
 
+// SetMetric set one metric
 func (s *MetricsService) SetMetric(ctx context.Context, metric domain.Metric) (rm domain.Metric, err error) {
 	validate := validator.New()
 	if err = validate.Struct(metric); err != nil {
@@ -102,6 +108,7 @@ func (s *MetricsService) SetMetric(ctx context.Context, metric domain.Metric) (r
 	return
 }
 
+// SetMetrics set several metrics
 func (s *MetricsService) SetMetrics(ctx context.Context, metrics []domain.Metric) (rMetrics []domain.Metric, err error) {
 	validate := validator.New()
 	if err = validate.Struct(domain.ValidateMetrics{Metrics: metrics}); err != nil {

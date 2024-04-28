@@ -3,6 +3,7 @@ package migrate
 import (
 	"database/sql"
 	"embed"
+
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
@@ -15,6 +16,7 @@ import (
 //go:embed sql/*.sql
 var FS embed.FS
 
+// Migrate check is need to update migrate sql
 func Migrate(db *sql.DB) (version [2]uint, err error) {
 	var d source.Driver
 	if d, err = iofs.New(FS, "sql"); err != nil {

@@ -21,6 +21,7 @@ import (
 	"github.com/MrSwed/go-musthave-metrics/internal/server/domain"
 	"github.com/MrSwed/go-musthave-metrics/internal/server/repository"
 	"github.com/MrSwed/go-musthave-metrics/internal/server/service"
+	"github.com/go-chi/chi/v5"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -56,7 +57,7 @@ func TestGetMetric(t *testing.T) {
 	repo := repository.NewRepository(&confTest.StorageConfig, dbTest)
 	s := service.NewService(repo, &confTest.StorageConfig)
 	logger, _ := zap.NewDevelopment()
-	h := NewHandler(s, &confTest.WEB, logger).Handler()
+	h := NewHandler(chi.NewRouter(), s, &confTest.WEB, logger).Handler()
 	ts := httptest.NewServer(h)
 	defer ts.Close()
 
@@ -193,7 +194,7 @@ func TestGetListMetrics(t *testing.T) {
 
 	s := service.NewService(repo, &confTest.StorageConfig)
 	logger, _ := zap.NewDevelopment()
-	h := NewHandler(s, &confTest.WEB, logger).Handler()
+	h := NewHandler(chi.NewRouter(), s, &confTest.WEB, logger).Handler()
 
 	ts := httptest.NewServer(h)
 	defer ts.Close()
@@ -278,7 +279,7 @@ func TestGetMetricJson(t *testing.T) {
 	repo := repository.NewRepository(&confTest.StorageConfig, dbTest)
 	s := service.NewService(repo, &confTest.StorageConfig)
 	logger, _ := zap.NewDevelopment()
-	h := NewHandler(s, &confTest.WEB, logger).Handler()
+	h := NewHandler(chi.NewRouter(), s, &confTest.WEB, logger).Handler()
 	ts := httptest.NewServer(h)
 	defer ts.Close()
 
@@ -465,7 +466,7 @@ func TestUpdateMetric(t *testing.T) {
 	repo := repository.NewRepository(&confTest.StorageConfig, dbTest)
 	s := service.NewService(repo, &confTest.StorageConfig)
 	logger, _ := zap.NewDevelopment()
-	h := NewHandler(s, &confTest.WEB, logger).Handler()
+	h := NewHandler(chi.NewRouter(), s, &confTest.WEB, logger).Handler()
 
 	ts := httptest.NewServer(h)
 	defer ts.Close()
@@ -655,7 +656,7 @@ func TestUpdateMetricJson(t *testing.T) {
 	repo := repository.NewRepository(&confTest.StorageConfig, dbTest)
 	s := service.NewService(repo, &confTest.StorageConfig)
 	logger, _ := zap.NewDevelopment()
-	h := NewHandler(s, &confTest.WEB, logger).Handler()
+	h := NewHandler(chi.NewRouter(), s, &confTest.WEB, logger).Handler()
 
 	ts := httptest.NewServer(h)
 	defer ts.Close()
@@ -887,7 +888,7 @@ func TestUpdateMetrics(t *testing.T) {
 	repo := repository.NewRepository(&confTest.StorageConfig, dbTest)
 	s := service.NewService(repo, &confTest.StorageConfig)
 	logger, _ := zap.NewDevelopment()
-	h := NewHandler(s, &confTest.WEB, logger).Handler()
+	h := NewHandler(chi.NewRouter(), s, &confTest.WEB, logger).Handler()
 
 	ts := httptest.NewServer(h)
 	defer ts.Close()
@@ -1075,7 +1076,7 @@ func TestGzip(t *testing.T) {
 	repo := repository.NewRepository(&confTest.StorageConfig, dbTest)
 	s := service.NewService(repo, &confTest.StorageConfig)
 	logger, _ := zap.NewDevelopment()
-	h := NewHandler(s, &confTest.WEB, logger).Handler()
+	h := NewHandler(chi.NewRouter(), s, &confTest.WEB, logger).Handler()
 
 	ts := httptest.NewServer(h)
 	defer ts.Close()
@@ -1264,7 +1265,7 @@ func TestHashKey(t *testing.T) {
 	s := service.NewService(repo, &confTest.StorageConfig)
 	logger, _ := zap.NewDevelopment()
 	secretKey := "secretKey"
-	h := NewHandler(s, &config.WEB{Key: secretKey}, logger).Handler()
+	h := NewHandler(chi.NewRouter(), s, &config.WEB{Key: secretKey}, logger).Handler()
 
 	ts := httptest.NewServer(h)
 	defer ts.Close()

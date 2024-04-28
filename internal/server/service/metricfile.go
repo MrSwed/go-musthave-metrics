@@ -2,14 +2,18 @@ package service
 
 import (
 	"context"
+
 	"github.com/MrSwed/go-musthave-metrics/internal/server/repository"
 )
 
 type MetricsFile interface {
+	// SaveToFile backup storage to file
 	SaveToFile(ctx context.Context) (int64, error)
+	// RestoreFromFile restore backup storage from file
 	RestoreFromFile(ctx context.Context) (int64, error)
 }
 
+// SaveToFile backup storage to file
 func (s *MetricsService) SaveToFile(ctx context.Context) (n int64, err error) {
 	var m *repository.MemStorageRepo
 	m, err = s.r.MemStore(ctx)
@@ -20,6 +24,7 @@ func (s *MetricsService) SaveToFile(ctx context.Context) (n int64, err error) {
 	return
 }
 
+// RestoreFromFile restore backup storage from file
 func (s *MetricsService) RestoreFromFile(ctx context.Context) (n int64, err error) {
 	var m *repository.MemStorageRepo
 	m, err = s.r.MemStore(ctx)

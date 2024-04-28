@@ -16,6 +16,10 @@ import (
 	"go.uber.org/zap"
 )
 
+// GetMetric
+// get one metric value
+//
+//	GET http://server:port/value/metricType/metricName
 func (h *Handler) GetMetric() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		action, metricKey := chi.URLParam(r, constant.MetricTypeParam), chi.URLParam(r, constant.MetricNameParam)
@@ -61,6 +65,11 @@ func (h *Handler) GetMetric() func(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// GetMetricJSON
+// get one metric by json body
+//
+//	POST http://server:port/value
+//	BODY {"id":metricName,"type":metricType}
 func (h *Handler) GetMetricJSON() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var metric domain.Metric
@@ -115,6 +124,10 @@ func (h *Handler) GetMetricJSON() func(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// GetListMetrics
+// get html with all metrics
+//
+//	GET http://server:port/
 func (h *Handler) GetListMetrics() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), constant.ServerOperationTimeout*time.Second)
@@ -134,6 +147,10 @@ func (h *Handler) GetListMetrics() func(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
+// GetDBPing
+// check is db ready
+//
+//	GET http://server:port/ping
 func (h *Handler) GetDBPing() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), constant.ServerOperationTimeout*time.Second)

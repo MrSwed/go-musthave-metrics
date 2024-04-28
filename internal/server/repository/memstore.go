@@ -10,11 +10,13 @@ import (
 	myErr "github.com/MrSwed/go-musthave-metrics/internal/server/errors"
 )
 
+// MemStorageCounter is counter storage
 type MemStorageCounter struct {
 	Counter domain.Counters `json:"counter"`
 	mc      sync.RWMutex
 }
 
+// MemStorageGauge is gauge store
 type MemStorageGauge struct {
 	Gauge domain.Gauges `json:"gauge"`
 	mg    sync.RWMutex
@@ -32,14 +34,17 @@ func NewMemRepository() *MemStorageRepo {
 	}
 }
 
+// Ping for memory storage it always true
 func (r *MemStorageRepo) Ping(ctx context.Context) (err error) {
 	return
 }
 
+// MemStore return memory store off all metrics
 func (r *MemStorageRepo) MemStore(ctx context.Context) (*MemStorageRepo, error) {
 	return r, nil
 }
 
+// SetGauge save gauge to memory store
 func (r *MemStorageRepo) SetGauge(ctx context.Context, k string, v domain.Gauge) (err error) {
 	r.mg.Lock()
 	defer r.mg.Unlock()
@@ -47,6 +52,7 @@ func (r *MemStorageRepo) SetGauge(ctx context.Context, k string, v domain.Gauge)
 	return
 }
 
+// SetCounter save counter cot memory store
 func (r *MemStorageRepo) SetCounter(ctx context.Context, k string, v domain.Counter) (err error) {
 	r.mc.Lock()
 	defer r.mc.Unlock()
@@ -54,6 +60,7 @@ func (r *MemStorageRepo) SetCounter(ctx context.Context, k string, v domain.Coun
 	return
 }
 
+// GetGauge get gauge from memory store
 func (r *MemStorageRepo) GetGauge(ctx context.Context, k string) (v domain.Gauge, err error) {
 	var ok bool
 	r.mg.RLock()
@@ -64,6 +71,7 @@ func (r *MemStorageRepo) GetGauge(ctx context.Context, k string) (v domain.Gauge
 	return
 }
 
+// GetCounter get counter from memory store
 func (r *MemStorageRepo) GetCounter(ctx context.Context, k string) (v domain.Counter, err error) {
 	var ok bool
 	r.mc.RLock()
@@ -74,39 +82,38 @@ func (r *MemStorageRepo) GetCounter(ctx context.Context, k string) (v domain.Cou
 	return
 }
 
+// GetAllGauges get all gauges from memory store
 func (r *MemStorageRepo) GetAllGauges(ctx context.Context) (domain.Gauges, error) {
 	var err error
 	return r.Gauge, err
 }
 
+// GetAllCounters get all counter from memory store
 func (r *MemStorageRepo) GetAllCounters(ctx context.Context) (domain.Counters, error) {
 	var err error
 	return r.Counter, err
 }
 
+// SetMetrics save several metrics to memory store
 func (r *MemStorageRepo) SetMetrics(ctx context.Context, metrics []domain.Metric) (newMetrics []domain.Metric, err error) {
-	for _, metric := range metrics {
+	newMetrics = make([]domain.Metric, len(metrics))
+	for i, metric := range metrics {
 		switch metric.MType {
 		case constant.MetricTypeGauge:
 			if err = r.SetGauge(ctx, metric.ID, *metric.Value); err != nil {
 				return
 			}
-			newMetrics = append(newMetrics, metric)
 		case constant.MetricTypeCounter:
 			var current domain.Counter
 			if current, err = r.GetCounter(ctx, metric.ID); err != nil && !errors.Is(err, myErr.ErrNotExist) {
 				return
 			}
-			delta := current + *metric.Delta
-			if err = r.SetCounter(ctx, metric.ID, delta); err != nil {
+			*metric.Delta += current
+			if err = r.SetCounter(ctx, metric.ID, *metric.Delta); err != nil {
 				return
 			}
-			newMetrics = append(newMetrics, domain.Metric{
-				ID:    metric.ID,
-				MType: metric.MType,
-				Delta: &delta,
-			})
 		}
+		newMetrics[i] = metric
 	}
 	return
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+// DBStorageRepo is database repository
 type DBStorageRepo struct {
 	db *sqlx.DB
 }
@@ -23,11 +24,13 @@ func NewDBStorageRepository(db *sqlx.DB) *DBStorageRepo {
 	}
 }
 
+// DBStorageGauge is gauge store
 type DBStorageGauge struct {
 	Name  string
 	Value domain.Gauge
 }
 
+// DBStorageCounter is counter storage
 type DBStorageCounter struct {
 	Name  string
 	Value domain.Counter
@@ -46,6 +49,7 @@ func retryFunc(fn func() error) (err error) {
 	return
 }
 
+// Ping check is db a life
 func (r *DBStorageRepo) Ping(ctx context.Context) (err error) {
 	if r.db == nil {
 		return myErr.ErrNoDBConnected
@@ -57,6 +61,7 @@ func (r *DBStorageRepo) Ping(ctx context.Context) (err error) {
 	return
 }
 
+// SetGauge save gauge to db
 func (r *DBStorageRepo) SetGauge(ctx context.Context, k string, v domain.Gauge) (err error) {
 	err = retryFunc(func() (err error) {
 		_, err = r.db.ExecContext(ctx, `INSERT into `+constant.DBTableNameGauges+
@@ -66,6 +71,7 @@ func (r *DBStorageRepo) SetGauge(ctx context.Context, k string, v domain.Gauge) 
 	return
 }
 
+// SetCounter save counter to db
 func (r *DBStorageRepo) SetCounter(ctx context.Context, k string, v domain.Counter) (err error) {
 	err = retryFunc(func() (err error) {
 		_, err = r.db.ExecContext(ctx, `INSERT into `+constant.DBTableNameCounters+
@@ -75,6 +81,7 @@ func (r *DBStorageRepo) SetCounter(ctx context.Context, k string, v domain.Count
 	return
 }
 
+// GetGauge get gauge from db
 func (r *DBStorageRepo) GetGauge(ctx context.Context, k string) (v domain.Gauge, err error) {
 	err = retryFunc(func() (err error) {
 		err = r.db.GetContext(ctx, &v, `SELECT value FROM `+constant.DBTableNameGauges+
@@ -87,6 +94,7 @@ func (r *DBStorageRepo) GetGauge(ctx context.Context, k string) (v domain.Gauge,
 	return
 }
 
+// GetCounter get counter from db
 func (r *DBStorageRepo) GetCounter(ctx context.Context, k string) (v domain.Counter, err error) {
 	err = retryFunc(func() (err error) {
 		err = r.db.GetContext(ctx, &v, `SELECT value FROM `+constant.DBTableNameCounters+` WHERE name = $1 LIMIT 1`, k)
@@ -98,6 +106,7 @@ func (r *DBStorageRepo) GetCounter(ctx context.Context, k string) (v domain.Coun
 	return
 }
 
+// GetAllCounters get all counters from db
 func (r *DBStorageRepo) GetAllCounters(ctx context.Context) (data domain.Counters, err error) {
 	err = retryFunc(func() (err error) {
 		var rows *sql.Rows
@@ -123,6 +132,7 @@ func (r *DBStorageRepo) GetAllCounters(ctx context.Context) (data domain.Counter
 	return
 }
 
+// GetAllGauges get all gauges from db
 func (r *DBStorageRepo) GetAllGauges(ctx context.Context) (data domain.Gauges, err error) {
 	err = retryFunc(func() (err error) {
 		var rows *sql.Rows
@@ -148,7 +158,9 @@ func (r *DBStorageRepo) GetAllGauges(ctx context.Context) (data domain.Gauges, e
 	return
 }
 
+// SetMetrics save several metrics to db
 func (r *DBStorageRepo) SetMetrics(ctx context.Context, metrics []domain.Metric) (newMetrics []domain.Metric, err error) {
+	newMetrics = make([]domain.Metric, len(metrics))
 	err = retryFunc(func() (err error) {
 		var tx *sqlx.Tx
 		tx, err = r.db.Beginx()
@@ -177,20 +189,18 @@ func (r *DBStorageRepo) SetMetrics(ctx context.Context, metrics []domain.Metric)
 			err = errors.Join(err, stmtC.Close())
 		}()
 
-		for _, metric := range metrics {
+		for i, metric := range metrics {
 			switch metric.MType {
 			case constant.MetricTypeGauge:
 				if _, err = stmtG.ExecContext(ctx, metric.ID, *metric.Value); err != nil {
 					return
 				}
-				newMetrics = append(newMetrics, metric)
 			case constant.MetricTypeCounter:
-				newMetric := metric
-				if err = stmtC.GetContext(ctx, newMetric.Delta, metric.ID, *metric.Delta); err != nil {
+				if err = stmtC.GetContext(ctx, metric.Delta, metric.ID, *metric.Delta); err != nil {
 					return
 				}
-				newMetrics = append(newMetrics, newMetric)
 			}
+			newMetrics[i] = metric
 		}
 		err = tx.Commit()
 		return
@@ -198,6 +208,7 @@ func (r *DBStorageRepo) SetMetrics(ctx context.Context, metrics []domain.Metric)
 	return
 }
 
+// MemStore return memory store off all metrics
 func (r *DBStorageRepo) MemStore(ctx context.Context) (m *MemStorageRepo, err error) {
 	var (
 		counters domain.Counters

@@ -6,12 +6,14 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"github.com/MrSwed/go-musthave-metrics/internal/server/config"
-	"go.uber.org/zap"
 	"io"
 	"net/http"
+
+	"github.com/MrSwed/go-musthave-metrics/internal/server/config"
+	"go.uber.org/zap"
 )
 
+// Decompress request content if it compressed
 func Decompress(l *zap.Logger) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
@@ -30,6 +32,7 @@ func Decompress(l *zap.Logger) func(next http.Handler) http.Handler {
 	}
 }
 
+// JSONHeader set content-type json
 func JSONHeader() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
@@ -39,6 +42,7 @@ func JSONHeader() func(next http.Handler) http.Handler {
 	}
 }
 
+// TextHeader set content-type text
 func TextHeader() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
@@ -48,6 +52,7 @@ func TextHeader() func(next http.Handler) http.Handler {
 	}
 }
 
+// CheckSign check sign header request
 func CheckSign(conf *config.WEB, l *zap.Logger) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	_ "net/http/pprof"
 	"os/signal"
 	"sync"
 	"syscall"
@@ -16,6 +17,7 @@ import (
 	myMigrate "github.com/MrSwed/go-musthave-metrics/internal/server/migrate"
 	"github.com/MrSwed/go-musthave-metrics/internal/server/repository"
 	"github.com/MrSwed/go-musthave-metrics/internal/server/service"
+	"github.com/go-chi/chi/v5"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/jmoiron/sqlx"
@@ -66,7 +68,7 @@ func runServer(ctx context.Context) {
 
 	r := repository.NewRepository(&conf.StorageConfig, db)
 	s := service.NewService(r, &conf.StorageConfig)
-	h := handler.NewHandler(s, &conf.WEB, logger)
+	h := handler.NewHandler(chi.NewRouter(), s, &conf.WEB, logger)
 
 	if conf.FileStoragePath != "" {
 		if conf.StorageRestore {
