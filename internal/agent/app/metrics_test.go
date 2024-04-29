@@ -47,9 +47,7 @@ func TestMetricsCollects_GopMetrics(t *testing.T) {
 }
 
 func TestMetricsCollects_ListMetrics(t *testing.T) {
-	c := new(config.Config)
-	c.SetGaugesList()
-	c.SetCountersList()
+	c := config.NewConfig()
 	m := NewMetricsCollects(c)
 
 	t.Run("Get ListMetrics", func(t *testing.T) {

@@ -19,13 +19,13 @@ import (
 func main() {
 	var (
 		wg   sync.WaitGroup
-		conf = new(config.Config)
+		conf = config.NewConfig()
 	)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	conf.Config()
+	conf.Init()
 
 	log.Printf(`Started with config:
   Url for collect metric: %s%s
