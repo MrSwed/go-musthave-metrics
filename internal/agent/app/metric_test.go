@@ -1,9 +1,8 @@
-package main
+package app
 
 import (
 	"testing"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/agent/app"
 	myErr "github.com/MrSwed/go-musthave-metrics/internal/agent/error"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -76,7 +75,7 @@ func TestMetric_set(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := app.NewMetric(tt.mKey, tt.mType)
+			m := NewMetric(tt.mKey, tt.mType)
 			err := m.Set(tt.mValue)
 			if tt.wantErr == nil {
 				require.NoError(t, err)

@@ -1,21 +1,20 @@
-package main
+package app
 
 import (
 	"testing"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/agent/app"
 	"github.com/stretchr/testify/assert"
 )
 
 func Test_getMetrics(t *testing.T) {
 
 	tests := []struct {
-		m    *app.MetricsCollects
+		m    *MetricsCollects
 		name string
 	}{
 		{
 			name: "Get metrics",
-			m:    new(app.MetricsCollects),
+			m:    new(MetricsCollects),
 		},
 	}
 	for _, tt := range tests {
