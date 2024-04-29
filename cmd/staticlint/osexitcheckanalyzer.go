@@ -17,7 +17,7 @@ var OsExitCheckAnalyzer = &analysis.Analyzer{
 }
 
 func run(pass *analysis.Pass) (interface{}, error) {
-	const errStr = "os.Exit is not allowed to use"
+	const errStr = "os.Exit is not allowed at main func of main package"
 	exprIsDeny := func(call *ast.CallExpr) bool {
 		chName := ""
 		if f, ok := call.Fun.(*ast.SelectorExpr); ok {
@@ -28,8 +28,15 @@ func run(pass *analysis.Pass) (interface{}, error) {
 		return chName == denyName
 	}
 	for _, file := range pass.Files {
+		if file.Name.String() != "main" {
+			continue
+		}
 		ast.Inspect(file, func(node ast.Node) bool {
 			switch x := node.(type) {
+			case *ast.FuncDecl:
+				if x.Name.String() != "main" {
+					return false
+				}
 			case *ast.ExprStmt:
 				if call, ok := x.X.(*ast.CallExpr); ok && exprIsDeny(call) {
 					pass.Reportf(x.Pos(), errStr)

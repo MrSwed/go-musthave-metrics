@@ -5,7 +5,13 @@ import (
 )
 
 func errCheckFunc() {
-	os.Exit(0)       // want "os.Exit is not allowed to use"
-	go os.Exit(0)    // want "os.Exit is not allowed to use"
-	defer os.Exit(0) // want "os.Exit is not allowed to use"
+	os.Exit(0)
+	go os.Exit(0)
+	defer os.Exit(0)
+}
+
+func main() {
+	os.Exit(0)
+	go os.Exit(0)
+	defer os.Exit(0)
 }
