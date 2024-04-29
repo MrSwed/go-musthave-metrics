@@ -1,6 +1,9 @@
 package app
 
 import (
+	"context"
+	"errors"
+	"net"
 	"testing"
 
 	"github.com/MrSwed/go-musthave-metrics/internal/agent/config"
@@ -54,5 +57,19 @@ func TestMetricsCollects_ListMetrics(t *testing.T) {
 		metrics, err := m.ListMetrics()
 		require.NoError(t, err)
 		assert.NotEmpty(t, metrics)
+	})
+}
+
+func TestMetricsCollects_SendMetrics(t *testing.T) {
+	c := config.NewConfig()
+	m := NewMetricsCollects(c)
+
+	t.Run("Send Metrics", func(t *testing.T) {
+		n, err := m.SendMetrics(context.TODO())
+		var allowErr *net.OpError
+		if assert.Error(t, err) && !errors.As(err, &allowErr) {
+			require.NoError(t, err)
+		}
+		assert.NotEmpty(t, n)
 	})
 }
