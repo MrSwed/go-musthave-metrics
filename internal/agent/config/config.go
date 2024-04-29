@@ -67,7 +67,7 @@ func (c *Config) getEnv() {
 	}
 }
 
-func (c *Config) setGaugesList(m ...string) {
+func (c *Config) SetGaugesList(m ...string) {
 	if len(m) > 0 {
 		c.GaugesList = m
 	} else {
@@ -107,7 +107,7 @@ func (c *Config) setGaugesList(m ...string) {
 	}
 }
 
-func (c *Config) setCountersList(m ...string) {
+func (c *Config) SetCountersList(m ...string) {
 	if len(m) > 0 {
 		c.CountersList = m
 	} else {
@@ -125,6 +125,6 @@ func (c *Config) Config() {
 	}
 	// metric list can be set later from args or env
 	// move this to the appropriate functions
-	c.setGaugesList()
-	c.setCountersList()
+	c.SetGaugesList()
+	c.SetCountersList()
 }
