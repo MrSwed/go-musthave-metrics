@@ -211,7 +211,7 @@ func (m *MetricsCollects) request(metrics []*Metric) (err error) {
 			err = errors.Join(err, myErr.ErrWrap(er))
 			return
 		}
-		req.Header.Set("HashSHA256", hex.EncodeToString(h.Sum(nil)))
+		req.Header.Set(constant.HeaderSignKey, hex.EncodeToString(h.Sum(nil)))
 	}
 
 	var res *http.Response

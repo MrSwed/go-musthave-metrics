@@ -10,4 +10,6 @@ const (
 	EnvNamePollInterval   = "POLL_INTERVAL"
 	EnvNameKey            = "KEY"
 	EnvNameRateLimit      = "RATE_LIMIT"
+
+	HeaderSignKey = "HashSHA256"
 )
