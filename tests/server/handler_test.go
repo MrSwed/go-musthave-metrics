@@ -1332,10 +1332,12 @@ func (suite *HandlerTestSuite) TestGzip() {
 
 func (suite *HandlerTestSuite) TestHashKey() {
 	t := suite.T()
-	secretKey := "secretKey"
-
+	suite.cfg.Key = "secretKey"
 	ts := httptest.NewServer(suite.app)
-	defer ts.Close()
+	defer func() {
+		ts.Close()
+		suite.cfg.Key = ""
+	}()
 
 	data1 := []domain.Metric{{ID: fmt.Sprintf("testCounter%d", rand.Int()), MType: "counter", Delta: &[]domain.Counter{1}[0]}, {ID: "testGauge", MType: "gauge", Value: &[]domain.Gauge{100.0015}[0]}}
 	dataBody1, err := json.Marshal(data1)
@@ -1371,7 +1373,7 @@ func (suite *HandlerTestSuite) TestHashKey() {
 				method: http.MethodPost,
 				body:   dataBody1,
 				headers: map[string]string{
-					"HashSHA256": handler.SignData(secretKey, dataBody1),
+					constant.HeaderSignKey: handler.SignData(suite.cfg.Key, dataBody1),
 				},
 			},
 			want: want{
@@ -1379,7 +1381,7 @@ func (suite *HandlerTestSuite) TestHashKey() {
 				response:    data1,
 				contentType: "application/json; charset=utf-8",
 				headers: map[string]string{
-					"HashSHA256": handler.SignData(secretKey, dataBody1),
+					constant.HeaderSignKey: handler.SignData(suite.cfg.Key, dataBody1),
 				},
 			},
 		},
@@ -1389,9 +1391,9 @@ func (suite *HandlerTestSuite) TestHashKey() {
 				method: http.MethodPost,
 				body:   dataBody2,
 				headers: map[string]string{
-					"Accept-Encoding":  "gzip",
-					"Content-Encoding": "gzip",
-					"HashSHA256":       handler.SignData(secretKey, dataBody2),
+					"Accept-Encoding":      "gzip",
+					"Content-Encoding":     "gzip",
+					constant.HeaderSignKey: handler.SignData(suite.cfg.Key, dataBody2),
 				},
 			},
 			want: want{
@@ -1399,8 +1401,8 @@ func (suite *HandlerTestSuite) TestHashKey() {
 				response:    data2,
 				contentType: "application/json; charset=utf-8",
 				headers: map[string]string{
-					"Content-Encoding": "gzip",
-					"HashSHA256":       handler.SignData(secretKey, dataBody2),
+					"Content-Encoding":     "gzip",
+					constant.HeaderSignKey: handler.SignData(suite.cfg.Key, dataBody2),
 				},
 			},
 		},
@@ -1410,7 +1412,7 @@ func (suite *HandlerTestSuite) TestHashKey() {
 				method: http.MethodPost,
 				body:   dataBody1,
 				headers: map[string]string{
-					"HashSHA256": handler.SignData("wrong secret key", dataBody1),
+					constant.HeaderSignKey: handler.SignData("wrong secret key", dataBody1),
 				},
 			},
 			want: want{
@@ -1423,9 +1425,9 @@ func (suite *HandlerTestSuite) TestHashKey() {
 				method: http.MethodPost,
 				body:   dataBody2,
 				headers: map[string]string{
-					"Accept-Encoding":  "gzip",
-					"Content-Encoding": "gzip",
-					"HashSHA256":       handler.SignData("wrong secret key", dataBody2),
+					"Accept-Encoding":      "gzip",
+					"Content-Encoding":     "gzip",
+					constant.HeaderSignKey: handler.SignData("wrong secret key", dataBody2),
 				},
 			},
 			want: want{
