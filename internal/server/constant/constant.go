@@ -33,6 +33,8 @@ const (
 
 	DBTableNameGauges   = "gauges"
 	DBTableNameCounters = "counters"
+
+	HeaderSignKey = "HashSHA256"
 )
 
 var (

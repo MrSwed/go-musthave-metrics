@@ -1305,7 +1305,7 @@ func TestHashKey(t *testing.T) {
 				method: http.MethodPost,
 				body:   dataBody1,
 				headers: map[string]string{
-					"HashSHA256": signData(secretKey, dataBody1),
+					constant.HeaderSignKey: SignData(secretKey, dataBody1),
 				},
 			},
 			want: want{
@@ -1313,7 +1313,7 @@ func TestHashKey(t *testing.T) {
 				response:    data1,
 				contentType: "application/json; charset=utf-8",
 				headers: map[string]string{
-					"HashSHA256": signData(secretKey, dataBody1),
+					constant.HeaderSignKey: SignData(secretKey, dataBody1),
 				},
 			},
 		},
@@ -1323,9 +1323,9 @@ func TestHashKey(t *testing.T) {
 				method: http.MethodPost,
 				body:   dataBody2,
 				headers: map[string]string{
-					"Accept-Encoding":  "gzip",
-					"Content-Encoding": "gzip",
-					"HashSHA256":       signData(secretKey, dataBody2),
+					"Accept-Encoding":      "gzip",
+					"Content-Encoding":     "gzip",
+					constant.HeaderSignKey: SignData(secretKey, dataBody2),
 				},
 			},
 			want: want{
@@ -1333,8 +1333,8 @@ func TestHashKey(t *testing.T) {
 				response:    data2,
 				contentType: "application/json; charset=utf-8",
 				headers: map[string]string{
-					"Content-Encoding": "gzip",
-					"HashSHA256":       signData(secretKey, dataBody2),
+					"Content-Encoding":     "gzip",
+					constant.HeaderSignKey: SignData(secretKey, dataBody2),
 				},
 			},
 		},
@@ -1344,7 +1344,7 @@ func TestHashKey(t *testing.T) {
 				method: http.MethodPost,
 				body:   dataBody1,
 				headers: map[string]string{
-					"HashSHA256": signData("wrong secret key", dataBody1),
+					constant.HeaderSignKey: SignData("wrong secret key", dataBody1),
 				},
 			},
 			want: want{
@@ -1357,9 +1357,9 @@ func TestHashKey(t *testing.T) {
 				method: http.MethodPost,
 				body:   dataBody2,
 				headers: map[string]string{
-					"Accept-Encoding":  "gzip",
-					"Content-Encoding": "gzip",
-					"HashSHA256":       signData("wrong secret key", dataBody2),
+					"Accept-Encoding":      "gzip",
+					"Content-Encoding":     "gzip",
+					constant.HeaderSignKey: SignData("wrong secret key", dataBody2),
 				},
 			},
 			want: want{
