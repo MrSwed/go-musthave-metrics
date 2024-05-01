@@ -18,122 +18,26 @@ import (
 	"github.com/MrSwed/go-musthave-metrics/internal/server/domain"
 	"github.com/MrSwed/go-musthave-metrics/internal/server/handler"
 	errM "github.com/MrSwed/go-musthave-metrics/internal/server/migrate"
-	"github.com/MrSwed/go-musthave-metrics/internal/server/repository"
 	"github.com/MrSwed/go-musthave-metrics/internal/server/service"
-	"github.com/go-chi/chi/v5"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/suite"
-	"github.com/testcontainers/testcontainers-go"
-	"github.com/testcontainers/testcontainers-go/modules/postgres"
-	"github.com/testcontainers/testcontainers-go/wait"
-	"go.uber.org/zap"
-
 	"github.com/stretchr/testify/require"
-
-	"log"
-	"time"
 )
 
-type testConfig struct {
-	*config.Config
+type HandlerTestSuite interface {
+	App() http.Handler
+	Srv() *service.Service
+	T() *testing.T
+	DBx() *sqlx.DB
+	Cfg() *config.Config
 }
 
-func newConfig() (c *testConfig) {
-	c = &testConfig{}
-	c.Config = config.NewConfig()
-	return c
-}
-
-func CreatePostgresContainer(ctx context.Context) (*postgres.PostgresContainer, error) {
-	pgContainer, err := postgres.RunContainer(ctx,
-		testcontainers.WithImage("postgres:16.2-alpine3.19"),
-		postgres.WithDatabase("test-db"),
-		postgres.WithUsername("postgres"),
-		postgres.WithPassword("postgres"),
-		testcontainers.WithWaitStrategy(
-			wait.ForLog("database system is ready to accept connections").
-				WithOccurrence(2).WithStartupTimeout(5*time.Second)),
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return pgContainer, nil
-}
-
-type HandlerTestSuite struct {
-	suite.Suite
-	ctx    context.Context
-	app    http.Handler
-	srv    *service.Service
-	cfg    *testConfig
-	db     *sqlx.DB
-	pgCont *postgres.PostgresContainer
-}
-
-func (suite *HandlerTestSuite) SetupSuite() {
-	var (
-		err    error
-		logger *zap.Logger
-	)
-	suite.cfg = newConfig()
-	suite.ctx = context.Background()
-	suite.pgCont, err = CreatePostgresContainer(suite.ctx)
-	if err != nil {
-		log.Fatal(err)
-	}
-	suite.cfg.DatabaseDSN, err = suite.pgCont.ConnectionString(suite.ctx, "sslmode=disable")
-	if err != nil {
-		log.Fatal(err)
-	}
-	suite.db = func() *sqlx.DB {
-		db, err := sqlx.Connect("pgx", suite.cfg.DatabaseDSN)
-		if err != nil {
-			log.Fatal(err)
-		}
-		return db
-	}()
-
-	_, err = errM.Migrate(suite.db.DB)
-	switch {
-	case err == nil:
-	case errors.Is(err, migrate.ErrNoChange):
-	default:
-		log.Fatal(err)
-	}
-
-	repo := repository.NewRepository(&suite.cfg.StorageConfig, suite.db)
-
-	suite.srv = service.NewService(repo, &suite.cfg.StorageConfig)
-	logger, err = zap.NewDevelopment()
-	if err != nil {
-		panic(err)
-	}
-
-	suite.app = handler.NewHandler(chi.NewRouter(), suite.srv, &suite.cfg.WEB, logger).Handler()
-}
-
-func (suite *HandlerTestSuite) TearDownSuite() {
-	if err := suite.pgCont.Terminate(suite.ctx); err != nil {
-		log.Fatalf("error terminating postgres container: %s", err)
-	}
-}
-
-func TestHandlers(t *testing.T) {
-	suite.Run(t, new(HandlerTestSuite))
-}
-
-// TestMigrate
-// migrate call at setup suite, so no test run without first migrate
-// this is just for test cover
-func (suite *HandlerTestSuite) TestMigrate() {
+func testMigrate(suite HandlerTestSuite) {
 	t := suite.T()
 	t.Run("Migrate", func(t *testing.T) {
-		_, err := errM.Migrate(suite.db.DB)
+		_, err := errM.Migrate(suite.DBx().DB)
 		switch {
 		case errors.Is(err, migrate.ErrNoChange):
 		default:
@@ -142,10 +46,10 @@ func (suite *HandlerTestSuite) TestMigrate() {
 	})
 }
 
-func (suite *HandlerTestSuite) TestGetMetric() {
+func testGetMetric(suite HandlerTestSuite) {
 	t := suite.T()
 
-	ts := httptest.NewServer(suite.app)
+	ts := httptest.NewServer(suite.App())
 	defer ts.Close()
 
 	testCounter := domain.Counter(1)
@@ -154,8 +58,8 @@ func (suite *HandlerTestSuite) TestGetMetric() {
 	testCounterName := fmt.Sprintf("testCounter%d", rand.Int())
 	// save some values
 	ctx := context.Background()
-	_ = suite.srv.SetGauge(ctx, testGaugeName, testGauge)
-	_ = suite.srv.IncreaseCounter(ctx, testCounterName, testCounter)
+	_ = suite.Srv().SetGauge(ctx, testGaugeName, testGauge)
+	_ = suite.Srv().IncreaseCounter(ctx, testCounterName, testCounter)
 
 	type want struct {
 		response    string
@@ -276,18 +180,18 @@ func (suite *HandlerTestSuite) TestGetMetric() {
 	}
 }
 
-func (suite *HandlerTestSuite) TestGetListMetrics() {
+func testGetListMetrics(suite HandlerTestSuite) {
 	t := suite.T()
 
-	ts := httptest.NewServer(suite.app)
+	ts := httptest.NewServer(suite.App())
 	defer ts.Close()
 
 	testCounter := domain.Counter(1)
 	testGauge := domain.Gauge(1.0001)
 	// save some values
 	ctx := context.Background()
-	_ = suite.srv.SetGauge(ctx, "testGauge", testGauge)
-	_ = suite.srv.IncreaseCounter(ctx, "testCounter", testCounter)
+	_ = suite.Srv().SetGauge(ctx, "testGauge", testGauge)
+	_ = suite.Srv().IncreaseCounter(ctx, "testCounter", testCounter)
 
 	type want struct {
 		responseContain string
@@ -358,10 +262,10 @@ func (suite *HandlerTestSuite) TestGetListMetrics() {
 	}
 }
 
-func (suite *HandlerTestSuite) TestGetMetricJson() {
+func testGetMetricJson(suite HandlerTestSuite) {
 	t := suite.T()
 
-	ts := httptest.NewServer(suite.app)
+	ts := httptest.NewServer(suite.App())
 	defer ts.Close()
 
 	testCounter := domain.Counter(1)
@@ -370,8 +274,8 @@ func (suite *HandlerTestSuite) TestGetMetricJson() {
 	testCounterName := fmt.Sprintf("testCounter%d", rand.Int())
 	// save some values
 	ctx := context.Background()
-	_ = suite.srv.SetGauge(ctx, testGaugeName, testGauge)
-	_ = suite.srv.IncreaseCounter(ctx, testCounterName, testCounter)
+	_ = suite.Srv().SetGauge(ctx, testGaugeName, testGauge)
+	_ = suite.Srv().IncreaseCounter(ctx, testCounterName, testCounter)
 
 	type want struct {
 		response    domain.Metric
@@ -543,10 +447,10 @@ func (suite *HandlerTestSuite) TestGetMetricJson() {
 	}
 }
 
-func (suite *HandlerTestSuite) TestUpdateMetric() {
+func testUpdateMetric(suite HandlerTestSuite) {
 	t := suite.T()
 
-	ts := httptest.NewServer(suite.app)
+	ts := httptest.NewServer(suite.App())
 	defer ts.Close()
 
 	type want struct {
@@ -730,10 +634,10 @@ func (suite *HandlerTestSuite) TestUpdateMetric() {
 	}
 }
 
-func (suite *HandlerTestSuite) TestUpdateMetricJson() {
+func testUpdateMetricJson(suite HandlerTestSuite) {
 	t := suite.T()
 
-	ts := httptest.NewServer(suite.app)
+	ts := httptest.NewServer(suite.App())
 	defer ts.Close()
 
 	testCounterName := fmt.Sprintf("testCounter%d", rand.Int())
@@ -959,10 +863,10 @@ func (suite *HandlerTestSuite) TestUpdateMetricJson() {
 	}
 }
 
-func (suite *HandlerTestSuite) TestUpdateMetrics() {
+func testUpdateMetrics(suite HandlerTestSuite) {
 	t := suite.T()
 
-	ts := httptest.NewServer(suite.app)
+	ts := httptest.NewServer(suite.App())
 	defer ts.Close()
 
 	testCounterName := fmt.Sprintf("testCounter%d", rand.Int())
@@ -1144,10 +1048,10 @@ func (suite *HandlerTestSuite) TestUpdateMetrics() {
 	}
 }
 
-func (suite *HandlerTestSuite) TestGzip() {
+func testGzip(suite HandlerTestSuite) {
 	t := suite.T()
 
-	ts := httptest.NewServer(suite.app)
+	ts := httptest.NewServer(suite.App())
 	defer ts.Close()
 
 	testCounterName1 := fmt.Sprintf("testCounter%d", rand.Int())
@@ -1330,13 +1234,13 @@ func (suite *HandlerTestSuite) TestGzip() {
 	}
 }
 
-func (suite *HandlerTestSuite) TestHashKey() {
+func testHashKey(suite HandlerTestSuite) {
 	t := suite.T()
-	suite.cfg.Key = "secretKey"
-	ts := httptest.NewServer(suite.app)
+	suite.Cfg().Key = "secretKey"
+	ts := httptest.NewServer(suite.App())
 	defer func() {
 		ts.Close()
-		suite.cfg.Key = ""
+		suite.Cfg().Key = ""
 	}()
 
 	data1 := []domain.Metric{{ID: fmt.Sprintf("testCounter%d", rand.Int()), MType: "counter", Delta: &[]domain.Counter{1}[0]}, {ID: "testGauge", MType: "gauge", Value: &[]domain.Gauge{100.0015}[0]}}
@@ -1373,7 +1277,7 @@ func (suite *HandlerTestSuite) TestHashKey() {
 				method: http.MethodPost,
 				body:   dataBody1,
 				headers: map[string]string{
-					constant.HeaderSignKey: handler.SignData(suite.cfg.Key, dataBody1),
+					constant.HeaderSignKey: handler.SignData(suite.Cfg().Key, dataBody1),
 				},
 			},
 			want: want{
@@ -1381,7 +1285,7 @@ func (suite *HandlerTestSuite) TestHashKey() {
 				response:    data1,
 				contentType: "application/json; charset=utf-8",
 				headers: map[string]string{
-					constant.HeaderSignKey: handler.SignData(suite.cfg.Key, dataBody1),
+					constant.HeaderSignKey: handler.SignData(suite.Cfg().Key, dataBody1),
 				},
 			},
 		},
@@ -1393,7 +1297,7 @@ func (suite *HandlerTestSuite) TestHashKey() {
 				headers: map[string]string{
 					"Accept-Encoding":      "gzip",
 					"Content-Encoding":     "gzip",
-					constant.HeaderSignKey: handler.SignData(suite.cfg.Key, dataBody2),
+					constant.HeaderSignKey: handler.SignData(suite.Cfg().Key, dataBody2),
 				},
 			},
 			want: want{
@@ -1402,7 +1306,7 @@ func (suite *HandlerTestSuite) TestHashKey() {
 				contentType: "application/json; charset=utf-8",
 				headers: map[string]string{
 					"Content-Encoding":     "gzip",
-					constant.HeaderSignKey: handler.SignData(suite.cfg.Key, dataBody2),
+					constant.HeaderSignKey: handler.SignData(suite.Cfg().Key, dataBody2),
 				},
 			},
 		},
