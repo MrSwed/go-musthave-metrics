@@ -9,8 +9,8 @@ import (
 
 func TestIsPQClass08Error(t *testing.T) {
 	tests := []struct {
-		name    string
 		err     error
+		name    string
 		wantYes bool
 	}{
 		{

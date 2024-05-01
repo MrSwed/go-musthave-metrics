@@ -83,9 +83,9 @@ func (suite *HandlerDBTestSuite) SetupSuite() {
 		log.Fatal(err)
 	}
 	suite.db = func() *sqlx.DB {
-		db, err := sqlx.Connect("pgx", suite.cfg.DatabaseDSN)
-		if err != nil {
-			log.Fatal(err)
+		db, er := sqlx.Connect("pgx", suite.cfg.DatabaseDSN)
+		if er != nil {
+			log.Fatal(er)
 		}
 		return db
 	}()
