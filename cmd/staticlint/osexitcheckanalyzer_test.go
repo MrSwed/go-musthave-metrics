@@ -6,6 +6,6 @@ import (
 	"golang.org/x/tools/go/analysis/analysistest"
 )
 
-func TestMyAnalyzer(t *testing.T) {
+func TestOsExitCheckAnalyzer(t *testing.T) {
 	analysistest.Run(t, analysistest.TestData(), OsExitCheckAnalyzer, "./...")
 }

@@ -6,18 +6,18 @@ import (
 	"golang.org/x/tools/go/analysis"
 )
 
-const denyName = "os.Exit"
+const mainFuncBadName = "os.Exit"
+const errOSExitMainCheck = "os.Exit is not allowed at main func of main package"
 
 // OsExitCheckAnalyzer
 // Deny use os.Exit expression
 var OsExitCheckAnalyzer = &analysis.Analyzer{
 	Name: "osexitcheck",
-	Doc:  "os.Exit is not allowed",
+	Doc:  errOSExitMainCheck,
 	Run:  run,
 }
 
 func run(pass *analysis.Pass) (interface{}, error) {
-	const errStr = "os.Exit is not allowed at main func of main package"
 	exprIsDeny := func(call *ast.CallExpr) bool {
 		chName := ""
 		if f, ok := call.Fun.(*ast.SelectorExpr); ok {
@@ -25,7 +25,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 				chName = pkg.Name + "." + f.Sel.Name
 			}
 		}
-		return chName == denyName
+		return chName == mainFuncBadName
 	}
 	for _, file := range pass.Files {
 		if file.Name.String() != "main" {
@@ -39,15 +39,15 @@ func run(pass *analysis.Pass) (interface{}, error) {
 				}
 			case *ast.ExprStmt:
 				if call, ok := x.X.(*ast.CallExpr); ok && exprIsDeny(call) {
-					pass.Reportf(x.Pos(), errStr)
+					pass.Reportf(x.Pos(), errOSExitMainCheck)
 				}
 			case *ast.GoStmt:
 				if exprIsDeny(x.Call) {
-					pass.Reportf(x.Pos(), errStr)
+					pass.Reportf(x.Pos(), errOSExitMainCheck)
 				}
 			case *ast.DeferStmt:
 				if exprIsDeny(x.Call) {
-					pass.Reportf(x.Pos(), errStr)
+					pass.Reportf(x.Pos(), errOSExitMainCheck)
 				}
 			}
 			return true
