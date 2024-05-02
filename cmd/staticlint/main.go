@@ -1,3 +1,28 @@
+// Static lint tool for golang.
+//
+//	The package uses the following analyzers:
+//	- All analyzers from golang.org/x/tools/go/analysis/passes
+//	- SA class analyzers of the staticcheck.io package:
+//	  - S1000 (Use plain channel send or receive instead of single-case select),
+//	  - ST1000 (Incorrect or missing package comment),
+//	  - QF1001 (Apply De Morgan’s law)
+//	- Other public analyzers:
+//	  - Go-Critic, Highly extensible Go source code linter providing checks
+//	    currently missing from other linters.
+//	  - Ineffassign, Detect ineffectual assignments in Go code.
+//
+// # Install
+//
+//	# from root of project ./ :
+//	go build -o ./cmd/staticlint/staticlint ./cmd/staticlint/*.go
+//
+// # Usage
+//
+//	go vet -vettool=./cmd/staticlint/staticlint ./...
+//
+// or
+//
+//	./cmd/staticlint/staticlint ./...
 package main
 
 import (
