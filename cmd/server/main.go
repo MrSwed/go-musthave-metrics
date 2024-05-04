@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	_ "net/http/pprof"
 	"os/signal"
@@ -25,9 +26,25 @@ import (
 	"go.uber.org/zap"
 )
 
+var buildVersion string
+var buildDate string
+var buildCommit string
+
+func buildInfo(s string) string {
+	if s == "" {
+		return "N/A"
+	}
+	return s
+}
+
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	defer stop()
+	fmt.Printf(`
+Build version: %s
+Build date: %s
+Build commit: %s
+`, buildInfo(buildVersion), buildInfo(buildDate), buildInfo(buildCommit))
 
 	runServer(ctx)
 }

@@ -12,16 +12,15 @@
 //	  - Ineffassign, Detect ineffectual assignments in Go code.
 //
 // # Install
-//
 //	# from root of project ./ :
-//	go build -o ./cmd/staticlint/staticlint ./cmd/staticlint/*.go
-//
-// # Usage
-//
-//	go vet -vettool=./cmd/staticlint/staticlint ./...
-//
+//	make build_staticlint
 // or
-//
+//	go build -o ./bin/staticlint ./cmd/staticlint/*.go
+// # Usage
+//	make run_staticlint
+// or
+//	go vet -vettool=./bin/staticlint ./...
+// or
 //	./cmd/staticlint/staticlint ./...
 package main
 
@@ -145,9 +144,9 @@ func main() {
 	for _, v := range staticcheck.Analyzers {
 		// all SAxxxx and other by one from staticcheck.io
 		if strings.HasPrefix(v.Analyzer.Name, "SA") ||
-			v.Analyzer.Name == "S1000" ||
-			v.Analyzer.Name == "ST1000" ||
-			v.Analyzer.Name == "QF1001" {
+				v.Analyzer.Name == "S1000" ||
+				v.Analyzer.Name == "ST1000" ||
+				v.Analyzer.Name == "QF1001" {
 			checks = append(checks, v.Analyzer)
 		}
 	}
