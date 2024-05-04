@@ -66,14 +66,14 @@ func (suite *HandlerMemTestSuite) TestGetMetric() {
 func (suite *HandlerMemTestSuite) TestGetListMetrics() {
 	testGetListMetrics(suite)
 }
-func (suite *HandlerMemTestSuite) TestGetMetricJson() {
-	testGetMetricJson(suite)
+func (suite *HandlerMemTestSuite) TestGetMetricJSON() {
+	testGetMetricJSON(suite)
 }
 func (suite *HandlerMemTestSuite) TestUpdateMetric() {
 	testUpdateMetric(suite)
 }
 func (suite *HandlerMemTestSuite) TestUpdateMetricJson() {
-	testUpdateMetricJson(suite)
+	testUpdateMetricJSON(suite)
 }
 func (suite *HandlerMemTestSuite) TestUpdateMetrics() {
 	testUpdateMetrics(suite)

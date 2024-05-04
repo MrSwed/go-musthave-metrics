@@ -132,13 +132,13 @@ func (suite *HandlerDBTestSuite) TestGetListMetrics() {
 	testGetListMetrics(suite)
 }
 func (suite *HandlerDBTestSuite) TestGetMetricJson() {
-	testGetMetricJson(suite)
+	testGetMetricJSON(suite)
 }
 func (suite *HandlerDBTestSuite) TestUpdateMetric() {
 	testUpdateMetric(suite)
 }
-func (suite *HandlerDBTestSuite) TestUpdateMetricJson() {
-	testUpdateMetricJson(suite)
+func (suite *HandlerDBTestSuite) TestUpdateMetricJSON() {
+	testUpdateMetricJSON(suite)
 }
 func (suite *HandlerDBTestSuite) TestUpdateMetrics() {
 	testUpdateMetrics(suite)

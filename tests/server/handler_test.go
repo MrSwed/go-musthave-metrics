@@ -262,7 +262,7 @@ func testGetListMetrics(suite HandlerTestSuite) {
 	}
 }
 
-func testGetMetricJson(suite HandlerTestSuite) {
+func testGetMetricJSON(suite HandlerTestSuite) {
 	t := suite.T()
 
 	ts := httptest.NewServer(suite.App())
@@ -634,7 +634,7 @@ func testUpdateMetric(suite HandlerTestSuite) {
 	}
 }
 
-func testUpdateMetricJson(suite HandlerTestSuite) {
+func testUpdateMetricJSON(suite HandlerTestSuite) {
 	t := suite.T()
 
 	ts := httptest.NewServer(suite.App())
