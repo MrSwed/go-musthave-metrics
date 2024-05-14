@@ -47,39 +47,40 @@ func (c *Config) Init() *Config {
 
 // WithEnv gets ENV configs
 func (c *Config) WithEnv() *Config {
-	if addr, ok := os.LookupEnv(constant.EnvNameServerAddress); ok && addr != "" {
-		c.ServerAddress = addr
+	if envVal, ok := os.LookupEnv(constant.EnvNameServerAddress); ok && envVal != "" {
+		c.ServerAddress = envVal
 	}
-	if file, ok := os.LookupEnv(constant.EnvNameFileStoragePath); ok && file != "" {
-		c.FileStoragePath = file
+	if envVal, ok := os.LookupEnv(constant.EnvNameFileStoragePath); ok && envVal != "" {
+		c.FileStoragePath = envVal
 	}
-	if sInterval, ok := os.LookupEnv(constant.EnvNameStoreInterval); ok {
-		if sInterval, err := strconv.Atoi(sInterval); err == nil {
+	if envVal, ok := os.LookupEnv(constant.EnvNameStoreInterval); ok {
+		if sInterval, err := strconv.Atoi(envVal); err == nil {
 			c.FileStoreInterval = sInterval
 		}
 	}
-	if restore, ok := os.LookupEnv(constant.EnvNameRestore); ok {
+	if envVal, ok := os.LookupEnv(constant.EnvNameRestore); ok {
 		func() {
 			for _, v := range []string{"true", "1", "on", "y", "yes"} {
-				if v == strings.ToLower(restore) {
+				if v == strings.ToLower(envVal) {
 					c.StorageRestore = true
 					return
 				}
 			}
 			for _, v := range []string{"false", "0", "off", "n", "no"} {
-				if v == strings.ToLower(restore) {
+				if v == strings.ToLower(envVal) {
 					c.StorageRestore = false
 					return
 				}
 			}
 		}()
 	}
-	if dbDSN, ok := os.LookupEnv(constant.EnvNameDBDSN); ok {
-		c.DatabaseDSN = dbDSN
+	if envVal, ok := os.LookupEnv(constant.EnvNameDBDSN); ok {
+		c.DatabaseDSN = envVal
 	}
-	if key, ok := os.LookupEnv(constant.EnvNameKey); ok {
-		c.Key = key
+	if envVal, ok := os.LookupEnv(constant.EnvNameKey); ok {
+		c.Key = envVal
 	}
+
 	return c
 }
 
