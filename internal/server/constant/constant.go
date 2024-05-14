@@ -20,6 +20,7 @@ const (
 	EnvNameRestore         = "RESTORE"
 	EnvNameDBDSN           = "DATABASE_DSN"
 	EnvNameKey             = "KEY"
+	EnvNameCryptoKey       = "CRYPTO_KEY"
 
 	UpdateRoute      = "/update"
 	UpdatesRoute     = "/updates"

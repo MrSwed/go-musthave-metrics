@@ -15,6 +15,7 @@ var Backoff = [3]time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second
 type Config struct {
 	ServerAddress string
 	Key           string
+	CryptoKey     string
 	MetricLists
 	ReportInterval int
 	PollInterval   int
@@ -48,16 +49,18 @@ func (c *Config) parseFlags() {
 	flag.StringVar(&c.Key, "k", c.Key, "Provide the key")
 	flag.IntVar(&c.RateLimit, "l", c.RateLimit, "Provide the rate limit - number of concurrent outgoing requests")
 	flag.IntVar(&c.SendSize, "s", c.SendSize, "Provide the number of metrics send at once. 0 - send all")
+	flag.StringVar(&c.CryptoKey, "crypto-key", c.CryptoKey, "Provide the public server key for encryption")
 	flag.Parse()
 }
 
 func (c *Config) getEnv() {
-	addressEnv, reportIntervalEnv, pollIntervalEnv, key, rateLimit :=
+	addressEnv, reportIntervalEnv, pollIntervalEnv, key, rateLimit, cryptoKey :=
 		os.Getenv(constant.EnvNameServerAddress),
 		os.Getenv(constant.EnvNameReportInterval),
 		os.Getenv(constant.EnvNamePollInterval),
 		os.Getenv(constant.EnvNameKey),
-		os.Getenv(constant.EnvNameRateLimit)
+		os.Getenv(constant.EnvNameRateLimit),
+		os.Getenv(constant.EnvNameCryptoKey)
 	if addressEnv != "" {
 		c.ServerAddress = addressEnv
 	}
@@ -73,6 +76,9 @@ func (c *Config) getEnv() {
 	}
 	if key != "" {
 		c.Key = key
+	}
+	if cryptoKey != "" {
+		c.CryptoKey = cryptoKey
 	}
 	if rateLimit != "" {
 		if v, err := strconv.Atoi(rateLimit); err == nil {

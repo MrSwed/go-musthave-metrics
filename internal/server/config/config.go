@@ -18,7 +18,8 @@ type StorageConfig struct {
 
 // WEB  config
 type WEB struct {
-	Key string
+	Key       string
+	CryptoKey string
 }
 
 // Config all configs
@@ -80,6 +81,9 @@ func (c *Config) WithEnv() *Config {
 	if envVal, ok := os.LookupEnv(constant.EnvNameKey); ok {
 		c.Key = envVal
 	}
+	if envVal, ok := os.LookupEnv(constant.EnvNameCryptoKey); ok {
+		c.CryptoKey = envVal
+	}
 
 	return c
 }
@@ -90,7 +94,8 @@ func (c *Config) withFlags() *Config {
 	flag.StringVar(&c.FileStoragePath, "f", c.FileStoragePath, "Provide the file storage path")
 	flag.BoolVar(&c.StorageRestore, "r", c.StorageRestore, "Restore storage at boot")
 	flag.StringVar(&c.DatabaseDSN, "d", c.DatabaseDSN, "Provide the database dsn connect string")
-	flag.StringVar(&c.Key, "k", "", "Provide the key")
+	flag.StringVar(&c.Key, "k", c.Key, "Provide the key")
+	flag.StringVar(&c.CryptoKey, "crypto-key", c.CryptoKey, "Provide the private server key for decryption")
 	flag.Parse()
 	return c
 }
