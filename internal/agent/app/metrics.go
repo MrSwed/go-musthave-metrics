@@ -178,14 +178,16 @@ func (m *MetricsCollects) SendMetrics(ctx context.Context) (n int, err error) {
 
 func (m *MetricsCollects) request(metrics []*Metric) (err error) {
 	var er error
+
+	// data to json body
 	var body []byte
 	if body, er = json.Marshal(metrics); er != nil {
 		err = errors.Join(err, myErr.ErrWrap(er))
 		return
 	}
 
+	// compress stage
 	compressedBody := new(bytes.Buffer)
-
 	zb := gzip.NewWriter(compressedBody)
 	if _, er = zb.Write(body); er != nil {
 		err = errors.Join(err, myErr.ErrWrap(er))
@@ -197,6 +199,8 @@ func (m *MetricsCollects) request(metrics []*Metric) (err error) {
 		err = errors.Join(err, myErr.ErrWrap(er))
 		return
 	}
+
+	// prepare request
 	var req *http.Request
 	if req, er = http.NewRequest("POST", urlStr, compressedBody); er != nil {
 		err = errors.Join(err, myErr.ErrWrap(er))
@@ -205,6 +209,7 @@ func (m *MetricsCollects) request(metrics []*Metric) (err error) {
 	req.Header.Set("Content-Encoding", "gzip")
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 
+	// sign at header
 	if m.c != nil && m.c.Key != "" {
 		h := hmac.New(sha256.New, []byte(m.c.Key))
 		if _, err = h.Write(body); err != nil {
@@ -214,11 +219,14 @@ func (m *MetricsCollects) request(metrics []*Metric) (err error) {
 		req.Header.Set(constant.HeaderSignKey, hex.EncodeToString(h.Sum(nil)))
 	}
 
+	// do request
 	var res *http.Response
 	if res, er = http.DefaultClient.Do(req); er != nil {
 		err = errors.Join(err, myErr.ErrWrap(er))
 		return
 	}
+
+	// read result
 	var resultBody []byte
 	if resultBody, er = io.ReadAll(res.Body); er != nil {
 		err = errors.Join(err, myErr.ErrWrap(er))
