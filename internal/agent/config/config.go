@@ -1,6 +1,10 @@
 package config
 
 import (
+	"crypto/ecdsa"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"flag"
 	"os"
 	"strconv"
@@ -12,10 +16,15 @@ import (
 
 var Backoff = [3]time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second}
 
+type PublicKey interface {
+	ecdsa.PublicKey | rsa.PublicKey
+}
+
 type Config struct {
 	ServerAddress string
 	Key           string
 	CryptoKey     string
+	cryptoKey     *rsa.PublicKey
 	MetricLists
 	ReportInterval int
 	PollInterval   int
@@ -138,10 +147,13 @@ func (c *Config) setCountersList(m ...string) {
 }
 
 // Init config from flags and env
-func (c *Config) Init() {
+func (c *Config) Init() (err error) {
 	c.parseFlags()
 	c.getEnv()
 	c.CleanSchemes()
+	// get key to mem
+	err = c.LoadPublicKey()
+	return
 }
 
 // CleanSchemes check and repair config parameters
@@ -150,4 +162,25 @@ func (c *Config) CleanSchemes() *Config {
 		c.ServerAddress = "http://" + c.ServerAddress
 	}
 	return c
+}
+
+func (c *Config) GetPublicKey() *rsa.PublicKey {
+	return c.cryptoKey
+}
+
+func (c *Config) LoadPublicKey() error {
+	if c.cryptoKey == nil && c.CryptoKey != "" {
+		b, err := os.ReadFile(c.CryptoKey)
+		if err != nil {
+			return err
+		}
+
+		spkiBlock, _ := pem.Decode(b)
+		cert, err := x509.ParseCertificate(spkiBlock.Bytes)
+		if err != nil {
+			return err
+		}
+		c.cryptoKey = cert.PublicKey.(*rsa.PublicKey)
+	}
+	return nil
 }

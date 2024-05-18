@@ -33,10 +33,12 @@ func main() {
 		conf = config.NewConfig()
 	)
 
+	if err := conf.Init(); err != nil {
+		log.Fatal(err)
+	}
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-
-	conf.Init()
 
 	log.Printf(`Started with build info:
   BuildVersion: %s
@@ -49,13 +51,14 @@ With config:
   Rate limit: %d
   Number of metrics at once: %d
   Key: %s
+  CryptoKey: %s
   Metric names count: %d
 `,
 		buildInfo(buildVersion),
 		buildInfo(buildDate),
 		buildInfo(buildCommit),
 		conf.ServerAddress, constant.BaseURL, conf.ReportInterval, conf.PollInterval,
-		conf.RateLimit, conf.SendSize, conf.Key, len(conf.GaugesList)+len(conf.CountersList))
+		conf.RateLimit, conf.SendSize, conf.Key, conf.CryptoKey, len(conf.GaugesList)+len(conf.CountersList))
 
 	m := app.NewMetricsCollects(conf)
 

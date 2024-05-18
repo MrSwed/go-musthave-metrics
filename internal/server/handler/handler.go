@@ -55,6 +55,7 @@ func setHeaderSHA(r http.ResponseWriter, key string, data []byte) {
 func (h *Handler) Handler() http.Handler {
 	h.app.Use(myMiddleware.Logger(h.log))
 	h.app.Use(middleware.Compress(gzip.DefaultCompression, "application/json", "text/html"))
+	h.app.Use(myMiddleware.Decrypt(h.c.GetPrivateKey(), h.log))
 	h.app.Use(myMiddleware.Decompress(h.log))
 	h.app.Use(myMiddleware.CheckSign(h.c, h.log))
 

@@ -1,6 +1,9 @@
 package config
 
 import (
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"flag"
 	"os"
 	"strconv"
@@ -18,6 +21,7 @@ type StorageConfig struct {
 
 // WEB  config
 type WEB struct {
+	cryptoKey *rsa.PrivateKey
 	Key       string
 	CryptoKey string
 }
@@ -42,8 +46,11 @@ func NewConfig() *Config {
 }
 
 // Init all configs
-func (c *Config) Init() *Config {
-	return c.withFlags().WithEnv().CleanSchemes()
+func (c *Config) Init() (*Config, error) {
+	c.withFlags().WithEnv().CleanSchemes()
+	err := c.LoadPrivateKey()
+
+	return c, err
 }
 
 // WithEnv gets ENV configs
@@ -107,4 +114,25 @@ func (c *Config) CleanSchemes() *Config {
 	}
 	c.DatabaseDSN = strings.Trim(c.DatabaseDSN, "'")
 	return c
+}
+
+func (c *WEB) GetPrivateKey() *rsa.PrivateKey {
+	return c.cryptoKey
+}
+
+func (c *WEB) LoadPrivateKey() error {
+	if c.cryptoKey == nil && c.CryptoKey != "" {
+		b, err := os.ReadFile(c.CryptoKey)
+		if err != nil {
+			return err
+		}
+
+		spkiBlock, _ := pem.Decode(b)
+		cert, err := x509.ParsePKCS1PrivateKey(spkiBlock.Bytes)
+		if err != nil {
+			return err
+		}
+		c.cryptoKey = cert
+	}
+	return nil
 }

@@ -51,7 +51,10 @@ Build commit: %s
 
 func runServer(ctx context.Context) {
 	var wg sync.WaitGroup
-	conf := config.NewConfig().Init()
+	conf, err := config.NewConfig().Init()
+	if err != nil {
+		panic(err)
+	}
 
 	logger, err := zap.NewDevelopment()
 	if err != nil {

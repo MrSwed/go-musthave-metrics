@@ -5,6 +5,8 @@ import (
 	"compress/gzip"
 	"context"
 	"crypto/hmac"
+	crand "crypto/rand"
+	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -187,8 +189,8 @@ func (m *MetricsCollects) request(metrics []*Metric) (err error) {
 	}
 
 	// compress stage
-	compressedBody := new(bytes.Buffer)
-	zb := gzip.NewWriter(compressedBody)
+	bodyBuf := new(bytes.Buffer)
+	zb := gzip.NewWriter(bodyBuf)
 	if _, er = zb.Write(body); er != nil {
 		err = errors.Join(err, myErr.ErrWrap(er))
 		return
@@ -200,9 +202,23 @@ func (m *MetricsCollects) request(metrics []*Metric) (err error) {
 		return
 	}
 
+	// crypto stage
+	if m.c.GetPublicKey() != nil {
+		var cipherBody []byte
+
+		cipherBody, err = rsa.EncryptOAEP(sha256.New(), crand.Reader, m.c.GetPublicKey(), bodyBuf.Bytes(), nil)
+		if err != nil {
+			err = errors.Join(err, myErr.ErrWrap(er))
+			return
+		}
+
+		bodyBuf.Reset()
+		bodyBuf.Write(cipherBody)
+	}
+
 	// prepare request
 	var req *http.Request
-	if req, er = http.NewRequest("POST", urlStr, compressedBody); er != nil {
+	if req, er = http.NewRequest("POST", urlStr, bodyBuf); er != nil {
 		err = errors.Join(err, myErr.ErrWrap(er))
 		return
 	}
