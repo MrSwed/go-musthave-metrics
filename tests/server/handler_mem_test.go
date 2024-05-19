@@ -2,6 +2,7 @@ package server_test
 
 import (
 	"context"
+	"crypto/rsa"
 	"net/http"
 	"testing"
 
@@ -37,7 +38,7 @@ func (suite *HandlerMemTestSuite) SetupSuite() {
 	suite.srv = service.NewService(repo, &suite.cfg.StorageConfig)
 	logger, err = zap.NewDevelopment()
 	if err != nil {
-		panic(err)
+		suite.Fail(err.Error())
 	}
 
 	suite.app = handler.NewHandler(chi.NewRouter(), suite.srv, &suite.cfg.WEB, logger).Handler()
@@ -54,6 +55,9 @@ func (suite *HandlerMemTestSuite) DBx() *sqlx.DB {
 }
 func (suite *HandlerMemTestSuite) Cfg() *config.Config {
 	return suite.cfg
+}
+func (suite *HandlerMemTestSuite) PublicKey() *rsa.PublicKey {
+	return nil
 }
 
 func TestHandlersMem(t *testing.T) {

@@ -2,6 +2,7 @@ package server_test
 
 import (
 	"context"
+	"crypto/rsa"
 	"errors"
 	"net/http"
 	"testing"
@@ -65,6 +66,9 @@ func (suite *HandlerDBTestSuite) DBx() *sqlx.DB {
 }
 func (suite *HandlerDBTestSuite) Cfg() *config.Config {
 	return suite.cfg
+}
+func (suite *HandlerDBTestSuite) PublicKey() *rsa.PublicKey {
+	return nil
 }
 
 func (suite *HandlerDBTestSuite) SetupSuite() {

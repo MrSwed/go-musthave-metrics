@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	crand "crypto/rand"
+	"crypto/rsa"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -32,6 +35,7 @@ type HandlerTestSuite interface {
 	T() *testing.T
 	DBx() *sqlx.DB
 	Cfg() *config.Config
+	PublicKey() *rsa.PublicKey
 }
 
 func testMigrate(suite HandlerTestSuite) {
@@ -418,6 +422,7 @@ func testGetMetricJSON(suite HandlerTestSuite) {
 			err := json.NewEncoder(b).Encode(test.args.body)
 			require.NoError(t, err)
 
+			maybeCryptBody(b, suite.PublicKey())
 			req, err := http.NewRequest(test.args.method, ts.URL+constant.ValueRoute, b)
 			require.NoError(t, err)
 
@@ -835,6 +840,7 @@ func testUpdateMetricJSON(suite HandlerTestSuite) {
 			err := json.NewEncoder(b).Encode(test.args.body)
 			require.NoError(t, err)
 
+			maybeCryptBody(b, suite.PublicKey())
 			req, err := http.NewRequest(test.args.method, ts.URL+constant.UpdateRoute, b)
 			require.NoError(t, err)
 
@@ -1020,6 +1026,7 @@ func testUpdateMetrics(suite HandlerTestSuite) {
 			err := json.NewEncoder(b).Encode(test.args.body)
 			require.NoError(t, err)
 
+			maybeCryptBody(b, suite.PublicKey())
 			req, err := http.NewRequest(test.args.method, ts.URL+constant.UpdatesRoute, b)
 			require.NoError(t, err)
 
@@ -1179,6 +1186,7 @@ func testGzip(suite HandlerTestSuite) {
 				require.NoError(t, err)
 			}
 
+			maybeCryptBody(b, suite.PublicKey())
 			req, err := http.NewRequest(test.args.method, ts.URL+constant.UpdatesRoute, b)
 			require.NoError(t, err)
 
@@ -1373,6 +1381,7 @@ func testHashKey(suite HandlerTestSuite) {
 				require.NoError(t, err)
 			}
 
+			maybeCryptBody(b, suite.PublicKey())
 			req, err := http.NewRequest(test.args.method, ts.URL+constant.UpdatesRoute, b)
 			require.NoError(t, err)
 
@@ -1424,5 +1433,216 @@ func testHashKey(suite HandlerTestSuite) {
 				assert.Equal(t, test.want.contentType, res.Header.Get("Content-Type"))
 			}
 		})
+	}
+}
+
+/*
+todo: individual..? stop, lets think about injection
+* /
+func testCrypto(suite HandlerTestSuite) {
+	t := suite.T()
+	existKey := "/tmp/testPrivate.key"
+	existWrongKey := "/tmp/testPublic.crt"
+	defer func() {
+		_ = os.Remove(existKey)
+		_ = os.Remove(existWrongKey)
+	}()
+
+	testHelpers.CreateCertificates(existKey, existWrongKey)
+
+	ts := httptest.NewServer(suite.App())
+	defer ts.Close()
+
+	testCounterName1 := fmt.Sprintf("testCounter%d", rand.Int())
+	testCounterName2 := fmt.Sprintf("testCounter%d", rand.Int())
+	testCounterName3 := fmt.Sprintf("testCounter%d", rand.Int())
+
+	type want struct {
+		headers     map[string]string
+		contentType string
+		response    []domain.Metric
+		code        int
+	}
+	type args struct {
+		body    interface{}
+		headers map[string]string
+		method  string
+	}
+	tests := []struct {
+		args  args
+		name  string
+		want  want
+		crypt bool
+	}{
+		{
+			name: "Gzip compress answer at save json. Ok",
+			args: args{
+				method: http.MethodPost,
+				body: []map[string]interface{}{
+					{
+						"id":    testCounterName1,
+						"type":  "counter",
+						"delta": 1,
+					},
+					{
+						"id":    "testGauge",
+						"type":  "gauge",
+						"value": 100.0015,
+					},
+				},
+				headers: map[string]string{
+					"Accept-Encoding": "gzip",
+				},
+			},
+			want: want{
+				code:        http.StatusOK,
+				response:    []domain.Metric{{ID: testCounterName1, MType: "counter", Delta: &[]domain.Counter{1}[0]}, {ID: "testGauge", MType: "gauge", Value: &[]domain.Gauge{100.0015}[0]}},
+				contentType: "application/json; charset=utf-8",
+				headers: map[string]string{
+					"Content-Encoding": "gzip",
+				},
+			},
+		},
+		{
+			name: "Gzip decompress request save json. Ok",
+			args: args{
+				method: http.MethodPost,
+				body: []map[string]interface{}{
+					{
+						"id":    testCounterName2,
+						"type":  "counter",
+						"delta": 1,
+					},
+					{
+						"id":    "testGauge",
+						"type":  "gauge",
+						"value": 100.0015,
+					},
+				},
+				headers: map[string]string{
+					"Content-Encoding": "gzip",
+				},
+			},
+			want: want{
+				code:        http.StatusOK,
+				response:    []domain.Metric{{ID: testCounterName2, MType: "counter", Delta: &[]domain.Counter{1}[0]}, {ID: "testGauge", MType: "gauge", Value: &[]domain.Gauge{100.0015}[0]}},
+				contentType: "application/json; charset=utf-8",
+			},
+		},
+		{
+			name: "Gzip compress/decompress answer/request save json. Ok",
+			args: args{
+				method: http.MethodPost,
+				body: []map[string]interface{}{
+					{
+						"id":    testCounterName3,
+						"type":  "counter",
+						"delta": 1,
+					},
+					{
+						"id":    "testGauge",
+						"type":  "gauge",
+						"value": 100.0015,
+					},
+				},
+				headers: map[string]string{
+					"Accept-Encoding":  "gzip",
+					"Content-Encoding": "gzip",
+				},
+			},
+			want: want{
+				code:        http.StatusOK,
+				response:    []domain.Metric{{ID: testCounterName3, MType: "counter", Delta: &[]domain.Counter{1}[0]}, {ID: "testGauge", MType: "gauge", Value: &[]domain.Gauge{100.0015}[0]}},
+				contentType: "application/json; charset=utf-8",
+				headers: map[string]string{
+					"Content-Encoding": "gzip",
+				},
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			b := new(bytes.Buffer)
+			err := json.NewEncoder(b).Encode(test.args.body)
+			require.NoError(t, err)
+			if len(test.args.headers) > 0 && test.args.headers["Content-Encoding"] == "gzip" {
+				compB := new(bytes.Buffer)
+				w := gzip.NewWriter(compB)
+				_, err = w.Write(b.Bytes())
+				b = compB
+				require.NoError(t, err)
+
+				err = w.Flush()
+				require.NoError(t, err)
+
+				err = w.Close()
+				require.NoError(t, err)
+			}
+
+			req, err := http.NewRequest(test.args.method, ts.URL+constant.UpdatesRoute, b)
+			require.NoError(t, err)
+
+			for k, v := range test.args.headers {
+				req.Header.Add(k, v)
+			}
+
+			res, err := http.DefaultClient.Do(req)
+			require.NoError(t, err)
+			defer func() {
+				err = res.Body.Close()
+				require.NoError(t, err)
+			}()
+
+			var resBody []byte
+
+			// проверяем код ответа
+			require.Equal(t, test.want.code, res.StatusCode)
+			resBody, err = io.ReadAll(res.Body)
+			require.NoError(t, err)
+
+			for k, v := range test.want.headers {
+				assert.True(t, res.Header.Get(k) == v)
+			}
+
+			if len(test.want.response) > 0 {
+				assert.True(t, len(resBody) > 0)
+				if len(test.args.headers) > 0 && test.args.headers["Accept-Encoding"] == "gzip" {
+					b := bytes.NewBuffer(resBody)
+					var r *gzip.Reader
+					r, err = gzip.NewReader(b)
+					if !errors.Is(err, io.EOF) {
+						require.NoError(t, err)
+					}
+					var resB bytes.Buffer
+					_, err = resB.ReadFrom(r)
+					require.NoError(t, err)
+
+					resBody = resB.Bytes()
+					err = r.Close()
+					require.NoError(t, err)
+				}
+				var data []domain.Metric
+				err = json.Unmarshal(resBody, &data)
+				assert.NoError(t, err)
+				assert.Equal(t, test.want.response, data)
+			}
+
+			if test.want.contentType != "" {
+				assert.Equal(t, test.want.contentType, res.Header.Get("Content-Type"))
+			}
+		})
+	}
+}
+/**/
+
+func maybeCryptBody(bodyBuf *bytes.Buffer, publicKey *rsa.PublicKey) {
+	if publicKey != nil {
+		cipherBody, err := rsa.EncryptOAEP(sha256.New(), crand.Reader, publicKey, bodyBuf.Bytes(), nil)
+		bodyBuf.Reset()
+		if err != nil {
+			bodyBuf.WriteString(err.Error())
+			return
+		}
+		bodyBuf.Write(cipherBody)
 	}
 }
