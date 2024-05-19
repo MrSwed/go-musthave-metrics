@@ -38,8 +38,8 @@ type HandlerMemCryptoTestSuite struct {
 	app        http.Handler
 	srv        *service.Service
 	cfg        *config.Config
-	publicFile string
 	publicKey  *rsa.PublicKey
+	publicFile string
 }
 
 func (suite *HandlerMemCryptoTestSuite) loadCerts() {
