@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"flag"
 	"os"
 	"strconv"
@@ -177,6 +178,9 @@ func (c *Config) LoadPublicKey() error {
 
 		spkiBlock, _ := pem.Decode(b)
 		cert, err := x509.ParseCertificate(spkiBlock.Bytes)
+		if err == nil && (cert == nil || cert.PublicKey == nil) {
+			err = errors.New("failed to load public key")
+		}
 		if err != nil {
 			return err
 		}
