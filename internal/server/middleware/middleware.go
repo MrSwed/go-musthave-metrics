@@ -28,11 +28,9 @@ func Decrypt(key *rsa.PrivateKey, l *zap.Logger) func(next http.Handler) http.Ha
 					return
 				}
 				decryptBody, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, key, body, nil)
-				if err != nil {
-					rw.WriteHeader(http.StatusBadRequest)
-					l.Error("decryptBody", zap.Error(err))
+				if err == nil {
+					r.Body = io.NopCloser(bytes.NewReader(decryptBody))
 				}
-				r.Body = io.NopCloser(bytes.NewReader(decryptBody))
 			}
 			next.ServeHTTP(rw, r)
 		})
