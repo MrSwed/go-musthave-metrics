@@ -121,7 +121,7 @@ func (c *WEB) GetPrivateKey() *rsa.PrivateKey {
 }
 
 func (c *WEB) LoadPrivateKey() error {
-	if c.cryptoKey == nil && c.CryptoKey != "" {
+	if c.CryptoKey != "" {
 		b, err := os.ReadFile(c.CryptoKey)
 		if err != nil {
 			return err

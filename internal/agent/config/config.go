@@ -169,7 +169,7 @@ func (c *Config) GetPublicKey() *rsa.PublicKey {
 }
 
 func (c *Config) LoadPublicKey() error {
-	if c.cryptoKey == nil && c.CryptoKey != "" {
+	if c.CryptoKey != "" {
 		b, err := os.ReadFile(c.CryptoKey)
 		if err != nil {
 			return err
