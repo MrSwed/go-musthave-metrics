@@ -1,16 +1,24 @@
 package server_test
 
 import (
+	"bytes"
 	"context"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/json"
 	"encoding/pem"
 	"errors"
+	"fmt"
+	"io"
+	"math/rand"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 
 	"github.com/MrSwed/go-musthave-metrics/internal/server/config"
+	"github.com/MrSwed/go-musthave-metrics/internal/server/constant"
+	"github.com/MrSwed/go-musthave-metrics/internal/server/domain"
 	"github.com/MrSwed/go-musthave-metrics/internal/server/handler"
 	"github.com/MrSwed/go-musthave-metrics/internal/server/repository"
 	"github.com/MrSwed/go-musthave-metrics/internal/server/service"
@@ -18,6 +26,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 )
@@ -119,4 +129,114 @@ func (suite *HandlerMemCryptoTestSuite) TestGzip() {
 
 func (suite *HandlerMemCryptoTestSuite) TestHashKey() {
 	testHashKey(suite)
+}
+
+func (suite *HandlerMemCryptoTestSuite) TestUpdateMetricsNoCrypt() {
+
+	t := suite.T()
+
+	ts := httptest.NewServer(suite.App())
+	defer ts.Close()
+
+	testCounterName := fmt.Sprintf("testCounter%d", rand.Int())
+
+	type want struct {
+		contentType string
+		response    []domain.Metric
+		code        int
+	}
+
+	type args struct {
+		path   string
+		body   interface{}
+		method string
+	}
+	tests := []struct {
+		name string
+		args args
+		want want
+	}{
+		{
+			name: "No crypt UpdateMetricJSON",
+			args: args{
+				path:   constant.UpdatesRoute,
+				method: http.MethodPost,
+				body: []map[string]interface{}{
+					{
+						"id":    testCounterName,
+						"type":  "counter",
+						"delta": 1,
+					},
+					{
+						"id":    "testGauge",
+						"type":  "gauge",
+						"value": 100.0015,
+					},
+				},
+			},
+			want: want{
+				code: http.StatusBadRequest,
+			},
+		},
+		{
+			name: "No crypt UpdateMetric",
+			args: args{
+				path:   constant.UpdateRoute,
+				method: http.MethodPost,
+				body: map[string]interface{}{
+					"id":    testCounterName,
+					"type":  "counter",
+					"delta": 1,
+				},
+			},
+			want: want{
+				code: http.StatusBadRequest,
+			},
+		},
+		{
+			name: "No crypt testGetMetricJSON",
+			args: args{
+				path:   constant.ValueRoute,
+				method: http.MethodPost,
+				body: map[string]interface{}{
+					"id":   testCounterName,
+					"type": "counter",
+				},
+			},
+			want: want{
+				code: http.StatusBadRequest,
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			b := new(bytes.Buffer)
+			err := json.NewEncoder(b).Encode(test.args.body)
+			require.NoError(t, err)
+
+			req, err := http.NewRequest(test.args.method, ts.URL+test.args.path, b)
+			require.NoError(t, err)
+
+			res, err := http.DefaultClient.Do(req)
+			var resBody []byte
+
+			require.Equal(t, test.want.code, res.StatusCode)
+			func() {
+				defer func(Body io.ReadCloser) {
+					err = Body.Close()
+					require.NoError(t, err)
+				}(res.Body)
+				resBody, err = io.ReadAll(res.Body)
+				require.NoError(t, err)
+			}()
+
+			if test.want.code == http.StatusOK {
+				var data []domain.Metric
+				err = json.Unmarshal(resBody, &data)
+				assert.NoError(t, err)
+				assert.Equal(t, test.want.response, data)
+				assert.Equal(t, test.want.contentType, res.Header.Get("Content-Type"))
+			}
+		})
+	}
 }
