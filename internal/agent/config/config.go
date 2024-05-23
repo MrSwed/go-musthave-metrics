@@ -8,11 +8,10 @@ import (
 	"errors"
 	"flag"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/agent/constant"
+	"github.com/caarlos0/env/v10"
 )
 
 var Backoff = [3]time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second}
@@ -22,25 +21,25 @@ type PublicKey interface {
 }
 
 type Config struct {
-	ServerAddress string
-	Key           string
-	CryptoKey     string
-	cryptoKey     *rsa.PublicKey
+	Address   string `json:"address" env:"ADDRESS"`
+	Key       string `json:"key" env:"KEY"`
+	CryptoKey string `json:"crypto_key" env:"CRYPTO_KEY"`
+	cryptoKey *rsa.PublicKey
 	MetricLists
-	ReportInterval int
-	PollInterval   int
-	RateLimit      int
-	SendSize       int
+	ReportInterval int `json:"report_interval" env:"REPORT_INTERVAL"`
+	PollInterval   int `json:"poll_interval" env:"POLL_INTERVAL"`
+	RateLimit      int `json:"rate_limit" env:"RATE_LIMIT"`
+	SendSize       int `json:"send_size" env:"SEND_SIZE"`
 }
 
 type MetricLists struct {
-	GaugesList   []string `type:"gauge"`
-	CountersList []string `type:"counter"`
+	GaugesList   []string `type:"gauge" json:"gauges_list"`
+	CountersList []string `type:"counter" json:"counters_list"`
 }
 
 func NewConfig() *Config {
 	c := &Config{
-		ServerAddress:  "localhost:8080",
+		Address:        "localhost:8080",
 		ReportInterval: 10,
 		PollInterval:   2,
 		Key:            "",
@@ -53,7 +52,7 @@ func NewConfig() *Config {
 }
 
 func (c *Config) parseFlags() {
-	flag.StringVar(&c.ServerAddress, "a", c.ServerAddress, "Provide the address of the metrics collection server")
+	flag.StringVar(&c.Address, "a", c.Address, "Provide the address of the metrics collection server")
 	flag.IntVar(&c.ReportInterval, "r", c.ReportInterval, "Provide the interval in seconds for send report metrics")
 	flag.IntVar(&c.PollInterval, "p", c.PollInterval, "Provide the interval in seconds for update metrics")
 	flag.StringVar(&c.Key, "k", c.Key, "Provide the key")
@@ -61,40 +60,6 @@ func (c *Config) parseFlags() {
 	flag.IntVar(&c.SendSize, "s", c.SendSize, "Provide the number of metrics send at once. 0 - send all")
 	flag.StringVar(&c.CryptoKey, "crypto-key", c.CryptoKey, "Provide the public server key for encryption")
 	flag.Parse()
-}
-
-func (c *Config) getEnv() {
-	addressEnv, reportIntervalEnv, pollIntervalEnv, key, rateLimit, cryptoKey :=
-		os.Getenv(constant.EnvNameServerAddress),
-		os.Getenv(constant.EnvNameReportInterval),
-		os.Getenv(constant.EnvNamePollInterval),
-		os.Getenv(constant.EnvNameKey),
-		os.Getenv(constant.EnvNameRateLimit),
-		os.Getenv(constant.EnvNameCryptoKey)
-	if addressEnv != "" {
-		c.ServerAddress = addressEnv
-	}
-	if reportIntervalEnv != "" {
-		if v, err := strconv.Atoi(reportIntervalEnv); err == nil {
-			c.ReportInterval = v
-		}
-	}
-	if pollIntervalEnv != "" {
-		if v, err := strconv.Atoi(pollIntervalEnv); err == nil {
-			c.PollInterval = v
-		}
-	}
-	if key != "" {
-		c.Key = key
-	}
-	if cryptoKey != "" {
-		c.CryptoKey = cryptoKey
-	}
-	if rateLimit != "" {
-		if v, err := strconv.Atoi(rateLimit); err == nil {
-			c.RateLimit = v
-		}
-	}
 }
 
 func (c *Config) setGaugesList(m ...string) {
@@ -150,17 +115,17 @@ func (c *Config) setCountersList(m ...string) {
 // Init config from flags and env
 func (c *Config) Init() (err error) {
 	c.parseFlags()
-	c.getEnv()
+	err = env.Parse(c)
 	c.CleanSchemes()
 	// get key to mem
-	err = c.LoadPublicKey()
+	err = errors.Join(err, c.LoadPublicKey())
 	return
 }
 
 // CleanSchemes check and repair config parameters
 func (c *Config) CleanSchemes() *Config {
-	if !strings.HasPrefix(c.ServerAddress, "http://") && !strings.HasPrefix(c.ServerAddress, "https://") {
-		c.ServerAddress = "http://" + c.ServerAddress
+	if !strings.HasPrefix(c.Address, "http://") && !strings.HasPrefix(c.Address, "https://") {
+		c.Address = "http://" + c.Address
 	}
 	return c
 }

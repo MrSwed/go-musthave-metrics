@@ -57,7 +57,7 @@ With config:
 		buildInfo(buildVersion),
 		buildInfo(buildDate),
 		buildInfo(buildCommit),
-		conf.ServerAddress, constant.BaseURL, conf.ReportInterval, conf.PollInterval,
+		conf.Address, constant.BaseURL, conf.ReportInterval, conf.PollInterval,
 		conf.RateLimit, conf.SendSize, conf.Key, conf.CryptoKey, len(conf.GaugesList)+len(conf.CountersList))
 
 	m := app.NewMetricsCollects(conf)

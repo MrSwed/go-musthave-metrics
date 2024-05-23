@@ -196,7 +196,7 @@ func (m *MetricsCollects) request(metrics []*Metric) (err error) {
 		return
 	}
 
-	urlStr := m.c.ServerAddress + constant.BaseURL
+	urlStr := m.c.Address + constant.BaseURL
 	if er = zb.Close(); er != nil {
 		err = errors.Join(err, myErr.ErrWrap(er))
 		return
