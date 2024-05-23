@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/caarlos0/env/v10"
+	"github.com/ucarion/structflag"
 )
 
 var Backoff = [3]time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second}
@@ -21,15 +22,15 @@ type PublicKey interface {
 }
 
 type Config struct {
-	Address   string `json:"address" env:"ADDRESS"`
-	Key       string `json:"key" env:"KEY"`
-	CryptoKey string `json:"crypto_key" env:"CRYPTO_KEY"`
+	Address   string `json:"address" env:"ADDRESS" flag:"a" usage:"Provide the address of the metrics collection server"`
+	Key       string `json:"key" env:"KEY" flag:"k" usage:"Provide the key"`
+	CryptoKey string `json:"crypto_key" env:"CRYPTO_KEY" flag:"crypto-key" usage:"Provide the public server key for encryption"`
 	cryptoKey *rsa.PublicKey
 	MetricLists
-	ReportInterval int `json:"report_interval" env:"REPORT_INTERVAL"`
-	PollInterval   int `json:"poll_interval" env:"POLL_INTERVAL"`
-	RateLimit      int `json:"rate_limit" env:"RATE_LIMIT"`
-	SendSize       int `json:"send_size" env:"SEND_SIZE"`
+	ReportInterval int `json:"report_interval" env:"REPORT_INTERVAL" flag:"r" usage:"Provide the interval in seconds for send report metrics"`
+	PollInterval   int `json:"poll_interval" env:"POLL_INTERVAL" flag:"p" usage:"Provide the interval in seconds for update metrics"`
+	RateLimit      int `json:"rate_limit" env:"RATE_LIMIT" flag:"l" usage:"Provide the rate limit - number of concurrent outgoing requests"`
+	SendSize       int `json:"send_size" env:"SEND_SIZE" flag:"s" usage:"Provide the number of metrics send at once. 0 - send all"`
 }
 
 type MetricLists struct {
@@ -49,17 +50,6 @@ func NewConfig() *Config {
 	c.setGaugesList()
 	c.setCountersList()
 	return c.CleanSchemes()
-}
-
-func (c *Config) parseFlags() {
-	flag.StringVar(&c.Address, "a", c.Address, "Provide the address of the metrics collection server")
-	flag.IntVar(&c.ReportInterval, "r", c.ReportInterval, "Provide the interval in seconds for send report metrics")
-	flag.IntVar(&c.PollInterval, "p", c.PollInterval, "Provide the interval in seconds for update metrics")
-	flag.StringVar(&c.Key, "k", c.Key, "Provide the key")
-	flag.IntVar(&c.RateLimit, "l", c.RateLimit, "Provide the rate limit - number of concurrent outgoing requests")
-	flag.IntVar(&c.SendSize, "s", c.SendSize, "Provide the number of metrics send at once. 0 - send all")
-	flag.StringVar(&c.CryptoKey, "crypto-key", c.CryptoKey, "Provide the public server key for encryption")
-	flag.Parse()
 }
 
 func (c *Config) setGaugesList(m ...string) {
@@ -114,7 +104,8 @@ func (c *Config) setCountersList(m ...string) {
 
 // Init config from flags and env
 func (c *Config) Init() (err error) {
-	c.parseFlags()
+	structflag.Load(c)
+	flag.Parse()
 	err = env.Parse(c)
 	c.CleanSchemes()
 	// get key to mem
