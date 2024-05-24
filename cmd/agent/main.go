@@ -16,18 +16,33 @@ import (
 	"github.com/MrSwed/go-musthave-metrics/internal/agent/constant"
 )
 
+var buildVersion string
+var buildDate string
+var buildCommit string
+
+func buildInfo(s string) string {
+	if s == "" {
+		return "N/A"
+	}
+	return s
+}
+
 func main() {
 	var (
 		wg   sync.WaitGroup
-		conf = new(config.Config)
+		conf = config.NewConfig()
 	)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	conf.Config()
+	conf.Init()
 
-	log.Printf(`Started with config:
+	log.Printf(`Started with build info:
+  BuildVersion: %s
+  BuildDate: %s
+  BuildCommit: %s
+With config:
   Url for collect metric: %s%s
   Report interval: %d
   Poll interval: %d
@@ -35,7 +50,11 @@ func main() {
   Number of metrics at once: %d
   Key: %s
   Metric names count: %d
-`, conf.ServerAddress, constant.BaseURL, conf.ReportInterval, conf.PollInterval,
+`,
+		buildInfo(buildVersion),
+		buildInfo(buildDate),
+		buildInfo(buildCommit),
+		conf.ServerAddress, constant.BaseURL, conf.ReportInterval, conf.PollInterval,
 		conf.RateLimit, conf.SendSize, conf.Key, len(conf.GaugesList)+len(conf.CountersList))
 
 	m := app.NewMetricsCollects(conf)

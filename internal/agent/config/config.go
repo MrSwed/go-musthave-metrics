@@ -13,13 +13,13 @@ import (
 var Backoff = [3]time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second}
 
 type Config struct {
-	ServerAddress  string
+	ServerAddress string
+	Key           string
+	MetricLists
 	ReportInterval int
 	PollInterval   int
 	RateLimit      int
-	Key            string
 	SendSize       int
-	MetricLists
 }
 
 type MetricLists struct {
@@ -27,13 +27,27 @@ type MetricLists struct {
 	CountersList []string `type:"counter"`
 }
 
+func NewConfig() *Config {
+	c := &Config{
+		ServerAddress:  "localhost:8080",
+		ReportInterval: 10,
+		PollInterval:   2,
+		Key:            "",
+		RateLimit:      1,
+		SendSize:       10,
+	}
+	c.setGaugesList()
+	c.setCountersList()
+	return c.CleanSchemes()
+}
+
 func (c *Config) parseFlags() {
-	flag.StringVar(&c.ServerAddress, "a", "localhost:8080", "Provide the address of the metrics collection server")
-	flag.IntVar(&c.ReportInterval, "r", 10, "Provide the interval in seconds for send report metrics")
-	flag.IntVar(&c.PollInterval, "p", 2, "Provide the interval in seconds for update metrics")
-	flag.StringVar(&c.Key, "k", "", "Provide the key")
-	flag.IntVar(&c.RateLimit, "l", 1, "Provide the rate limit - number of concurrent outgoing requests")
-	flag.IntVar(&c.SendSize, "s", 10, "Provide the number of metrics send at once. 0 - send all")
+	flag.StringVar(&c.ServerAddress, "a", c.ServerAddress, "Provide the address of the metrics collection server")
+	flag.IntVar(&c.ReportInterval, "r", c.ReportInterval, "Provide the interval in seconds for send report metrics")
+	flag.IntVar(&c.PollInterval, "p", c.PollInterval, "Provide the interval in seconds for update metrics")
+	flag.StringVar(&c.Key, "k", c.Key, "Provide the key")
+	flag.IntVar(&c.RateLimit, "l", c.RateLimit, "Provide the rate limit - number of concurrent outgoing requests")
+	flag.IntVar(&c.SendSize, "s", c.SendSize, "Provide the number of metrics send at once. 0 - send all")
 	flag.Parse()
 }
 
@@ -117,14 +131,17 @@ func (c *Config) setCountersList(m ...string) {
 	}
 }
 
-func (c *Config) Config() {
+// Init config from flags and env
+func (c *Config) Init() {
 	c.parseFlags()
 	c.getEnv()
+	c.CleanSchemes()
+}
+
+// CleanSchemes check and repair config parameters
+func (c *Config) CleanSchemes() *Config {
 	if !strings.HasPrefix(c.ServerAddress, "http://") && !strings.HasPrefix(c.ServerAddress, "https://") {
 		c.ServerAddress = "http://" + c.ServerAddress
 	}
-	// metric list can be set later from args or env
-	// move this to the appropriate functions
-	c.setGaugesList()
-	c.setCountersList()
+	return c
 }

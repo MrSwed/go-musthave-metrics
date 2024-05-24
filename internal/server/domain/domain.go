@@ -11,10 +11,10 @@ type (
 
 // Metric common metric structure with validation
 type Metric struct {
-	ID    string   `json:"id" validate:"required"`
-	MType string   `json:"type" validate:"required,oneof=gauge counter"`
 	Delta *Counter `json:"delta,omitempty" validate:"required_if=MType counter,omitempty"`
 	Value *Gauge   `json:"value,omitempty" validate:"required_if=MType gauge,omitempty"`
+	ID    string   `json:"id" validate:"required"`
+	MType string   `json:"type" validate:"required,oneof=gauge counter"`
 }
 
 // ValidateMetrics validate received metric collection data

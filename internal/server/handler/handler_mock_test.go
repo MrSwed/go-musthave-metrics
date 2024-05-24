@@ -45,9 +45,9 @@ func TestMockGetMetric(t *testing.T) {
 	_ = repo.EXPECT().GetCounter(gomock.Any(), gomock.Any()).Return(domain.Counter(0), errors.ErrNotExist)
 
 	type want struct {
-		code        int
 		response    string
 		contentType string
+		code        int
 	}
 	type args struct {
 		method string
@@ -148,7 +148,7 @@ func TestMockGetMetric(t *testing.T) {
 			require.Equal(t, test.want.code, res.StatusCode)
 			func() {
 				defer func(Body io.ReadCloser) {
-					err := Body.Close()
+					err = Body.Close()
 					require.NoError(t, err)
 				}(res.Body)
 				resBody, err = io.ReadAll(res.Body)
@@ -184,9 +184,9 @@ func TestMockGetListMetrics(t *testing.T) {
 	_ = repo.EXPECT().GetAllGauges(gomock.Any()).Return(domain.Gauges{"testGauge": testGauge}, nil)
 
 	type want struct {
-		code            int
 		responseContain string
 		contentType     string
+		code            int
 	}
 	type args struct {
 		method string
@@ -236,7 +236,7 @@ func TestMockGetListMetrics(t *testing.T) {
 			require.Equal(t, test.want.code, res.StatusCode)
 			func() {
 				defer func(Body io.ReadCloser) {
-					err := Body.Close()
+					err = Body.Close()
 					require.NoError(t, err)
 				}(res.Body)
 				resBody, err = io.ReadAll(res.Body)
@@ -274,13 +274,13 @@ func TestMockGetMetricJson(t *testing.T) {
 	_ = repo.EXPECT().GetCounter(gomock.Any(), gomock.Any()).Return(domain.Counter(0), errors.ErrNotExist)
 
 	type want struct {
-		code        int
 		response    domain.Metric
 		contentType string
+		code        int
 	}
 	type args struct {
-		method string
 		body   interface{}
+		method string
 	}
 	tests := []struct {
 		name string
@@ -425,7 +425,7 @@ func TestMockGetMetricJson(t *testing.T) {
 			require.Equal(t, test.want.code, res.StatusCode)
 			func() {
 				defer func(Body io.ReadCloser) {
-					err := Body.Close()
+					err = Body.Close()
 					require.NoError(t, err)
 				}(res.Body)
 				resBody, err = io.ReadAll(res.Body)
@@ -464,9 +464,9 @@ func TestMockUpdateMetric(t *testing.T) {
 	_ = repo.EXPECT().GetGauge(gomock.Any(), gomock.Any()).Return(testGauge, nil).AnyTimes()
 
 	type want struct {
-		code        int
 		response    string
 		contentType string
+		code        int
 	}
 	type args struct {
 		method string
@@ -629,7 +629,7 @@ func TestMockUpdateMetric(t *testing.T) {
 			require.Equal(t, test.want.code, res.StatusCode)
 			func() {
 				defer func(Body io.ReadCloser) {
-					err := Body.Close()
+					err = Body.Close()
 					require.NoError(t, err)
 				}(res.Body)
 				resBody, err = io.ReadAll(res.Body)
@@ -665,14 +665,14 @@ func TestMockUpdateMetricJson(t *testing.T) {
 	_ = repo.EXPECT().GetGauge(gomock.Any(), gomock.Any()).Return(testGauge, nil).AnyTimes()
 
 	type want struct {
-		code        int
 		response    domain.Metric
 		contentType string
+		code        int
 	}
 
 	type args struct {
-		method string
 		body   interface{}
+		method string
 	}
 	tests := []struct {
 		name string
@@ -869,7 +869,7 @@ func TestMockUpdateMetricJson(t *testing.T) {
 			require.Equal(t, test.want.code, res.StatusCode)
 			func() {
 				defer func(Body io.ReadCloser) {
-					err := Body.Close()
+					err = Body.Close()
 					require.NoError(t, err)
 				}(res.Body)
 				resBody, err = io.ReadAll(res.Body)
@@ -919,14 +919,14 @@ func TestMockUpdateMetrics(t *testing.T) {
 	_ = repo.EXPECT().SetMetrics(gomock.Any(), metrics).Return(metrics, nil).AnyTimes()
 
 	type want struct {
-		code        int
-		response    []domain.Metric
 		contentType string
+		response    []domain.Metric
+		code        int
 	}
 
 	type args struct {
-		method string
 		body   interface{}
+		method string
 	}
 	tests := []struct {
 		name string
@@ -1077,7 +1077,7 @@ func TestMockUpdateMetrics(t *testing.T) {
 			require.Equal(t, test.want.code, res.StatusCode)
 			func() {
 				defer func(Body io.ReadCloser) {
-					err := Body.Close()
+					err = Body.Close()
 					require.NoError(t, err)
 				}(res.Body)
 				resBody, err = io.ReadAll(res.Body)

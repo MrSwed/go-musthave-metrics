@@ -1,6 +1,4 @@
-// to test with real db set env DATABASE_DSN before run with created, but empty tables
-// to test with file - set env FILE_STORAGE_PATH
-package handler
+package server_test
 
 import (
 	"bytes"
@@ -10,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
@@ -19,46 +16,40 @@ import (
 	"github.com/MrSwed/go-musthave-metrics/internal/server/config"
 	"github.com/MrSwed/go-musthave-metrics/internal/server/constant"
 	"github.com/MrSwed/go-musthave-metrics/internal/server/domain"
-	"github.com/MrSwed/go-musthave-metrics/internal/server/repository"
+	"github.com/MrSwed/go-musthave-metrics/internal/server/handler"
+	errM "github.com/MrSwed/go-musthave-metrics/internal/server/migrate"
 	"github.com/MrSwed/go-musthave-metrics/internal/server/service"
-	"github.com/go-chi/chi/v5"
-
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/jmoiron/sqlx"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/jmoiron/sqlx"
-	"go.uber.org/zap"
 )
 
-func NewConfigGetTest() (c *config.Config) {
-	c = &config.Config{
-		StorageConfig: config.StorageConfig{
-			FileStoragePath: "",
-			StorageRestore:  false,
-		},
-	}
-	c.WithEnv().CleanSchemes()
-
-	var err error
-	if c.DatabaseDSN != "" {
-		if dbTest, err = sqlx.Open("postgres", c.DatabaseDSN); err != nil {
-			log.Fatal(err)
-		}
-	}
-	return
+type HandlerTestSuite interface {
+	App() http.Handler
+	Srv() *service.Service
+	T() *testing.T
+	DBx() *sqlx.DB
+	Cfg() *config.Config
 }
 
-var (
-	confTest = NewConfigGetTest()
-	dbTest   *sqlx.DB
-)
+func testMigrate(suite HandlerTestSuite) {
+	t := suite.T()
+	t.Run("Migrate", func(t *testing.T) {
+		_, err := errM.Migrate(suite.DBx().DB)
+		switch {
+		case errors.Is(err, migrate.ErrNoChange):
+		default:
+			require.NoError(t, err)
+		}
+	})
+}
 
-func TestGetMetric(t *testing.T) {
-	repo := repository.NewRepository(&confTest.StorageConfig, dbTest)
-	s := service.NewService(repo, &confTest.StorageConfig)
-	logger, _ := zap.NewDevelopment()
-	h := NewHandler(chi.NewRouter(), s, &confTest.WEB, logger).Handler()
-	ts := httptest.NewServer(h)
+func testGetMetric(suite HandlerTestSuite) {
+	t := suite.T()
+
+	ts := httptest.NewServer(suite.App())
 	defer ts.Close()
 
 	testCounter := domain.Counter(1)
@@ -67,13 +58,13 @@ func TestGetMetric(t *testing.T) {
 	testCounterName := fmt.Sprintf("testCounter%d", rand.Int())
 	// save some values
 	ctx := context.Background()
-	_ = s.SetGauge(ctx, testGaugeName, testGauge)
-	_ = s.IncreaseCounter(ctx, testCounterName, testCounter)
+	_ = suite.Srv().SetGauge(ctx, testGaugeName, testGauge)
+	_ = suite.Srv().IncreaseCounter(ctx, testCounterName, testCounter)
 
 	type want struct {
-		code        int
 		response    string
 		contentType string
+		code        int
 	}
 	type args struct {
 		method string
@@ -174,7 +165,7 @@ func TestGetMetric(t *testing.T) {
 			require.Equal(t, test.want.code, res.StatusCode)
 			func() {
 				defer func(Body io.ReadCloser) {
-					err := Body.Close()
+					err = Body.Close()
 					require.NoError(t, err)
 				}(res.Body)
 				resBody, err = io.ReadAll(res.Body)
@@ -189,27 +180,23 @@ func TestGetMetric(t *testing.T) {
 	}
 }
 
-func TestGetListMetrics(t *testing.T) {
-	repo := repository.NewRepository(&confTest.StorageConfig, dbTest)
+func testGetListMetrics(suite HandlerTestSuite) {
+	t := suite.T()
 
-	s := service.NewService(repo, &confTest.StorageConfig)
-	logger, _ := zap.NewDevelopment()
-	h := NewHandler(chi.NewRouter(), s, &confTest.WEB, logger).Handler()
-
-	ts := httptest.NewServer(h)
+	ts := httptest.NewServer(suite.App())
 	defer ts.Close()
 
 	testCounter := domain.Counter(1)
 	testGauge := domain.Gauge(1.0001)
 	// save some values
 	ctx := context.Background()
-	_ = s.SetGauge(ctx, "testGauge", testGauge)
-	_ = s.IncreaseCounter(ctx, "testCounter", testCounter)
+	_ = suite.Srv().SetGauge(ctx, "testGauge", testGauge)
+	_ = suite.Srv().IncreaseCounter(ctx, "testCounter", testCounter)
 
 	type want struct {
-		code            int
 		responseContain string
 		contentType     string
+		code            int
 	}
 	type args struct {
 		method string
@@ -259,7 +246,7 @@ func TestGetListMetrics(t *testing.T) {
 			require.Equal(t, test.want.code, res.StatusCode)
 			func() {
 				defer func(Body io.ReadCloser) {
-					err := Body.Close()
+					err = Body.Close()
 					require.NoError(t, err)
 				}(res.Body)
 				resBody, err = io.ReadAll(res.Body)
@@ -275,12 +262,10 @@ func TestGetListMetrics(t *testing.T) {
 	}
 }
 
-func TestGetMetricJson(t *testing.T) {
-	repo := repository.NewRepository(&confTest.StorageConfig, dbTest)
-	s := service.NewService(repo, &confTest.StorageConfig)
-	logger, _ := zap.NewDevelopment()
-	h := NewHandler(chi.NewRouter(), s, &confTest.WEB, logger).Handler()
-	ts := httptest.NewServer(h)
+func testGetMetricJSON(suite HandlerTestSuite) {
+	t := suite.T()
+
+	ts := httptest.NewServer(suite.App())
 	defer ts.Close()
 
 	testCounter := domain.Counter(1)
@@ -289,17 +274,17 @@ func TestGetMetricJson(t *testing.T) {
 	testCounterName := fmt.Sprintf("testCounter%d", rand.Int())
 	// save some values
 	ctx := context.Background()
-	_ = s.SetGauge(ctx, testGaugeName, testGauge)
-	_ = s.IncreaseCounter(ctx, testCounterName, testCounter)
+	_ = suite.Srv().SetGauge(ctx, testGaugeName, testGauge)
+	_ = suite.Srv().IncreaseCounter(ctx, testCounterName, testCounter)
 
 	type want struct {
-		code        int
 		response    domain.Metric
 		contentType string
+		code        int
 	}
 	type args struct {
-		method string
 		body   interface{}
+		method string
 	}
 	tests := []struct {
 		name string
@@ -444,7 +429,7 @@ func TestGetMetricJson(t *testing.T) {
 			require.Equal(t, test.want.code, res.StatusCode)
 			func() {
 				defer func(Body io.ReadCloser) {
-					err := Body.Close()
+					err = Body.Close()
 					require.NoError(t, err)
 				}(res.Body)
 				resBody, err = io.ReadAll(res.Body)
@@ -462,19 +447,16 @@ func TestGetMetricJson(t *testing.T) {
 	}
 }
 
-func TestUpdateMetric(t *testing.T) {
-	repo := repository.NewRepository(&confTest.StorageConfig, dbTest)
-	s := service.NewService(repo, &confTest.StorageConfig)
-	logger, _ := zap.NewDevelopment()
-	h := NewHandler(chi.NewRouter(), s, &confTest.WEB, logger).Handler()
+func testUpdateMetric(suite HandlerTestSuite) {
+	t := suite.T()
 
-	ts := httptest.NewServer(h)
+	ts := httptest.NewServer(suite.App())
 	defer ts.Close()
 
 	type want struct {
-		code        int
 		response    string
 		contentType string
+		code        int
 	}
 	type args struct {
 		method string
@@ -637,7 +619,7 @@ func TestUpdateMetric(t *testing.T) {
 			require.Equal(t, test.want.code, res.StatusCode)
 			func() {
 				defer func(Body io.ReadCloser) {
-					err := Body.Close()
+					err = Body.Close()
 					require.NoError(t, err)
 				}(res.Body)
 				resBody, err = io.ReadAll(res.Body)
@@ -652,24 +634,21 @@ func TestUpdateMetric(t *testing.T) {
 	}
 }
 
-func TestUpdateMetricJson(t *testing.T) {
-	repo := repository.NewRepository(&confTest.StorageConfig, dbTest)
-	s := service.NewService(repo, &confTest.StorageConfig)
-	logger, _ := zap.NewDevelopment()
-	h := NewHandler(chi.NewRouter(), s, &confTest.WEB, logger).Handler()
+func testUpdateMetricJSON(suite HandlerTestSuite) {
+	t := suite.T()
 
-	ts := httptest.NewServer(h)
+	ts := httptest.NewServer(suite.App())
 	defer ts.Close()
 
 	testCounterName := fmt.Sprintf("testCounter%d", rand.Int())
 	type want struct {
-		code        int
 		response    domain.Metric
 		contentType string
+		code        int
 	}
 	type args struct {
-		method string
 		body   interface{}
+		method string
 	}
 	tests := []struct {
 		name string
@@ -866,7 +845,7 @@ func TestUpdateMetricJson(t *testing.T) {
 			require.Equal(t, test.want.code, res.StatusCode)
 			func() {
 				defer func(Body io.ReadCloser) {
-					err := Body.Close()
+					err = Body.Close()
 					require.NoError(t, err)
 				}(res.Body)
 				resBody, err = io.ReadAll(res.Body)
@@ -884,26 +863,23 @@ func TestUpdateMetricJson(t *testing.T) {
 	}
 }
 
-func TestUpdateMetrics(t *testing.T) {
-	repo := repository.NewRepository(&confTest.StorageConfig, dbTest)
-	s := service.NewService(repo, &confTest.StorageConfig)
-	logger, _ := zap.NewDevelopment()
-	h := NewHandler(chi.NewRouter(), s, &confTest.WEB, logger).Handler()
+func testUpdateMetrics(suite HandlerTestSuite) {
+	t := suite.T()
 
-	ts := httptest.NewServer(h)
+	ts := httptest.NewServer(suite.App())
 	defer ts.Close()
 
 	testCounterName := fmt.Sprintf("testCounter%d", rand.Int())
 
 	type want struct {
-		code        int
-		response    []domain.Metric
 		contentType string
+		response    []domain.Metric
+		code        int
 	}
 
 	type args struct {
-		method string
 		body   interface{}
+		method string
 	}
 	tests := []struct {
 		name string
@@ -1054,7 +1030,7 @@ func TestUpdateMetrics(t *testing.T) {
 			require.Equal(t, test.want.code, res.StatusCode)
 			func() {
 				defer func(Body io.ReadCloser) {
-					err := Body.Close()
+					err = Body.Close()
 					require.NoError(t, err)
 				}(res.Body)
 				resBody, err = io.ReadAll(res.Body)
@@ -1072,13 +1048,10 @@ func TestUpdateMetrics(t *testing.T) {
 	}
 }
 
-func TestGzip(t *testing.T) {
-	repo := repository.NewRepository(&confTest.StorageConfig, dbTest)
-	s := service.NewService(repo, &confTest.StorageConfig)
-	logger, _ := zap.NewDevelopment()
-	h := NewHandler(chi.NewRouter(), s, &confTest.WEB, logger).Handler()
+func testGzip(suite HandlerTestSuite) {
+	t := suite.T()
 
-	ts := httptest.NewServer(h)
+	ts := httptest.NewServer(suite.App())
 	defer ts.Close()
 
 	testCounterName1 := fmt.Sprintf("testCounter%d", rand.Int())
@@ -1086,19 +1059,19 @@ func TestGzip(t *testing.T) {
 	testCounterName3 := fmt.Sprintf("testCounter%d", rand.Int())
 
 	type want struct {
-		code        int
-		response    []domain.Metric
-		contentType string
 		headers     map[string]string
+		contentType string
+		response    []domain.Metric
+		code        int
 	}
 	type args struct {
-		method  string
-		headers map[string]string
 		body    interface{}
+		headers map[string]string
+		method  string
 	}
 	tests := []struct {
-		name string
 		args args
+		name string
 		want want
 	}{
 		{
@@ -1216,7 +1189,7 @@ func TestGzip(t *testing.T) {
 			res, err := http.DefaultClient.Do(req)
 			require.NoError(t, err)
 			defer func() {
-				err := res.Body.Close()
+				err = res.Body.Close()
 				require.NoError(t, err)
 			}()
 
@@ -1235,7 +1208,8 @@ func TestGzip(t *testing.T) {
 				assert.True(t, len(resBody) > 0)
 				if len(test.args.headers) > 0 && test.args.headers["Accept-Encoding"] == "gzip" {
 					b := bytes.NewBuffer(resBody)
-					r, err := gzip.NewReader(b)
+					var r *gzip.Reader
+					r, err = gzip.NewReader(b)
 					if !errors.Is(err, io.EOF) {
 						require.NoError(t, err)
 					}
@@ -1260,15 +1234,14 @@ func TestGzip(t *testing.T) {
 	}
 }
 
-func TestHashKey(t *testing.T) {
-	repo := repository.NewRepository(&confTest.StorageConfig, dbTest)
-	s := service.NewService(repo, &confTest.StorageConfig)
-	logger, _ := zap.NewDevelopment()
-	secretKey := "secretKey"
-	h := NewHandler(chi.NewRouter(), s, &config.WEB{Key: secretKey}, logger).Handler()
-
-	ts := httptest.NewServer(h)
-	defer ts.Close()
+func testHashKey(suite HandlerTestSuite) {
+	t := suite.T()
+	suite.Cfg().Key = "secretKey"
+	ts := httptest.NewServer(suite.App())
+	defer func() {
+		ts.Close()
+		suite.Cfg().Key = ""
+	}()
 
 	data1 := []domain.Metric{{ID: fmt.Sprintf("testCounter%d", rand.Int()), MType: "counter", Delta: &[]domain.Counter{1}[0]}, {ID: "testGauge", MType: "gauge", Value: &[]domain.Gauge{100.0015}[0]}}
 	dataBody1, err := json.Marshal(data1)
@@ -1283,10 +1256,10 @@ func TestHashKey(t *testing.T) {
 	require.NoError(t, err)
 
 	type want struct {
-		code        int
-		response    []domain.Metric
-		contentType string
 		headers     map[string]string
+		contentType string
+		response    []domain.Metric
+		code        int
 	}
 	type args struct {
 		method  string
@@ -1304,7 +1277,7 @@ func TestHashKey(t *testing.T) {
 				method: http.MethodPost,
 				body:   dataBody1,
 				headers: map[string]string{
-					"HashSHA256": signData(secretKey, dataBody1),
+					constant.HeaderSignKey: handler.SignData(suite.Cfg().Key, dataBody1),
 				},
 			},
 			want: want{
@@ -1312,7 +1285,7 @@ func TestHashKey(t *testing.T) {
 				response:    data1,
 				contentType: "application/json; charset=utf-8",
 				headers: map[string]string{
-					"HashSHA256": signData(secretKey, dataBody1),
+					constant.HeaderSignKey: handler.SignData(suite.Cfg().Key, dataBody1),
 				},
 			},
 		},
@@ -1322,9 +1295,9 @@ func TestHashKey(t *testing.T) {
 				method: http.MethodPost,
 				body:   dataBody2,
 				headers: map[string]string{
-					"Accept-Encoding":  "gzip",
-					"Content-Encoding": "gzip",
-					"HashSHA256":       signData(secretKey, dataBody2),
+					"Accept-Encoding":      "gzip",
+					"Content-Encoding":     "gzip",
+					constant.HeaderSignKey: handler.SignData(suite.Cfg().Key, dataBody2),
 				},
 			},
 			want: want{
@@ -1332,8 +1305,8 @@ func TestHashKey(t *testing.T) {
 				response:    data2,
 				contentType: "application/json; charset=utf-8",
 				headers: map[string]string{
-					"Content-Encoding": "gzip",
-					"HashSHA256":       signData(secretKey, dataBody2),
+					"Content-Encoding":     "gzip",
+					constant.HeaderSignKey: handler.SignData(suite.Cfg().Key, dataBody2),
 				},
 			},
 		},
@@ -1343,7 +1316,7 @@ func TestHashKey(t *testing.T) {
 				method: http.MethodPost,
 				body:   dataBody1,
 				headers: map[string]string{
-					"HashSHA256": signData("wrong secret key", dataBody1),
+					constant.HeaderSignKey: handler.SignData("wrong secret key", dataBody1),
 				},
 			},
 			want: want{
@@ -1356,9 +1329,9 @@ func TestHashKey(t *testing.T) {
 				method: http.MethodPost,
 				body:   dataBody2,
 				headers: map[string]string{
-					"Accept-Encoding":  "gzip",
-					"Content-Encoding": "gzip",
-					"HashSHA256":       signData("wrong secret key", dataBody2),
+					"Accept-Encoding":      "gzip",
+					"Content-Encoding":     "gzip",
+					constant.HeaderSignKey: handler.SignData("wrong secret key", dataBody2),
 				},
 			},
 			want: want{
@@ -1409,7 +1382,7 @@ func TestHashKey(t *testing.T) {
 			res, err := http.DefaultClient.Do(req)
 			require.NoError(t, err)
 			defer func() {
-				err := res.Body.Close()
+				err = res.Body.Close()
 				require.NoError(t, err)
 			}()
 
@@ -1421,14 +1394,15 @@ func TestHashKey(t *testing.T) {
 			require.NoError(t, err)
 
 			for k, v := range test.want.headers {
-				assert.True(t, res.Header.Get(k) == v)
+				assert.True(t, res.Header.Get(k) == v, fmt.Sprintf("want %s, get %s", v, res.Header.Get(k)))
 			}
 
 			if len(test.want.response) > 0 {
 				assert.True(t, len(resBody) > 0)
 				if len(test.args.headers) > 0 && test.args.headers["Accept-Encoding"] == "gzip" {
 					b := bytes.NewBuffer(resBody)
-					r, err := gzip.NewReader(b)
+					var r *gzip.Reader
+					r, err = gzip.NewReader(b)
 					if !errors.Is(err, io.EOF) {
 						require.NoError(t, err)
 					}

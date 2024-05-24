@@ -11,9 +11,9 @@ import (
 
 // StorageConfig file storage configs
 type StorageConfig struct {
-	FileStoreInterval int
 	FileStoragePath   string
 	StorageRestore    bool
+	FileStoreInterval int
 }
 
 // WEB  config
@@ -25,8 +25,8 @@ type WEB struct {
 type Config struct {
 	ServerAddress string
 	DatabaseDSN   string
-	StorageConfig
 	WEB
+	StorageConfig
 }
 
 func NewConfig() *Config {

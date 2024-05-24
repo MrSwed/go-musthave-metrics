@@ -33,7 +33,7 @@ func NewHandler(app *chi.Mux, s *service.Service, c *config.WEB, log *zap.Logger
 	return &Handler{app: app, s: s, c: c, log: log}
 }
 
-func signData(key string, data []byte) string {
+func SignData(key string, data []byte) string {
 	if key == "" {
 		return ""
 	}
@@ -44,10 +44,10 @@ func signData(key string, data []byte) string {
 
 func setHeaderSHA(r http.ResponseWriter, key string, data []byte) {
 	var sign string
-	if sign = signData(key, data); sign == "" {
+	if sign = SignData(key, data); sign == "" {
 		return
 	}
-	r.Header().Set("HashSHA256", sign)
+	r.Header().Set(constant.HeaderSignKey, sign)
 }
 
 // Handler

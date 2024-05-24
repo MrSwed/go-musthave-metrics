@@ -12,9 +12,9 @@ type Func func(ctx context.Context) error
 
 // Closer for graceful shutdown
 type Closer struct {
-	mu    sync.Mutex
 	funcs []Func
 	names []string
+	mu    sync.Mutex
 }
 
 // Add shutdown service function

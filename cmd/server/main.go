@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	_ "net/http/pprof"
 	"os/signal"
@@ -25,9 +26,25 @@ import (
 	"go.uber.org/zap"
 )
 
+var buildVersion string
+var buildDate string
+var buildCommit string
+
+func buildInfo(s string) string {
+	if s == "" {
+		return "N/A"
+	}
+	return s
+}
+
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	defer stop()
+	fmt.Printf(`
+Build version: %s
+Build date: %s
+Build commit: %s
+`, buildInfo(buildVersion), buildInfo(buildDate), buildInfo(buildCommit))
 
 	runServer(ctx)
 }
@@ -73,8 +90,8 @@ func runServer(ctx context.Context) {
 	if conf.FileStoragePath != "" {
 		if conf.StorageRestore {
 			if isNewStore {
-				if n, err := s.RestoreFromFile(ctx); err != nil {
-					logger.Error("File storage restore", zap.Error(err))
+				if n, er := s.RestoreFromFile(ctx); er != nil {
+					logger.Error("File storage restore", zap.Error(er))
 				} else {
 					logger.Info("File storage restored success", zap.Any("records", n))
 				}
@@ -89,8 +106,8 @@ func runServer(ctx context.Context) {
 				for {
 					select {
 					case <-time.After(time.Duration(conf.FileStoreInterval) * time.Second):
-						if n, err := s.SaveToFile(ctx); err != nil {
-							logger.Error("Storage save", zap.Error(err))
+						if n, er := s.SaveToFile(ctx); er != nil {
+							logger.Error("Storage save", zap.Error(er))
 						} else {
 							logger.Info("Storage saved", zap.Any("records", n))
 						}

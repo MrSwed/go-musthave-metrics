@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	"github.com/MrSwed/go-musthave-metrics/internal/server/config"
+	"github.com/MrSwed/go-musthave-metrics/internal/server/constant"
 	"go.uber.org/zap"
 )
 
@@ -56,8 +57,8 @@ func TextHeader() func(next http.Handler) http.Handler {
 func CheckSign(conf *config.WEB, l *zap.Logger) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-			if conf != nil && conf.Key != "" && r.Header.Get("HashSHA256") != "" {
-				getSha, err := hex.DecodeString(r.Header.Get("HashSHA256"))
+			if conf != nil && conf.Key != "" && r.Header.Get(constant.HeaderSignKey) != "" {
+				getSha, err := hex.DecodeString(r.Header.Get(constant.HeaderSignKey))
 				if len(getSha) == 0 || err != nil {
 					rw.WriteHeader(http.StatusBadRequest)
 					if _, err = rw.Write([]byte("Bad HashKey")); err != nil {
