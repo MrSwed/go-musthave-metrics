@@ -36,28 +36,28 @@ func Load(v interface{}) {
 //
 // Examples of struct field tags and their meanings:
 //
-//  // Field appears as a flag named "Field" with no usage info.
-//  Field int
+//	// Field appears as a flag named "Field" with no usage info.
+//	Field int
 //
-//  // Field appears as a flag named "foo" with no usage info.
-//  Field int `flag:"foo"`
+//	// Field appears as a flag named "foo" with no usage info.
+//	Field int `flag:"foo"`
 //
-//  // Field appears as a flag named "foo" with usage "bar".
-//  Field int `flag:"foo" usage:"bar"`
+//	// Field appears as a flag named "foo" with usage "bar".
+//	Field int `flag:"foo" usage:"bar"`
 //
-//  // Field is ignored by this package.
-//  Field int `flag:"-"`
+//	// Field is ignored by this package.
+//	Field int `flag:"-"`
 //
 // The following field types are supported by this package, and all other types
 // are ignored:
 //
-//  bool
-//  float64
-//  int
-//  uint
-//  int64
-//  uint64
-//  time.Duration
+//	bool
+//	float64
+//	int
+//	uint
+//	int64
+//	uint64
+//	time.Duration
 //
 // These correspond to the types supported natively by the flag package.
 //
@@ -67,24 +67,24 @@ func Load(v interface{}) {
 //
 // For example, given the following "config" struct:
 //
-//  type config struct {
-//    Foo string `flag:"foo"`
-//    Bar struct {
-//      Baz string `flag:"baz"`
-//    } `flag:"baaar"`
-//    embedded `flag:"embezzled`
-//  }
+//	type config struct {
+//	  Foo string `flag:"foo"`
+//	  Bar struct {
+//	    Baz string `flag:"baz"`
+//	  } `flag:"baaar"`
+//	  embedded `flag:"embezzled`
+//	}
 //
-//  type embedded struct {
-//    Quux string `flag:"quux"`
-//  }
+//	type embedded struct {
+//	  Quux string `flag:"quux"`
+//	}
 //
 // If an instance of config were passed to LoadTo with an empty prefix, then it
 // would generate the following flags:
 //
-//  foo
-//  baaar-baz
-//  embezzled-quux
+//	foo
+//	baaar-baz
+//	embezzled-quux
 //
 // LoadTo is subject to the usual Go visibility rules. If a field is unexported,
 // then no flag will be created for that field.
@@ -128,7 +128,7 @@ func load(fs *flag.FlagSet, prefix string, val reflect.Value) {
 
 		switch val.Field(i).Kind() {
 		case reflect.Struct:
-			load(fs, name, val.Field(i))
+			load(fs, prefix, val.Field(i))
 		case reflect.Bool, reflect.Int64, reflect.Float64, reflect.Int, reflect.Uint, reflect.Uint64, reflect.String:
 			switch f := val.Field(i).Addr().Interface().(type) {
 			case *bool:
