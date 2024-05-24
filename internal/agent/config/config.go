@@ -4,6 +4,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"flag"
@@ -27,10 +28,12 @@ type Config struct {
 	CryptoKey string `json:"crypto_key" env:"CRYPTO_KEY" flag:"crypto-key" usage:"Provide the public server key for encryption"`
 	cryptoKey *rsa.PublicKey
 	MetricLists
-	ReportInterval int `json:"report_interval" env:"REPORT_INTERVAL" flag:"r" usage:"Provide the interval in seconds for send report metrics"`
-	PollInterval   int `json:"poll_interval" env:"POLL_INTERVAL" flag:"p" usage:"Provide the interval in seconds for update metrics"`
-	RateLimit      int `json:"rate_limit" env:"RATE_LIMIT" flag:"l" usage:"Provide the rate limit - number of concurrent outgoing requests"`
-	SendSize       int `json:"send_size" env:"SEND_SIZE" flag:"s" usage:"Provide the number of metrics send at once. 0 - send all"`
+	ReportInterval int    `json:"report_interval" env:"REPORT_INTERVAL" flag:"r" usage:"Provide the interval in seconds for send report metrics"`
+	PollInterval   int    `json:"poll_interval" env:"POLL_INTERVAL" flag:"p" usage:"Provide the interval in seconds for update metrics"`
+	RateLimit      int    `json:"rate_limit" env:"RATE_LIMIT" flag:"l" usage:"Provide the rate limit - number of concurrent outgoing requests"`
+	SendSize       int    `json:"send_size" env:"SEND_SIZE" flag:"s" usage:"Provide the number of metrics send at once. 0 - send all"`
+	Config         string `json:"-" env:"CONFIG" flag:"config" usage:"Provide file with config"`
+	Config2        string `json:"-" env:"-" flag:"c" usage:"same as -config"`
 }
 
 type MetricLists struct {
@@ -102,11 +105,46 @@ func (c *Config) setCountersList(m ...string) {
 	}
 }
 
-// Init config from flags and env
-func (c *Config) Init() (err error) {
+func (c *Config) parseFlags() {
 	structflag.Load(c)
 	flag.Parse()
+}
+
+func (c *Config) maybeLoadConfig() (ok bool, err error) {
+	if c.Config == "" && c.Config2 != "" {
+		c.Config = c.Config2
+	}
+	if c.Config == "" {
+		return
+	}
+	var confFile *os.File
+	confFile, err = os.Open(c.Config)
+	defer func() {
+		err = errors.Join(err, confFile.Close())
+	}()
+	if err != nil {
+		return
+	}
+	jsonParser := json.NewDecoder(confFile)
+	err = jsonParser.Decode(c)
+	if err != nil {
+		return
+	}
+	ok = true
+	return
+}
+
+// Init config from flags and env
+func (c *Config) Init() (err error) {
+	c.parseFlags()
 	err = env.Parse(c)
+	if ok, er := c.maybeLoadConfig(); ok && er == nil {
+		// reload flag and env after config file
+		fs := flag.NewFlagSet("reload", flag.ContinueOnError)
+		structflag.LoadTo(fs, "", c)
+		err = fs.Parse(os.Args[1:])
+		err = errors.Join(err, env.Parse(c))
+	}
 	c.CleanSchemes()
 	// get key to mem
 	err = errors.Join(err, c.LoadPublicKey())
