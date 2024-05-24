@@ -18,9 +18,12 @@ func NewConfigGetTest() (c *config.Config) {
 			StorageRestore:  false,
 		},
 	}
-	c.WithEnv().CleanSchemes()
+	err := c.ParseEnv()
+	if err != nil {
+		log.Fatal(err)
+	}
+	c.CleanSchemes()
 
-	var err error
 	if c.DatabaseDSN != "" {
 		if dbTest, err = sqlx.Open("postgres", c.DatabaseDSN); err != nil {
 			log.Fatal(err)
