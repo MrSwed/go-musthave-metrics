@@ -8,13 +8,11 @@ import (
 	"errors"
 	"flag"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/MrSwed/go-musthave-metrics/internal/server/constant"
-
+	"github.com/MrSwed/go-musthave-metrics/pkg/structflag"
 	"github.com/caarlos0/env/v10"
-	"github.com/ucarion/structflag"
 )
 
 // StorageConfig file storage configs
@@ -54,89 +52,24 @@ func NewConfig() *Config {
 
 // Init all configs
 func (c *Config) Init() (*Config, error) {
-	/* old * /
-	c.withFlags().WithEnv().CleanSchemes()
-	err := c.LoadPrivateKey()
-	/*some new*/
-	c.withFlags()
+	c.parseFlags()
 	err := c.ParseEnv()
+	if ok, er := c.maybeLoadConfig(); ok && er == nil {
+		// reload flag and env after config file
+		fs := flag.NewFlagSet("reload", flag.ContinueOnError)
+		structflag.LoadTo(fs, "", c)
+		err = errors.Join(err,
+			fs.Parse(os.Args[1:]),
+			env.Parse(c),
+		)
+	} else {
+		err = errors.Join(err, er)
+	}
 
-	err = c.LoadPrivateKey()
+	err = errors.Join(err, c.LoadPrivateKey())
 	c.CleanSchemes()
 
-	/*new * /
-		c.parseFlags()
-		err := c.ParseEnv()
-		if ok, er := c.maybeLoadConfig(); ok && er == nil {
-			// reload flag and env after config file
-			fs := flag.NewFlagSet("reload", flag.ContinueOnError)
-			structflag.LoadTo(fs, "", c)
-			err = fs.Parse(os.Args[1:])
-			err = errors.Join(err, env.Parse(c))
-		}
-
-		err = errors.Join(err, c.LoadPrivateKey())
-		c.CleanSchemes()
-
-	/**/
 	return c, err
-}
-
-// WithEnv gets ENV configs
-// todo : deprecated
-func (c *Config) WithEnv() *Config {
-	if envVal, ok := os.LookupEnv(constant.EnvNameServerAddress); ok && envVal != "" {
-		c.Address = envVal
-	}
-	if envVal, ok := os.LookupEnv(constant.EnvNameFileStoragePath); ok && envVal != "" {
-		c.FileStoragePath = envVal
-	}
-	if envVal, ok := os.LookupEnv(constant.EnvNameStoreInterval); ok {
-		if sInterval, err := strconv.Atoi(envVal); err == nil {
-			c.FileStoreInterval = sInterval
-		}
-	}
-	if envVal, ok := os.LookupEnv(constant.EnvNameRestore); ok {
-		func() {
-			for _, v := range []string{"true", "1", "on", "y", "yes"} {
-				if v == strings.ToLower(envVal) {
-					c.StorageRestore = true
-					return
-				}
-			}
-			for _, v := range []string{"false", "0", "off", "n", "no"} {
-				if v == strings.ToLower(envVal) {
-					c.StorageRestore = false
-					return
-				}
-			}
-		}()
-	}
-	if envVal, ok := os.LookupEnv(constant.EnvNameDBDSN); ok {
-		c.DatabaseDSN = envVal
-	}
-	if envVal, ok := os.LookupEnv(constant.EnvNameKey); ok {
-		c.Key = envVal
-	}
-	if envVal, ok := os.LookupEnv(constant.EnvNameCryptoKey); ok {
-		c.CryptoKey = envVal
-	}
-
-	return c
-}
-
-// withFlags
-// todo : deprecated
-func (c *Config) withFlags() *Config {
-	flag.StringVar(&c.Address, "a", c.Address, "Provide the address start server")
-	flag.IntVar(&c.FileStoreInterval, "i", c.FileStoreInterval, "Provide the interval store (sec)")
-	flag.StringVar(&c.FileStoragePath, "f", c.FileStoragePath, "Provide the file storage path")
-	flag.BoolVar(&c.StorageRestore, "r", c.StorageRestore, "Restore storage at boot")
-	flag.StringVar(&c.DatabaseDSN, "d", c.DatabaseDSN, "Provide the database dsn connect string")
-	flag.StringVar(&c.Key, "k", c.Key, "Provide the key")
-	flag.StringVar(&c.CryptoKey, "crypto-key", c.CryptoKey, "Provide the private server key for decryption")
-	flag.Parse()
-	return c
 }
 
 // ParseEnv gets ENV configs

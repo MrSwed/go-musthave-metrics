@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/MrSwed/go-musthave-metrics/pkg/structflag"
 	"github.com/caarlos0/env/v10"
-	"github.com/ucarion/structflag"
 )
 
 var Backoff = [3]time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second}
@@ -144,6 +144,8 @@ func (c *Config) Init() (err error) {
 		structflag.LoadTo(fs, "", c)
 		err = fs.Parse(os.Args[1:])
 		err = errors.Join(err, env.Parse(c))
+	} else {
+		err = errors.Join(err, er)
 	}
 	c.CleanSchemes()
 	// get key to mem
