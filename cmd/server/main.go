@@ -123,7 +123,7 @@ func runServer(ctx context.Context) {
 		}
 	}
 
-	server := &http.Server{Addr: conf.ServerAddress, Handler: h.Handler()}
+	server := &http.Server{Addr: conf.Address, Handler: h.Handler()}
 	lockDBCLose := make(chan struct{})
 
 	sCloser.Add("WEB", server.Shutdown)

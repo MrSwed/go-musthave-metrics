@@ -28,15 +28,15 @@ type WEB struct {
 
 // Config all configs
 type Config struct {
-	ServerAddress string
-	DatabaseDSN   string
+	Address     string
+	DatabaseDSN string
 	WEB
 	StorageConfig
 }
 
 func NewConfig() *Config {
 	return &Config{
-		ServerAddress: constant.ServerAddress,
+		Address: constant.ServerAddress,
 		StorageConfig: StorageConfig{
 			FileStoreInterval: constant.StoreInterval,
 			FileStoragePath:   constant.FileStoragePath,
@@ -56,7 +56,7 @@ func (c *Config) Init() (*Config, error) {
 // WithEnv gets ENV configs
 func (c *Config) WithEnv() *Config {
 	if envVal, ok := os.LookupEnv(constant.EnvNameServerAddress); ok && envVal != "" {
-		c.ServerAddress = envVal
+		c.Address = envVal
 	}
 	if envVal, ok := os.LookupEnv(constant.EnvNameFileStoragePath); ok && envVal != "" {
 		c.FileStoragePath = envVal
@@ -96,7 +96,7 @@ func (c *Config) WithEnv() *Config {
 }
 
 func (c *Config) withFlags() *Config {
-	flag.StringVar(&c.ServerAddress, "a", c.ServerAddress, "Provide the address start server")
+	flag.StringVar(&c.Address, "a", c.Address, "Provide the address start server")
 	flag.IntVar(&c.FileStoreInterval, "i", c.FileStoreInterval, "Provide the interval store (sec)")
 	flag.StringVar(&c.FileStoragePath, "f", c.FileStoragePath, "Provide the file storage path")
 	flag.BoolVar(&c.StorageRestore, "r", c.StorageRestore, "Restore storage at boot")
@@ -110,7 +110,7 @@ func (c *Config) withFlags() *Config {
 // CleanSchemes check and repair config parameters
 func (c *Config) CleanSchemes() *Config {
 	for _, v := range []string{"http://", "https://"} {
-		c.ServerAddress = strings.TrimPrefix(c.ServerAddress, v)
+		c.Address = strings.TrimPrefix(c.Address, v)
 	}
 	c.DatabaseDSN = strings.Trim(c.DatabaseDSN, "'")
 	return c
