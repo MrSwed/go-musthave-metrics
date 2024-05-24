@@ -128,7 +128,7 @@ func runServer(ctx context.Context) {
 
 	sCloser.Add("WEB", server.Shutdown)
 
-	if conf.FileStoragePath != "" && conf.FileStoreInterval == 0 {
+	if conf.FileStoragePath != "" {
 		sCloser.Add("Storage save", func(ctx context.Context) (err error) {
 			defer close(lockDBCLose)
 			var n int64
