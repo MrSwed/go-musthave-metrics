@@ -26,14 +26,14 @@ type Config struct {
 	Address   string `json:"address" env:"ADDRESS" flag:"a" usage:"Provide the address of the metrics collection server"`
 	Key       string `json:"key" env:"KEY" flag:"k" usage:"Provide the key"`
 	CryptoKey string `json:"crypto_key" env:"CRYPTO_KEY" flag:"crypto-key" usage:"Provide the public server key for encryption"`
+	Config    string `json:"-" env:"CONFIG" flag:"config" usage:"Provide file with config"`
+	Config2   string `json:"-" env:"-" flag:"c" usage:"same as -config"`
 	cryptoKey *rsa.PublicKey
 	MetricLists
-	ReportInterval int    `json:"report_interval" env:"REPORT_INTERVAL" flag:"r" usage:"Provide the interval in seconds for send report metrics"`
-	PollInterval   int    `json:"poll_interval" env:"POLL_INTERVAL" flag:"p" usage:"Provide the interval in seconds for update metrics"`
-	RateLimit      int    `json:"rate_limit" env:"RATE_LIMIT" flag:"l" usage:"Provide the rate limit - number of concurrent outgoing requests"`
-	SendSize       int    `json:"send_size" env:"SEND_SIZE" flag:"s" usage:"Provide the number of metrics send at once. 0 - send all"`
-	Config         string `json:"-" env:"CONFIG" flag:"config" usage:"Provide file with config"`
-	Config2        string `json:"-" env:"-" flag:"c" usage:"same as -config"`
+	ReportInterval int `json:"report_interval" env:"REPORT_INTERVAL" flag:"r" usage:"Provide the interval in seconds for send report metrics"`
+	PollInterval   int `json:"poll_interval" env:"POLL_INTERVAL" flag:"p" usage:"Provide the interval in seconds for update metrics"`
+	RateLimit      int `json:"rate_limit" env:"RATE_LIMIT" flag:"l" usage:"Provide the rate limit - number of concurrent outgoing requests"`
+	SendSize       int `json:"send_size" env:"SEND_SIZE" flag:"s" usage:"Provide the number of metrics send at once. 0 - send all"`
 }
 
 type MetricLists struct {

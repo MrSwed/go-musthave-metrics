@@ -35,18 +35,18 @@ func ExampleLoad() {
 
 // config is the type used in test calls to LoadTo.
 type config struct {
-	Bool           bool          `flag:"bool" usage:"bool usage"`
-	Duration       time.Duration `flag:"duration" usage:"duration usage"`
-	Float          float64       `flag:"float" usage:"float usage"`
-	Int            int           `flag:"int" usage:"int usage"`
-	Int64          int64         `flag:"int64" usage:"int64 usage"`
-	String         string        `flag:"string" usage:"string usage"`
-	Uint           uint          `flag:"uint" usage:"uint usage"`
-	Uint64         uint64        `flag:"uint64" usage:"uint64 usage"`
-	SkipBool       bool          `flag:"-"`
-	PlainBool      bool
+	String         string      `flag:"string" usage:"string usage"`
 	EmbeddedStruct configEmbed `flag:"embed"`
 	anonEmbed      `flag:"anon"`
+	Duration       time.Duration `flag:"duration" usage:"duration usage"`
+	Int64          int64         `flag:"int64" usage:"int64 usage"`
+	Float          float64       `flag:"float" usage:"float usage"`
+	Uint64         uint64        `flag:"uint64" usage:"uint64 usage"`
+	Uint           uint          `flag:"uint" usage:"uint usage"`
+	Int            int           `flag:"int" usage:"int usage"`
+	Bool           bool          `flag:"bool" usage:"bool usage"`
+	SkipBool       bool          `flag:"-"`
+	PlainBool      bool
 }
 
 type configEmbed struct {

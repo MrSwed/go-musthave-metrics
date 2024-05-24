@@ -18,8 +18,8 @@ type ConfigTestSuite struct {
 
 func (suite *ConfigTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
-	suite.existWrongKey = "/tmp/testPrivate.key"
-	suite.existKey = "/tmp/testPublic.crt"
+	suite.existWrongKey = suite.T().TempDir() + "/testPrivate.key"
+	suite.existKey = suite.T().TempDir() + "/testPublic.crt"
 	testHelpers.CreateCertificates(suite.existWrongKey, suite.existKey)
 }
 
