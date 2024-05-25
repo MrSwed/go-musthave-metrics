@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"testing"
 
 	"github.com/MrSwed/go-musthave-metrics/internal/server/config"
@@ -38,6 +39,54 @@ func TestConfigs(t *testing.T) {
 	suite.Run(t, new(ConfigTestSuite))
 }
 
+func (suite *ConfigTestSuite) setConfigFromMap(m map[string]any) (c *config.Config) {
+	c = config.NewConfig()
+	for k, v := range m {
+		switch v := v.(type) {
+		case string:
+			switch k {
+			case "address", "-a", "ADDRESS":
+				c.Address = v
+			case "database_dsn", "-d", "DATABASE_DSN":
+				c.DatabaseDSN = v
+			case "key", "-k", "KEY":
+				c.Key = v
+			case "crypto_key", "-crypto-key", "CRYPTO_KEY":
+				c.CryptoKey = v
+			case "file_storage_path", "-f", "FILE_STORAGE_PATH":
+				c.FileStoragePath = v
+			case "RESTORE", "-r":
+				v, err := strconv.ParseBool(v)
+				require.NoError(suite.T(), err)
+				c.StorageRestore = v
+			case "FILE_STORE_INTERVAL":
+				v, err := strconv.Atoi(v)
+				require.NoError(suite.T(), err)
+				c.FileStoreInterval = v
+			case "config", "CONFIG":
+				c.Config = v
+			case "config2", "-c":
+				c.Config2 = v
+
+			}
+		case bool:
+			switch k {
+			case "restore", "-r":
+				c.StorageRestore = v
+			}
+		case int:
+			switch k {
+			case "file_store_interval", "-i":
+				c.FileStoreInterval = v
+			}
+		}
+	}
+	c.CleanSchemes()
+	err := c.LoadPrivateKey()
+	require.NoError(suite.T(), err)
+	return c
+}
+
 func (suite *ConfigTestSuite) TestInit() {
 	t := suite.T()
 
@@ -53,13 +102,11 @@ func (suite *ConfigTestSuite) TestInit() {
 	tests := []struct {
 		config map[string]any
 		flag   map[string]any
-		env    map[string]string
-		want   *config.Config
+		env    map[string]any
 		name   string
 	}{
 		{
 			name: "Default",
-			want: config.NewConfig(),
 		},
 		{
 			name: "Config 1, small",
@@ -67,13 +114,6 @@ func (suite *ConfigTestSuite) TestInit() {
 				"address":           "localhost:8888",
 				"file_storage_path": "store.json",
 			},
-			want: func() (c *config.Config) {
-				c = config.NewConfig()
-				c.Address = "localhost:8888"
-				c.StorageConfig.FileStoragePath = "store.json"
-				c.Config = cnfFile
-				return c
-			}(),
 		},
 		{
 			name: "Config 2, full",
@@ -86,20 +126,6 @@ func (suite *ConfigTestSuite) TestInit() {
 				"restore":             true,
 				"file_store_interval": 100,
 			},
-			want: func() (c *config.Config) {
-				c = config.NewConfig()
-				c.Address = "localhost:8000"
-				c.DatabaseDSN = "host=confighost port=5432 user=metric password=metric dbname=metric sslmode=disable"
-				c.Key = "some-config-secret-key"
-				c.CryptoKey = suite.privateKey
-				c.FileStoragePath = "configstore.json"
-				c.StorageRestore = true
-				c.FileStoreInterval = 100
-				c.Config = cnfFile
-				err := c.LoadPrivateKey()
-				require.NoError(t, err)
-				return c
-			}(),
 		},
 		{
 			name: "Config 3, check empty's",
@@ -108,15 +134,6 @@ func (suite *ConfigTestSuite) TestInit() {
 				"restore":             false,
 				"file_store_interval": 0,
 			},
-			want: func() (c *config.Config) {
-				c = config.NewConfig()
-				c.FileStoragePath = ""
-				c.StorageRestore = false
-				c.FileStoreInterval = 0
-				c.Config = cnfFile
-
-				return c
-			}(),
 		},
 		{
 			name: "Flag 1, small",
@@ -124,12 +141,6 @@ func (suite *ConfigTestSuite) TestInit() {
 				"-i": 120,
 				"-k": "some-flag-secret-key",
 			},
-			want: func() (c *config.Config) {
-				c = config.NewConfig()
-				c.StorageConfig.FileStoreInterval = 120
-				c.WEB.Key = "some-flag-secret-key"
-				return c
-			}(),
 		},
 		{
 			name: "Flag 2, full",
@@ -142,19 +153,6 @@ func (suite *ConfigTestSuite) TestInit() {
 				"-r":          true,
 				"-i":          200,
 			},
-			want: func() (c *config.Config) {
-				c = config.NewConfig()
-				c.Address = "localhost:8001"
-				c.DatabaseDSN = "host=flaghost port=5432 user=metric password=metric dbname=metric sslmode=disable"
-				c.Key = "some-flag-secret-key"
-				c.CryptoKey = suite.privateKey
-				c.FileStoragePath = "flagstore.json"
-				c.StorageRestore = true
-				c.FileStoreInterval = 200
-				err := c.LoadPrivateKey()
-				require.NoError(t, err)
-				return c
-			}(),
 		},
 		{
 			name: "Flag 3, check empty's",
@@ -163,31 +161,17 @@ func (suite *ConfigTestSuite) TestInit() {
 				"-r": false,
 				"-i": 0,
 			},
-			want: func() (c *config.Config) {
-				c = config.NewConfig()
-				c.FileStoragePath = ""
-				c.StorageRestore = false
-				c.FileStoreInterval = 0
-
-				return c
-			}(),
 		},
 		{
 			name: "ENV 1, small",
-			env: map[string]string{
+			env: map[string]any{
 				"FILE_STORE_INTERVAL": "250",
 				"KEY":                 "some-env-secret-key",
 			},
-			want: func() (c *config.Config) {
-				c = config.NewConfig()
-				c.StorageConfig.FileStoreInterval = 250
-				c.WEB.Key = "some-env-secret-key"
-				return c
-			}(),
 		},
 		{
 			name: "ENV 2, full",
-			env: map[string]string{
+			env: map[string]any{
 				"ADDRESS":             "localhost:8002",
 				"DATABASE_DSN":        "host=envhost port=5432 user=metric password=metric dbname=metric sslmode=disable",
 				"KEY":                 "some-env-secret-key",
@@ -196,35 +180,14 @@ func (suite *ConfigTestSuite) TestInit() {
 				"RESTORE":             "true",
 				"FILE_STORE_INTERVAL": "50",
 			},
-			want: func() (c *config.Config) {
-				c = config.NewConfig()
-				c.Address = "localhost:8002"
-				c.DatabaseDSN = "host=envhost port=5432 user=metric password=metric dbname=metric sslmode=disable"
-				c.Key = "some-env-secret-key"
-				c.CryptoKey = suite.privateKey
-				c.FileStoragePath = "envstore.json"
-				c.StorageRestore = true
-				c.FileStoreInterval = 50
-				err := c.LoadPrivateKey()
-				require.NoError(t, err)
-				return c
-			}(),
 		},
 		{
 			name: "ENV 3, check empty's",
-			env: map[string]string{
+			env: map[string]any{
 				// "FILE_STORAGE_PATH":   "", // todo: env.Parse can't set empty
 				"RESTORE":             "false",
 				"FILE_STORE_INTERVAL": "0",
 			},
-			want: func() (c *config.Config) {
-				c = config.NewConfig()
-				// c.FileStoragePath = ""
-				c.StorageRestore = false
-				c.FileStoreInterval = 0
-
-				return c
-			}(),
 		},
 	}
 
@@ -234,10 +197,15 @@ func (suite *ConfigTestSuite) TestInit() {
 		os.Args = make([]string, len(test.flag)+1)
 		os.Args[0] = osArgs[0]
 
+		wantCfg := config.NewConfig()
+
 		if test.config != nil {
 			// prepare config file for test
 			err := testhelpers.CreateConfigFile(cnfFile, test.config)
 			require.NoError(t, err)
+			test.config["config"] = cnfFile
+			wantCfg = suite.setConfigFromMap(test.config)
+
 		}
 		if test.flag != nil {
 			// prepare flag for test
@@ -246,15 +214,19 @@ func (suite *ConfigTestSuite) TestInit() {
 				i++
 				os.Args[i] = fmt.Sprintf(`%s=%v`, k, v)
 			}
+
+			wantCfg = suite.setConfigFromMap(test.flag)
 		}
 		if test.env != nil {
 			// prepare env sets
 			for k, v := range test.env {
-				er := os.Setenv(k, v)
-				require.NoError(t, er)
+				if v, ok := v.(string); ok {
+					er := os.Setenv(k, v)
+					require.NoError(t, er)
+				}
 			}
+			wantCfg = suite.setConfigFromMap(test.env)
 		}
-
 		t.Run(test.name, func(t *testing.T) {
 			var err error
 			cfg := config.NewConfig()
@@ -263,11 +235,11 @@ func (suite *ConfigTestSuite) TestInit() {
 			}
 			cfg, err = cfg.Init()
 			assert.NoError(t, err)
-			assert.Equal(t, true, reflect.DeepEqual(cfg, test.want), fmt.Sprintf("expected: %v\n  actual: %v", test.want, cfg))
+			assert.Equal(t, true, reflect.DeepEqual(cfg, wantCfg), fmt.Sprintf("expected: %v\n  actual: %v", wantCfg, cfg))
 		})
 
 		if test.env != nil {
-			for k, _ := range test.env {
+			for k := range test.env {
 				er := os.Unsetenv(k)
 				require.NoError(t, er)
 			}
