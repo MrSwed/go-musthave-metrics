@@ -50,9 +50,13 @@ func NewConfig() *Config {
 		RateLimit:      1,
 		SendSize:       10,
 	}
+	c.SetDefaultMetrics()
+	return c.CleanSchemes()
+}
+
+func (c *Config) SetDefaultMetrics() {
 	c.setGaugesList()
 	c.setCountersList()
-	return c.CleanSchemes()
 }
 
 func (c *Config) setGaugesList(m ...string) {
