@@ -1441,14 +1441,14 @@ todo: individual..? stop, lets think about injection
 * /
 func testCrypto(suite HandlerTestSuite) {
 	t := suite.T()
-	existKey := "/tmp/testPrivate.key"
-	existWrongKey := "/tmp/testPublic.crt"
+	publicKey := "/tmp/testPrivate.key"
+	privateKey := "/tmp/testPublic.crt"
 	defer func() {
-		_ = os.Remove(existKey)
-		_ = os.Remove(existWrongKey)
+		_ = os.Remove(publicKey)
+		_ = os.Remove(privateKey)
 	}()
 
-	testHelpers.CreateCertificates(existKey, existWrongKey)
+	testHelpers.CreateCertificates(publicKey, privateKey)
 
 	ts := httptest.NewServer(suite.App())
 	defer ts.Close()

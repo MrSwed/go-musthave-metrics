@@ -18,20 +18,20 @@ import (
 
 type ConfigTestSuite struct {
 	suite.Suite
-	ctx                     context.Context
-	existKey, existWrongKey string
+	ctx                   context.Context
+	publicKey, privateKey string
 }
 
 func (suite *ConfigTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
-	suite.existWrongKey = suite.T().TempDir() + "/testPrivate.key"
-	suite.existKey = suite.T().TempDir() + "/testPublic.crt"
-	testhelpers.CreateCertificates(suite.existKey, suite.existWrongKey)
+	suite.privateKey = suite.T().TempDir() + "/testPrivate.key"
+	suite.publicKey = suite.T().TempDir() + "/testPublic.crt"
+	testhelpers.CreateCertificates(suite.publicKey, suite.privateKey)
 }
 
 func (suite *ConfigTestSuite) TearDownSuite() {
-	_ = os.Remove(suite.existKey)
-	_ = os.Remove(suite.existWrongKey)
+	_ = os.Remove(suite.publicKey)
+	_ = os.Remove(suite.privateKey)
 }
 
 func TestConfigs(t *testing.T) {
