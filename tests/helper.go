@@ -6,7 +6,9 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"log"
 	"math/big"
 	"net"
@@ -65,4 +67,19 @@ func CreateCertificates(privateFile, publicFile string) {
 		log.Fatal(err)
 	}
 
+}
+
+func CreateConfigFile(configFile string, config map[string]any) (err error) {
+	var file *os.File
+	file, err = os.Create(configFile)
+	if err != nil {
+		return
+	}
+	defer func() {
+		err = errors.Join(err, file.Close())
+	}()
+	var b []byte
+	b, err = json.MarshalIndent(config, "", "\t")
+	_, err = file.Write(b)
+	return
 }

@@ -2,14 +2,18 @@ package server
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/MrSwed/go-musthave-metrics/internal/server/config"
 	"github.com/MrSwed/go-musthave-metrics/tests"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -37,6 +41,13 @@ func TestConfigs(t *testing.T) {
 
 func (suite *ConfigTestSuite) TestInit() {
 	t := suite.T()
+
+	// do not use t.Parallel with one config file
+	cnfFile := filepath.Join(t.TempDir(), "config.json")
+	defer func() {
+		_ = os.Remove(cnfFile)
+	}()
+
 	tests := []struct {
 		config map[string]any
 		flag   map[string]any
@@ -45,16 +56,30 @@ func (suite *ConfigTestSuite) TestInit() {
 		name   string
 	}{
 		{
-			config: nil,
-			flag:   nil,
-			env:    nil,
-			want:   config.NewConfig(),
-			name:   "Default",
+			name: "Default",
+			want: config.NewConfig(),
+		},
+		{
+			name: "Config",
+			config: map[string]any{
+				"address":           "localhost:8888",
+				"file_storage_path": "store.json",
+			},
+			want: func() (c *config.Config) {
+				c = config.NewConfig()
+				c.Address = "localhost:8888"
+				c.StorageConfig.FileStoragePath = "store.json"
+				c.Config = cnfFile
+				return c
+			}(),
 		},
 	}
+
 	for _, test := range tests {
 		if test.config != nil {
 			// prepare config file for test
+			err := testhelpers.CreateConfigFile(cnfFile, test.config)
+			require.NoError(t, err)
 		}
 		if test.flag != nil {
 			// prepare flag for test
@@ -63,12 +88,21 @@ func (suite *ConfigTestSuite) TestInit() {
 			// prepare env sets
 		}
 		t.Run(test.name, func(t *testing.T) {
+			flag.CommandLine = flag.NewFlagSet(t.Name(), flag.ContinueOnError)
 			var err error
 			cfg := config.NewConfig()
+			if test.config != nil {
+				cfg.Config = cnfFile
+			}
 			cfg, err = cfg.Init()
+			if err != nil {
+				if strings.HasPrefix(err.Error(), "flag provided but not defined") {
+					err = nil
+				}
+			}
 			assert.NoError(t, err)
 			// cm := reflect.DeepEqual(cfg, test.want)
-			assert.Equal(t, true, reflect.DeepEqual(cfg, test.want), fmt.Sprintf("expected: %v\n actual: %v", test.want, cfg))
+			assert.Equal(t, true, reflect.DeepEqual(cfg, test.want), fmt.Sprintf("expected: %v\n  actual: %v", test.want, cfg))
 		})
 	}
 }
