@@ -53,7 +53,7 @@ func (suite *ConfigTestSuite) TestInit() {
 	tests := []struct {
 		config map[string]any
 		flag   map[string]any
-		env    map[string]any
+		env    map[string]string
 		want   *config.Config
 		name   string
 	}{
@@ -88,6 +88,19 @@ func (suite *ConfigTestSuite) TestInit() {
 				return c
 			}(),
 		},
+		{
+			name: "ENV",
+			env: map[string]string{
+				"FILE_STORE_INTERVAL": "250",
+				"KEY":                 "some-env-secret-key",
+			},
+			want: func() (c *config.Config) {
+				c = config.NewConfig()
+				c.StorageConfig.FileStoreInterval = 250
+				c.WEB.Key = "some-env-secret-key"
+				return c
+			}(),
+		},
 	}
 
 	for _, test := range tests {
@@ -111,6 +124,10 @@ func (suite *ConfigTestSuite) TestInit() {
 		}
 		if test.env != nil {
 			// prepare env sets
+			for k, v := range test.env {
+				er := os.Setenv(k, v)
+				require.NoError(t, er)
+			}
 		}
 		t.Run(test.name, func(t *testing.T) {
 			var err error
