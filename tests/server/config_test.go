@@ -70,6 +70,7 @@ func (suite *ConfigTestSuite) setConfigFromMap(m map[string]any, sc ...*config.C
 			case "config", "CONFIG":
 				c.Config = v
 			case "config2", "-c":
+				c.Config = v
 				c.Config2 = v
 
 			}
@@ -115,6 +116,7 @@ func (suite *ConfigTestSuite) TestInit() {
 		{
 			name: "Config 1, small",
 			config: map[string]any{
+				"config":            cnfFile,
 				"address":           "localhost:8888",
 				"file_storage_path": "store.json",
 			},
@@ -122,6 +124,7 @@ func (suite *ConfigTestSuite) TestInit() {
 		{
 			name: "Config 2, full",
 			config: map[string]any{
+				"config":              cnfFile,
 				"address":             "localhost:8000",
 				"database_dsn":        "host=confighost port=5432 user=metric password=metric dbname=metric sslmode=disable",
 				"key":                 "some-config-secret-key",
@@ -134,6 +137,7 @@ func (suite *ConfigTestSuite) TestInit() {
 		{
 			name: "Config 3, check empty's",
 			config: map[string]any{
+				"config":              cnfFile,
 				"file_storage_path":   "",
 				"restore":             false,
 				"file_store_interval": 0,
@@ -214,6 +218,7 @@ func (suite *ConfigTestSuite) TestInit() {
 			flag: map[string]any{
 				"-a": "localhost:11111",
 				"-k": "some-flag-secret-key",
+				"-c": cnfFile,
 			},
 		},
 		{
@@ -225,6 +230,7 @@ func (suite *ConfigTestSuite) TestInit() {
 			env: map[string]any{
 				"FILE_STORE_INTERVAL": "250",
 				"KEY":                 "some-env-secret-key",
+				"CONFIG":              cnfFile,
 			},
 		},
 		{
@@ -236,6 +242,7 @@ func (suite *ConfigTestSuite) TestInit() {
 			env: map[string]any{
 				"ADDRESS":           "localhost:111",
 				"FILE_STORAGE_PATH": "enf-store",
+				"CONFIG":            cnfFile,
 			},
 		},
 		{
@@ -265,6 +272,7 @@ func (suite *ConfigTestSuite) TestInit() {
 			},
 			flag: map[string]any{
 				"-k": "some-flag-secret-key",
+				"-c": cnfFile,
 			},
 			env: map[string]any{
 				"FILE_STORE_INTERVAL": "250",
@@ -278,6 +286,7 @@ func (suite *ConfigTestSuite) TestInit() {
 			},
 			flag: map[string]any{
 				"-k": "some-flag-secret-key",
+				"-c": cnfFile,
 			},
 			env: map[string]any{
 				"FILE_STORE_INTERVAL": "250",
@@ -298,7 +307,6 @@ func (suite *ConfigTestSuite) TestInit() {
 			// prepare config file for test
 			err := testhelpers.CreateConfigFile(cnfFile, test.config)
 			require.NoError(t, err)
-			test.config["config"] = cnfFile
 			wantCfg = suite.setConfigFromMap(test.config, wantCfg)
 
 		}

@@ -69,6 +69,7 @@ func (suite *ConfigTestSuite) setConfigFromMap(m map[string]any, sc ...*config.C
 			case "config", "CONFIG":
 				c.Config = v
 			case "config2", "-c":
+				c.Config = v
 				c.Config2 = v
 			case "REPORT_INTERVAL":
 				v, err := strconv.Atoi(v)
@@ -123,11 +124,13 @@ func (suite *ConfigTestSuite) TestInit() {
 			config: map[string]any{
 				"address":         "localhost:8010",
 				"report_interval": 100,
+				"config":          cnfFile,
 			},
 		},
 		{
 			name: "Config 2, full",
 			config: map[string]any{
+				"config":          cnfFile,
 				"address":         "localhost:8011",
 				"report_interval": 101,
 				"poll_interval":   11,
@@ -140,6 +143,7 @@ func (suite *ConfigTestSuite) TestInit() {
 		{
 			name: "Config 3, check empty's",
 			config: map[string]any{
+				"config":          cnfFile,
 				"address":         "",
 				"report_interval": 0,
 			},
@@ -203,6 +207,7 @@ func (suite *ConfigTestSuite) TestInit() {
 			},
 			flag: map[string]any{
 				"-r": 120,
+				"-c": cnfFile,
 			},
 		},
 		{
@@ -213,6 +218,7 @@ func (suite *ConfigTestSuite) TestInit() {
 			flag: map[string]any{
 				"-a": "localhost:11111",
 				"-k": "some-flag-secret-key",
+				"-c": cnfFile,
 			},
 		},
 		{
@@ -223,6 +229,7 @@ func (suite *ConfigTestSuite) TestInit() {
 			env: map[string]any{
 				"REPORT_INTERVAL": "250",
 				"KEY":             "some-env-secret-key",
+				"CONFIG":          cnfFile,
 			},
 		},
 		{
@@ -232,6 +239,7 @@ func (suite *ConfigTestSuite) TestInit() {
 			},
 			env: map[string]any{
 				"ADDRESS": "localhost:111",
+				"CONFIG":  cnfFile,
 			},
 		},
 		{
@@ -260,6 +268,7 @@ func (suite *ConfigTestSuite) TestInit() {
 			},
 			flag: map[string]any{
 				"-k": "some-flag-secret-key",
+				"-c": cnfFile,
 			},
 			env: map[string]any{
 				"REPORT_INTERVAL": "250",
@@ -273,6 +282,7 @@ func (suite *ConfigTestSuite) TestInit() {
 			},
 			flag: map[string]any{
 				"-k": "some-flag-secret-key",
+				"-c": cnfFile,
 			},
 			env: map[string]any{
 				"REPORT_INTERVAL": "50",
@@ -293,7 +303,6 @@ func (suite *ConfigTestSuite) TestInit() {
 			// prepare config file for test
 			err := testhelpers.CreateConfigFile(cnfFile, test.config)
 			require.NoError(t, err)
-			test.config["config"] = cnfFile
 			wantCfg = suite.setConfigFromMap(test.config, wantCfg)
 
 		}
