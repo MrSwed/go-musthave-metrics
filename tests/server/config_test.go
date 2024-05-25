@@ -93,11 +93,28 @@ func (suite *ConfigTestSuite) TestInit() {
 				c.Key = "some-config-secret-key"
 				c.CryptoKey = suite.privateKey
 				c.FileStoragePath = "configstore.json"
-				c.FileStoreInterval = 100
 				c.StorageRestore = true
+				c.FileStoreInterval = 100
 				c.Config = cnfFile
 				err := c.LoadPrivateKey()
 				require.NoError(t, err)
+				return c
+			}(),
+		},
+		{
+			name: "Config 3, check empty's",
+			config: map[string]any{
+				"file_storage_path":   "",
+				"restore":             false,
+				"file_store_interval": 0,
+			},
+			want: func() (c *config.Config) {
+				c = config.NewConfig()
+				c.FileStoragePath = ""
+				c.StorageRestore = false
+				c.FileStoreInterval = 0
+				c.Config = cnfFile
+
 				return c
 			}(),
 		},
