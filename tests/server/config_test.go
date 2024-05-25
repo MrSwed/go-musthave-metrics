@@ -26,7 +26,7 @@ func (suite *ConfigTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
 	suite.privateKey = suite.T().TempDir() + "/testPrivate.key"
 	suite.publicKey = suite.T().TempDir() + "/testPublic.crt"
-	testhelpers.CreateCertificates(suite.publicKey, suite.privateKey)
+	testhelpers.CreateCertificates(suite.privateKey, suite.publicKey)
 }
 
 func (suite *ConfigTestSuite) TearDownSuite() {
@@ -78,10 +78,10 @@ func (suite *ConfigTestSuite) TestInit() {
 		{
 			name: "Config 2, full",
 			config: map[string]any{
-				"address":      "localhost:8000",
-				"database_dsn": "host=confighost port=5432 user=metric password=metric dbname=metric sslmode=disable",
-				"key":          "some-config-secret-key",
-				// "crypto_key":          suite.privateKey,
+				"address":             "localhost:8000",
+				"database_dsn":        "host=confighost port=5432 user=metric password=metric dbname=metric sslmode=disable",
+				"key":                 "some-config-secret-key",
+				"crypto_key":          suite.privateKey,
 				"file_storage_path":   "configstore.json",
 				"restore":             true,
 				"file_store_interval": 100,
@@ -91,11 +91,13 @@ func (suite *ConfigTestSuite) TestInit() {
 				c.Address = "localhost:8000"
 				c.DatabaseDSN = "host=confighost port=5432 user=metric password=metric dbname=metric sslmode=disable"
 				c.Key = "some-config-secret-key"
-				// c.CryptoKey = suite.privateKey
+				c.CryptoKey = suite.privateKey
 				c.FileStoragePath = "configstore.json"
 				c.FileStoreInterval = 100
 				c.StorageRestore = true
 				c.Config = cnfFile
+				err := c.LoadPrivateKey()
+				require.NoError(t, err)
 				return c
 			}(),
 		},
@@ -115,23 +117,25 @@ func (suite *ConfigTestSuite) TestInit() {
 		{
 			name: "Flag 2, full",
 			flag: map[string]any{
-				"-a": "localhost:8001",
-				"-d": "host=flaghost port=5432 user=metric password=metric dbname=metric sslmode=disable",
-				"-k": "some-flag-secret-key",
-				// "-crypto_key":          suite.privateKey,
-				"-f": "flagstore.json",
-				"-r": true,
-				"-i": 200,
+				"-a":          "localhost:8001",
+				"-d":          "host=flaghost port=5432 user=metric password=metric dbname=metric sslmode=disable",
+				"-k":          "some-flag-secret-key",
+				"-crypto-key": suite.privateKey,
+				"-f":          "flagstore.json",
+				"-r":          true,
+				"-i":          200,
 			},
 			want: func() (c *config.Config) {
 				c = config.NewConfig()
 				c.Address = "localhost:8001"
 				c.DatabaseDSN = "host=flaghost port=5432 user=metric password=metric dbname=metric sslmode=disable"
 				c.Key = "some-flag-secret-key"
-				// c.CryptoKey = suite.privateKey
+				c.CryptoKey = suite.privateKey
 				c.FileStoragePath = "flagstore.json"
 				c.StorageRestore = true
 				c.FileStoreInterval = 200
+				err := c.LoadPrivateKey()
+				require.NoError(t, err)
 				return c
 			}(),
 		},
@@ -151,10 +155,10 @@ func (suite *ConfigTestSuite) TestInit() {
 		{
 			name: "ENV 2, full",
 			env: map[string]string{
-				"ADDRESS":      "localhost:8002",
-				"DATABASE_DSN": "host=envhost port=5432 user=metric password=metric dbname=metric sslmode=disable",
-				"KEY":          "some-env-secret-key",
-				// "crypto_key":          suite.privateKey,
+				"ADDRESS":             "localhost:8002",
+				"DATABASE_DSN":        "host=envhost port=5432 user=metric password=metric dbname=metric sslmode=disable",
+				"KEY":                 "some-env-secret-key",
+				"CRYPTO_KEY":          suite.privateKey,
 				"FILE_STORAGE_PATH":   "envstore.json",
 				"RESTORE":             "true",
 				"FILE_STORE_INTERVAL": "50",
@@ -164,10 +168,12 @@ func (suite *ConfigTestSuite) TestInit() {
 				c.Address = "localhost:8002"
 				c.DatabaseDSN = "host=envhost port=5432 user=metric password=metric dbname=metric sslmode=disable"
 				c.Key = "some-env-secret-key"
-				// c.CryptoKey = suite.privateKey
+				c.CryptoKey = suite.privateKey
 				c.FileStoragePath = "envstore.json"
 				c.StorageRestore = true
 				c.FileStoreInterval = 50
+				err := c.LoadPrivateKey()
+				require.NoError(t, err)
 				return c
 			}(),
 		},
@@ -221,7 +227,7 @@ func (suite *ConfigTestSuite) TestLoadPrivateKey() {
 		ok   bool
 	}{{
 		name: "Exist key",
-		file: suite.publicKey,
+		file: suite.privateKey,
 		ok:   true,
 	},
 		{
@@ -231,7 +237,7 @@ func (suite *ConfigTestSuite) TestLoadPrivateKey() {
 		},
 		{
 			name: "Wrong key",
-			file: suite.privateKey,
+			file: suite.publicKey,
 			ok:   false,
 		},
 	}
