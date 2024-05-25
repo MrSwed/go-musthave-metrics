@@ -12,20 +12,20 @@ import (
 
 type ConfigTestSuite struct {
 	suite.Suite
-	ctx                     context.Context
-	existKey, existWrongKey string
+	ctx                   context.Context
+	publicKey, privateKey string
 }
 
 func (suite *ConfigTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
-	suite.existWrongKey = suite.T().TempDir() + "/testPrivate.key"
-	suite.existKey = suite.T().TempDir() + "/testPublic.crt"
-	testHelpers.CreateCertificates(suite.existWrongKey, suite.existKey)
+	suite.privateKey = suite.T().TempDir() + "/testPrivate.key"
+	suite.publicKey = suite.T().TempDir() + "/testPublic.crt"
+	testHelpers.CreateCertificates(suite.privateKey, suite.publicKey)
 }
 
 func (suite *ConfigTestSuite) TearDownSuite() {
-	_ = os.Remove(suite.existKey)
-	_ = os.Remove(suite.existWrongKey)
+	_ = os.Remove(suite.publicKey)
+	_ = os.Remove(suite.privateKey)
 }
 
 func TestConfigs(t *testing.T) {
@@ -41,7 +41,7 @@ func (suite *ConfigTestSuite) TestLoadPublicKey() {
 		ok   bool
 	}{{
 		name: "Exist key",
-		file: suite.existKey,
+		file: suite.publicKey,
 		ok:   true,
 	},
 		{
@@ -51,7 +51,7 @@ func (suite *ConfigTestSuite) TestLoadPublicKey() {
 		},
 		{
 			name: "Wrong key",
-			file: suite.existWrongKey,
+			file: suite.privateKey,
 			ok:   false,
 		},
 	}
