@@ -88,3 +88,6 @@ func (suite *HandlerMemTestSuite) TestGzip() {
 func (suite *HandlerMemTestSuite) TestHashKey() {
 	testHashKey(suite)
 }
+func (suite *HandlerMemTestSuite) TestPing() {
+	testPing(suite)
+}

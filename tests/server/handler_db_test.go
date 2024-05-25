@@ -153,3 +153,6 @@ func (suite *HandlerDBTestSuite) TestGzip() {
 func (suite *HandlerDBTestSuite) TestHashKey() {
 	testHashKey(suite)
 }
+func (suite *HandlerDBTestSuite) TestPing() {
+	testPing(suite)
+}
