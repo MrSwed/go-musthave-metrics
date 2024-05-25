@@ -42,10 +42,13 @@ func TestConfigs(t *testing.T) {
 func (suite *ConfigTestSuite) TestInit() {
 	t := suite.T()
 
+	osArgs := make([]string, len(os.Args))
+	copy(osArgs, os.Args)
 	// do not use t.Parallel with one config file
 	cnfFile := filepath.Join(t.TempDir(), "config.json")
 	defer func() {
 		_ = os.Remove(cnfFile)
+		copy(os.Args, osArgs)
 	}()
 
 	tests := []struct {
@@ -73,9 +76,23 @@ func (suite *ConfigTestSuite) TestInit() {
 				return c
 			}(),
 		},
+		{
+			name: "Flag",
+			flag: map[string]any{
+				"-i": 120,
+				"-k": "some-flag-secret-key",
+			},
+			want: func() (c *config.Config) {
+				c = config.NewConfig()
+				c.StorageConfig.FileStoreInterval = 120
+				c.WEB.Key = "some-flag-secret-key"
+				return c
+			}(),
+		},
 	}
 
 	for _, test := range tests {
+		flag.CommandLine = flag.NewFlagSet(test.name, flag.ContinueOnError)
 		if test.config != nil {
 			// prepare config file for test
 			err := testhelpers.CreateConfigFile(cnfFile, test.config)
@@ -83,12 +100,18 @@ func (suite *ConfigTestSuite) TestInit() {
 		}
 		if test.flag != nil {
 			// prepare flag for test
+			os.Args = make([]string, len(test.flag)+1)
+			os.Args[0] = osArgs[0]
+			var i int
+			for k, v := range test.flag {
+				i++
+				os.Args[i] = fmt.Sprintf(`%s=%v`, k, v)
+			}
 		}
 		if test.env != nil {
 			// prepare env sets
 		}
 		t.Run(test.name, func(t *testing.T) {
-			flag.CommandLine = flag.NewFlagSet(t.Name(), flag.ContinueOnError)
 			var err error
 			cfg := config.NewConfig()
 			if test.config != nil {
