@@ -62,7 +62,7 @@ func (suite *ConfigTestSuite) TestInit() {
 			want: config.NewConfig(),
 		},
 		{
-			name: "Config",
+			name: "Config 1, small",
 			config: map[string]any{
 				"address":           "localhost:8888",
 				"file_storage_path": "store.json",
@@ -76,7 +76,31 @@ func (suite *ConfigTestSuite) TestInit() {
 			}(),
 		},
 		{
-			name: "Flag",
+			name: "Config 2, full",
+			config: map[string]any{
+				"address":      "localhost:8000",
+				"database_dsn": "host=confighost port=5432 user=metric password=metric dbname=metric sslmode=disable",
+				"key":          "some-config-secret-key",
+				// "crypto_key":          suite.privateKey,
+				"file_storage_path":   "configstore.json",
+				"restore":             true,
+				"file_store_interval": 100,
+			},
+			want: func() (c *config.Config) {
+				c = config.NewConfig()
+				c.Address = "localhost:8000"
+				c.DatabaseDSN = "host=confighost port=5432 user=metric password=metric dbname=metric sslmode=disable"
+				c.Key = "some-config-secret-key"
+				// c.CryptoKey = suite.privateKey
+				c.FileStoragePath = "configstore.json"
+				c.FileStoreInterval = 100
+				c.StorageRestore = true
+				c.Config = cnfFile
+				return c
+			}(),
+		},
+		{
+			name: "Flag 1, small",
 			flag: map[string]any{
 				"-i": 120,
 				"-k": "some-flag-secret-key",
@@ -89,7 +113,30 @@ func (suite *ConfigTestSuite) TestInit() {
 			}(),
 		},
 		{
-			name: "ENV",
+			name: "Flag 2, full",
+			flag: map[string]any{
+				"-a": "localhost:8001",
+				"-d": "host=flaghost port=5432 user=metric password=metric dbname=metric sslmode=disable",
+				"-k": "some-flag-secret-key",
+				// "-crypto_key":          suite.privateKey,
+				"-f": "flagstore.json",
+				"-r": true,
+				"-i": 200,
+			},
+			want: func() (c *config.Config) {
+				c = config.NewConfig()
+				c.Address = "localhost:8001"
+				c.DatabaseDSN = "host=flaghost port=5432 user=metric password=metric dbname=metric sslmode=disable"
+				c.Key = "some-flag-secret-key"
+				// c.CryptoKey = suite.privateKey
+				c.FileStoragePath = "flagstore.json"
+				c.StorageRestore = true
+				c.FileStoreInterval = 200
+				return c
+			}(),
+		},
+		{
+			name: "ENV 1, small",
 			env: map[string]string{
 				"FILE_STORE_INTERVAL": "250",
 				"KEY":                 "some-env-secret-key",
@@ -98,6 +145,29 @@ func (suite *ConfigTestSuite) TestInit() {
 				c = config.NewConfig()
 				c.StorageConfig.FileStoreInterval = 250
 				c.WEB.Key = "some-env-secret-key"
+				return c
+			}(),
+		},
+		{
+			name: "ENV 2, full",
+			env: map[string]string{
+				"ADDRESS":      "localhost:8002",
+				"DATABASE_DSN": "host=envhost port=5432 user=metric password=metric dbname=metric sslmode=disable",
+				"KEY":          "some-env-secret-key",
+				// "crypto_key":          suite.privateKey,
+				"FILE_STORAGE_PATH":   "envstore.json",
+				"RESTORE":             "true",
+				"FILE_STORE_INTERVAL": "50",
+			},
+			want: func() (c *config.Config) {
+				c = config.NewConfig()
+				c.Address = "localhost:8002"
+				c.DatabaseDSN = "host=envhost port=5432 user=metric password=metric dbname=metric sslmode=disable"
+				c.Key = "some-env-secret-key"
+				// c.CryptoKey = suite.privateKey
+				c.FileStoragePath = "envstore.json"
+				c.StorageRestore = true
+				c.FileStoreInterval = 50
 				return c
 			}(),
 		},
@@ -137,7 +207,6 @@ func (suite *ConfigTestSuite) TestInit() {
 			}
 			cfg, err = cfg.Init()
 			assert.NoError(t, err)
-			// cm := reflect.DeepEqual(cfg, test.want)
 			assert.Equal(t, true, reflect.DeepEqual(cfg, test.want), fmt.Sprintf("expected: %v\n  actual: %v", test.want, cfg))
 		})
 	}
@@ -152,7 +221,7 @@ func (suite *ConfigTestSuite) TestLoadPrivateKey() {
 		ok   bool
 	}{{
 		name: "Exist key",
-		file: suite.existKey,
+		file: suite.publicKey,
 		ok:   true,
 	},
 		{
@@ -162,7 +231,7 @@ func (suite *ConfigTestSuite) TestLoadPrivateKey() {
 		},
 		{
 			name: "Wrong key",
-			file: suite.existWrongKey,
+			file: suite.privateKey,
 			ok:   false,
 		},
 	}
