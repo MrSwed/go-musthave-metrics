@@ -69,7 +69,7 @@ func CreateCertificates(privateFile, publicFile string) {
 
 }
 
-func CreateConfigFile(configFile string, config map[string]any) (err error) {
+func CreateConfigFile(configFile string, config any) (err error) {
 	var file *os.File
 	file, err = os.Create(configFile)
 	if err != nil {
@@ -79,7 +79,15 @@ func CreateConfigFile(configFile string, config map[string]any) (err error) {
 		err = errors.Join(err, file.Close())
 	}()
 	var b []byte
-	b, err = json.MarshalIndent(config, "", "\t")
+	switch c := config.(type) {
+	case []byte:
+		b = c
+	case string:
+		b = []byte(c)
+	default:
+		b, err = json.Marshal(config)
+
+	}
 	_, err = file.Write(b)
 	return
 }
