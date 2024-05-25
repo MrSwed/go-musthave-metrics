@@ -2,11 +2,18 @@ package agent
 
 import (
 	"context"
+	"flag"
+	"fmt"
 	"os"
+	"path/filepath"
+	"reflect"
+	"strconv"
 	"testing"
 
 	"github.com/MrSwed/go-musthave-metrics/internal/agent/config"
-	testHelpers "github.com/MrSwed/go-musthave-metrics/tests"
+	"github.com/MrSwed/go-musthave-metrics/tests"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -20,7 +27,7 @@ func (suite *ConfigTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
 	suite.privateKey = suite.T().TempDir() + "/testPrivate.key"
 	suite.publicKey = suite.T().TempDir() + "/testPublic.crt"
-	testHelpers.CreateCertificates(suite.privateKey, suite.publicKey)
+	testhelpers.CreateCertificates(suite.privateKey, suite.publicKey)
 }
 
 func (suite *ConfigTestSuite) TearDownSuite() {
@@ -30,6 +37,218 @@ func (suite *ConfigTestSuite) TearDownSuite() {
 
 func TestConfigs(t *testing.T) {
 	suite.Run(t, new(ConfigTestSuite))
+}
+
+func (suite *ConfigTestSuite) setConfigFromMap(m map[string]any) (c *config.Config) {
+	c = config.NewConfig()
+	for k, v := range m {
+		switch v := v.(type) {
+		case int:
+			switch k {
+			case "report_interval", "-r":
+				c.ReportInterval = v
+			case "poll_interval", "-p":
+				c.PollInterval = v
+			case "rate_limit", "-l":
+				c.RateLimit = v
+			case "send_size", "-s":
+				c.SendSize = v
+			}
+		case string:
+			switch k {
+			case "address", "-a", "ADDRESS":
+				c.Address = v
+			case "key", "-k", "KEY":
+				c.Key = v
+			case "crypto_key", "-crypto-key", "CRYPTO_KEY":
+				c.CryptoKey = v
+			case "config", "CONFIG":
+				c.Config = v
+			case "config2", "-c":
+				c.Config2 = v
+			case "REPORT_INTERVAL":
+				v, err := strconv.Atoi(v)
+				require.NoError(suite.T(), err)
+				c.ReportInterval = v
+			case "POLL_INTERVAL":
+				v, err := strconv.Atoi(v)
+				require.NoError(suite.T(), err)
+				c.PollInterval = v
+			case "RATE_LIMIT":
+				v, err := strconv.Atoi(v)
+				require.NoError(suite.T(), err)
+				c.RateLimit = v
+			case "SEND_SIZE":
+				v, err := strconv.Atoi(v)
+				require.NoError(suite.T(), err)
+				c.SendSize = v
+			}
+		}
+	}
+	c.SetDefaultMetrics()
+	c.CleanSchemes()
+	err := c.LoadPublicKey()
+	require.NoError(suite.T(), err)
+	return c
+}
+
+func (suite *ConfigTestSuite) TestInit() {
+	t := suite.T()
+
+	osArgs := make([]string, len(os.Args))
+	copy(osArgs, os.Args)
+	// do not use t.Parallel with one config file
+	cnfFile := filepath.Join(t.TempDir(), "config.json")
+
+	defer func() {
+		_ = os.Remove(cnfFile)
+		copy(os.Args, osArgs)
+	}()
+
+	tests := []struct {
+		config map[string]any
+		flag   map[string]any
+		env    map[string]any
+		name   string
+	}{
+		{
+			name: "Default config",
+		},
+		{
+			name: "Config 1, small",
+			config: map[string]any{
+				"address":         "localhost:8010",
+				"report_interval": 100,
+			},
+		},
+		{
+			name: "Config 2, full",
+			config: map[string]any{
+				"address":         "localhost:8011",
+				"report_interval": 101,
+				"poll_interval":   11,
+				"rate_limit":      11,
+				"send_size":       11,
+				"key":             "some-config-secret-key",
+				"crypto_key":      suite.publicKey,
+			},
+		},
+		{
+			name: "Config 3, check empty's",
+			config: map[string]any{
+				"address":         "",
+				"report_interval": 0,
+			},
+		},
+		{
+			name: "Flag 1, small",
+			flag: map[string]any{
+				"-a": "localhost:8021",
+				"-r": 201,
+			},
+		},
+		{
+			name: "Flag 2, full",
+			flag: map[string]any{
+				"-a":          "localhost:8022",
+				"-r":          203,
+				"-p":          22,
+				"-l":          22,
+				"-s":          22,
+				"-k":          "some-flag-secret-key",
+				"-crypto-key": suite.publicKey,
+			},
+		},
+		{
+			name: "Flag 3, check empty's",
+			flag: map[string]any{
+				"-a": "",
+				"-r": 0,
+			},
+		},
+		{
+			name: "ENV 1, small",
+			env: map[string]any{
+				"ADDRESS":         "localhost:8033",
+				"REPORT_INTERVAL": "301",
+			},
+		},
+		{
+			name: "ENV 2, full",
+			env: map[string]any{
+				"ADDRESS":         "localhost:8003",
+				"REPORT_INTERVAL": "301",
+				"POLL_INTERVAL":   "31",
+				"RATE_LIMIT":      "31",
+				"SEND_SIZE":       "31",
+				"KEY":             "some-env-secret-key",
+				"CRYPTO_KEY":      suite.publicKey,
+			},
+		},
+		{
+			name: "ENV 3, check empty's",
+			env: map[string]any{
+				// "ADDRESS":         "", // todo: env.Parse can't set empty
+				"REPORT_INTERVAL": "0",
+			},
+		},
+	}
+
+	for _, test := range tests {
+		flag.CommandLine = flag.NewFlagSet(test.name, flag.ContinueOnError)
+		// clean args
+		os.Args = make([]string, len(test.flag)+1)
+		os.Args[0] = osArgs[0]
+
+		wantCfg := config.NewConfig()
+
+		if test.config != nil {
+			// prepare config file for test
+			err := testhelpers.CreateConfigFile(cnfFile, test.config)
+			require.NoError(t, err)
+			test.config["config"] = cnfFile
+			wantCfg = suite.setConfigFromMap(test.config)
+
+		}
+		if test.flag != nil {
+			// prepare flag for test
+			var i int
+			for k, v := range test.flag {
+				i++
+				os.Args[i] = fmt.Sprintf(`%s=%v`, k, v)
+			}
+
+			wantCfg = suite.setConfigFromMap(test.flag)
+		}
+		if test.env != nil {
+			// prepare env sets
+			for k, v := range test.env {
+				if v, ok := v.(string); ok {
+					er := os.Setenv(k, v)
+					require.NoError(t, er)
+				}
+			}
+			wantCfg = suite.setConfigFromMap(test.env)
+		}
+		t.Run(test.name, func(t *testing.T) {
+			var err error
+			cfg := config.NewConfig()
+			if test.config != nil {
+				cfg.Config = cnfFile
+			}
+			err = cfg.Init()
+			assert.NoError(t, err)
+			assert.Equal(t, true, reflect.DeepEqual(cfg, wantCfg), fmt.Sprintf("expected: %v\n  actual: %v", wantCfg, cfg))
+		})
+
+		if test.env != nil {
+			for k := range test.env {
+				er := os.Unsetenv(k)
+				require.NoError(t, er)
+			}
+		}
+	}
+
 }
 
 func (suite *ConfigTestSuite) TestLoadPublicKey() {
