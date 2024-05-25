@@ -39,8 +39,12 @@ func TestConfigs(t *testing.T) {
 	suite.Run(t, new(ConfigTestSuite))
 }
 
-func (suite *ConfigTestSuite) setConfigFromMap(m map[string]any) (c *config.Config) {
-	c = config.NewConfig()
+func (suite *ConfigTestSuite) setConfigFromMap(m map[string]any, sc ...*config.Config) (c *config.Config) {
+	if len(sc) == 0 || sc[0] == nil {
+		c = config.NewConfig()
+	} else {
+		c = sc[0]
+	}
 	for k, v := range m {
 		switch v := v.(type) {
 		case string:
@@ -189,6 +193,97 @@ func (suite *ConfigTestSuite) TestInit() {
 				"FILE_STORE_INTERVAL": "0",
 			},
 		},
+		{
+			name: "Config and flag",
+			config: map[string]any{
+				"address":           "localhost:0000",
+				"file_storage_path": "store.json",
+			},
+			flag: map[string]any{
+				"-i": 120,
+				"-k": "some-flag-secret-key",
+				"-c": cnfFile,
+			},
+		},
+		{
+			name: "Config and flag cross",
+			config: map[string]any{
+				"address":           "localhost:0000",
+				"file_storage_path": "store.json",
+			},
+			flag: map[string]any{
+				"-a": "localhost:11111",
+				"-k": "some-flag-secret-key",
+			},
+		},
+		{
+			name: "Config and env",
+			config: map[string]any{
+				"address":           "localhost:0000",
+				"file_storage_path": "store.json",
+			},
+			env: map[string]any{
+				"FILE_STORE_INTERVAL": "250",
+				"KEY":                 "some-env-secret-key",
+			},
+		},
+		{
+			name: "Config and env cross",
+			config: map[string]any{
+				"address":           "localhost:0000",
+				"file_storage_path": "store.json",
+			},
+			env: map[string]any{
+				"ADDRESS":           "localhost:111",
+				"FILE_STORAGE_PATH": "enf-store",
+			},
+		},
+		{
+			name: "flag and env",
+			flag: map[string]any{
+				"-a": "localhost:0000",
+			},
+			env: map[string]any{
+				"FILE_STORE_INTERVAL": "250",
+				"KEY":                 "some-env-secret-key",
+			},
+		},
+		{
+			name: "flag and env cross",
+			flag: map[string]any{
+				"-a": "localhost:0000",
+			},
+			env: map[string]any{
+				"ADDRESS": "localhost:111",
+			},
+		},
+		{
+			name: "config and flag and env",
+			config: map[string]any{
+				"address":           "localhost:0000",
+				"file_storage_path": "config-store.json",
+			},
+			flag: map[string]any{
+				"-k": "some-flag-secret-key",
+			},
+			env: map[string]any{
+				"FILE_STORE_INTERVAL": "250",
+			},
+		},
+		{
+			name: "config and flag and env cross",
+			config: map[string]any{
+				"address":           "localhost:0000",
+				"file_storage_path": "config-store.json",
+			},
+			flag: map[string]any{
+				"-k": "some-flag-secret-key",
+			},
+			env: map[string]any{
+				"FILE_STORE_INTERVAL": "250",
+				"KEY":                 "some-env-secret-key",
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -204,7 +299,7 @@ func (suite *ConfigTestSuite) TestInit() {
 			err := testhelpers.CreateConfigFile(cnfFile, test.config)
 			require.NoError(t, err)
 			test.config["config"] = cnfFile
-			wantCfg = suite.setConfigFromMap(test.config)
+			wantCfg = suite.setConfigFromMap(test.config, wantCfg)
 
 		}
 		if test.flag != nil {
@@ -215,7 +310,7 @@ func (suite *ConfigTestSuite) TestInit() {
 				os.Args[i] = fmt.Sprintf(`%s=%v`, k, v)
 			}
 
-			wantCfg = suite.setConfigFromMap(test.flag)
+			wantCfg = suite.setConfigFromMap(test.flag, wantCfg)
 		}
 		if test.env != nil {
 			// prepare env sets
@@ -225,7 +320,7 @@ func (suite *ConfigTestSuite) TestInit() {
 					require.NoError(t, er)
 				}
 			}
-			wantCfg = suite.setConfigFromMap(test.env)
+			wantCfg = suite.setConfigFromMap(test.env, wantCfg)
 		}
 		t.Run(test.name, func(t *testing.T) {
 			var err error
