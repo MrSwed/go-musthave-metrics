@@ -157,6 +157,22 @@ func (suite *ConfigTestSuite) TestInit() {
 			}(),
 		},
 		{
+			name: "Flag 3, check empty's",
+			flag: map[string]any{
+				"-f": "",
+				"-r": false,
+				"-i": 0,
+			},
+			want: func() (c *config.Config) {
+				c = config.NewConfig()
+				c.FileStoragePath = ""
+				c.StorageRestore = false
+				c.FileStoreInterval = 0
+
+				return c
+			}(),
+		},
+		{
 			name: "ENV 1, small",
 			env: map[string]string{
 				"FILE_STORE_INTERVAL": "250",
@@ -194,6 +210,22 @@ func (suite *ConfigTestSuite) TestInit() {
 				return c
 			}(),
 		},
+		{
+			name: "ENV 3, check empty's",
+			env: map[string]string{
+				// "FILE_STORAGE_PATH":   "", // todo: env.Parse can't set empty
+				"RESTORE":             "false",
+				"FILE_STORE_INTERVAL": "0",
+			},
+			want: func() (c *config.Config) {
+				c = config.NewConfig()
+				// c.FileStoragePath = ""
+				c.StorageRestore = false
+				c.FileStoreInterval = 0
+
+				return c
+			}(),
+		},
 	}
 
 	for _, test := range tests {
@@ -222,6 +254,7 @@ func (suite *ConfigTestSuite) TestInit() {
 				require.NoError(t, er)
 			}
 		}
+
 		t.Run(test.name, func(t *testing.T) {
 			var err error
 			cfg := config.NewConfig()
@@ -232,6 +265,13 @@ func (suite *ConfigTestSuite) TestInit() {
 			assert.NoError(t, err)
 			assert.Equal(t, true, reflect.DeepEqual(cfg, test.want), fmt.Sprintf("expected: %v\n  actual: %v", test.want, cfg))
 		})
+
+		if test.env != nil {
+			for k, _ := range test.env {
+				er := os.Unsetenv(k)
+				require.NoError(t, er)
+			}
+		}
 	}
 }
 
