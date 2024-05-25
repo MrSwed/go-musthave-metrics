@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/MrSwed/go-musthave-metrics/pkg/structflag"
-	"github.com/caarlos0/env/v10"
+	"github.com/caarlos0/env/v11"
 )
 
 var Backoff = [3]time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second}

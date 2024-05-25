@@ -3,7 +3,7 @@ module github.com/MrSwed/go-musthave-metrics
 go 1.21
 
 require (
-	github.com/caarlos0/env/v10 v10.0.0
+	github.com/caarlos0/env/v11 v11.0.1
 	github.com/go-chi/chi/v5 v5.0.11
 	github.com/go-critic/go-critic v0.11.3
 	github.com/go-playground/validator/v10 v10.17.0
@@ -23,7 +23,6 @@ require (
 	golang.org/x/net v0.24.0
 	golang.org/x/sync v0.7.0
 	golang.org/x/tools v0.20.0
-	gotest.tools/v3 v3.5.0
 	honnef.co/go/tools v0.4.7
 )
 

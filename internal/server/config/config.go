@@ -12,7 +12,7 @@ import (
 
 	"github.com/MrSwed/go-musthave-metrics/internal/server/constant"
 	"github.com/MrSwed/go-musthave-metrics/pkg/structflag"
-	"github.com/caarlos0/env/v10"
+	"github.com/caarlos0/env/v11"
 )
 
 // StorageConfig file storage configs
