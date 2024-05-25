@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/MrSwed/go-musthave-metrics/internal/server/config"
@@ -93,6 +92,10 @@ func (suite *ConfigTestSuite) TestInit() {
 
 	for _, test := range tests {
 		flag.CommandLine = flag.NewFlagSet(test.name, flag.ContinueOnError)
+		// clean args
+		os.Args = make([]string, len(test.flag)+1)
+		os.Args[0] = osArgs[0]
+
 		if test.config != nil {
 			// prepare config file for test
 			err := testhelpers.CreateConfigFile(cnfFile, test.config)
@@ -100,8 +103,6 @@ func (suite *ConfigTestSuite) TestInit() {
 		}
 		if test.flag != nil {
 			// prepare flag for test
-			os.Args = make([]string, len(test.flag)+1)
-			os.Args[0] = osArgs[0]
 			var i int
 			for k, v := range test.flag {
 				i++
@@ -118,11 +119,6 @@ func (suite *ConfigTestSuite) TestInit() {
 				cfg.Config = cnfFile
 			}
 			cfg, err = cfg.Init()
-			if err != nil {
-				if strings.HasPrefix(err.Error(), "flag provided but not defined") {
-					err = nil
-				}
-			}
 			assert.NoError(t, err)
 			// cm := reflect.DeepEqual(cfg, test.want)
 			assert.Equal(t, true, reflect.DeepEqual(cfg, test.want), fmt.Sprintf("expected: %v\n  actual: %v", test.want, cfg))
