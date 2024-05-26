@@ -14,12 +14,12 @@ import (
 
 func TestCreateConfigFile(t *testing.T) {
 	type args struct {
-		configFile string
 		config     any
+		configFile string
 	}
 	tests := []struct {
-		name    string
 		args    args
+		name    string
 		wantErr bool
 	}{
 		{
