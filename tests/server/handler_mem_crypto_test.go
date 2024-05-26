@@ -89,10 +89,7 @@ func (suite *HandlerMemCryptoTestSuite) SetupSuite() {
 	suite.app = handler.NewHandler(chi.NewRouter(), suite.srv, &suite.cfg.WEB, logger).Handler()
 }
 func (suite *HandlerMemCryptoTestSuite) TearDownSuite() {
-	if suite.cfg.CryptoKey != "" {
-		_ = os.Remove(suite.cfg.CryptoKey)
-		_ = os.Remove(suite.publicFile)
-	}
+	require.NoError(suite.T(), os.RemoveAll(suite.T().TempDir()))
 }
 
 func (suite *HandlerMemCryptoTestSuite) App() http.Handler {

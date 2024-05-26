@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"errors"
 	"net/http"
+	"os"
 	"testing"
 
 	"github.com/MrSwed/go-musthave-metrics/internal/server/config"
@@ -16,6 +17,7 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
@@ -117,6 +119,7 @@ func (suite *HandlerDBTestSuite) TearDownSuite() {
 	if err := suite.pgCont.Terminate(suite.ctx); err != nil {
 		log.Fatalf("error terminating postgres container: %s", err)
 	}
+	require.NoError(suite.T(), os.RemoveAll(suite.T().TempDir()))
 }
 
 func TestHandlersDB(t *testing.T) {

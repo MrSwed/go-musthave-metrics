@@ -31,8 +31,7 @@ func (suite *ConfigTestSuite) SetupSuite() {
 }
 
 func (suite *ConfigTestSuite) TearDownSuite() {
-	_ = os.Remove(suite.publicKey)
-	_ = os.Remove(suite.privateKey)
+	require.NoError(suite.T(), os.RemoveAll(suite.T().TempDir()))
 }
 
 func TestConfigs(t *testing.T) {
