@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 
@@ -24,7 +25,7 @@ func TestCreateConfigFile(t *testing.T) {
 		{
 			name: "test json content",
 			args: args{
-				configFile: t.TempDir() + "/config.json",
+				configFile: filepath.Join(t.TempDir(), "/config.json"),
 				config: map[string]any{
 					"string": "config_value",
 					"int":    float64(10),
@@ -37,7 +38,7 @@ func TestCreateConfigFile(t *testing.T) {
 		{
 			name: "test raw content, byte",
 			args: args{
-				configFile: t.TempDir() + "/config.json",
+				configFile: filepath.Join(t.TempDir(), "/config.json"),
 				config: []byte(`{
 					"string": "config_value",
 					"int":    10,
@@ -50,7 +51,7 @@ func TestCreateConfigFile(t *testing.T) {
 		{
 			name: "test raw content string",
 			args: args{
-				configFile: t.TempDir() + "/config.json",
+				configFile: filepath.Join(t.TempDir(), "/config.json"),
 				config: `{
 					"string": "config_value",
 					"int":    10,
