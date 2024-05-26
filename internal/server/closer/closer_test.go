@@ -11,12 +11,12 @@ import (
 
 func TestCloser_Add(t *testing.T) {
 	type args struct {
-		n string
 		f Func
+		n string
 	}
 	tests := []struct {
-		name string
 		args args
+		name string
 	}{
 		{
 			name: "name 1",
@@ -49,8 +49,8 @@ func TestCloser_Close(t *testing.T) {
 	}
 	tests := []struct {
 		name    string
-		fields  fields
 		args    args
+		fields  fields
 		wantErr bool
 	}{
 		{
@@ -68,16 +68,34 @@ func TestCloser_Close(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "close 2, errr",
+			name: "close 2, error in added func",
 			fields: fields{
 				funcs: []Func{func(ctx context.Context) error {
 					// empty func, do nothing
-					return errors.New("errr")
+					return errors.New("error in added func")
 				}},
 				names: []string{"shutdown 1"},
 			},
 			args: args{
 				ctx: context.Background(),
+			},
+			wantErr: true,
+		},
+		{
+			name: "close 3, Error ctx canceled",
+			fields: fields{
+				funcs: []Func{func(ctx context.Context) error {
+					// empty func, do nothing
+					return nil
+				}},
+				names: []string{"shutdown 1"},
+			},
+			args: args{
+				ctx: func() (ctx context.Context) {
+					ctx, cancel := context.WithCancel(context.Background())
+					defer cancel()
+					return
+				}(),
 			},
 			wantErr: true,
 		},
