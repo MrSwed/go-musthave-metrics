@@ -45,7 +45,11 @@ test:
 race:
 	go test -v -race -count=1 ./...
 
+go-cover-treemap:
+	go install github.com/nikolaydubina/go-cover-treemap@latest
+
 .PHONY: cover
-cover:
+cover: go-cover-treemap
 	go test -v -coverpkg=./... -coverprofile=coverage.out -covermode=count ./...
 	go tool cover -func coverage.out
+	go-cover-treemap -coverprofile coverage.out > coverage.out.svg
