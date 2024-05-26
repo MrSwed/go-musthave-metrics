@@ -81,13 +81,18 @@ func CreateConfigFile(configFile string, config any) (err error) {
 	var b []byte
 	switch c := config.(type) {
 	case []byte:
+		// may need raw checker
 		b = c
 	case string:
+		// may need raw checker
 		b = []byte(c)
 	default:
 		b, err = json.Marshal(config)
-
 	}
+	if err != nil {
+		return err
+	}
+
 	_, err = file.Write(b)
 	return
 }
