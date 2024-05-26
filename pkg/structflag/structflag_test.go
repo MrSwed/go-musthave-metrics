@@ -131,7 +131,7 @@ func TestLoadTo(t *testing.T) {
 		t.Run(tt.Name, func(t *testing.T) {
 			fs := flag.NewFlagSet(tt.Name, flag.PanicOnError)
 			structflag.LoadTo(fs, "prefix", &tt.In)
-			fs.Parse(tt.Args)
+			assert.NoError(t, fs.Parse(tt.Args))
 
 			assert.Equal(t, tt.Out, tt.In)
 		})
