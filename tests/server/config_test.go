@@ -105,10 +105,11 @@ func (suite *ConfigTestSuite) TestInit() {
 	}()
 
 	tests := []struct {
-		config map[string]any
-		flag   map[string]any
-		env    map[string]any
-		name   string
+		config  any
+		flag    map[string]any
+		env     map[string]any
+		name    string
+		wantErr bool
 	}{
 		{
 			name: "Default",
@@ -293,6 +294,14 @@ func (suite *ConfigTestSuite) TestInit() {
 				"KEY":                 "some-env-secret-key",
 			},
 		},
+		{
+			name: "bad config",
+			config: `
+				"address":           "localhost:0000",
+				"file_storage_path": "config-store.json",
+			}`,
+			wantErr: true,
+		},
 	}
 
 	for _, test := range tests {
@@ -307,8 +316,9 @@ func (suite *ConfigTestSuite) TestInit() {
 			// prepare config file for test
 			err := testhelpers.CreateConfigFile(cnfFile, test.config)
 			require.NoError(t, err)
-			wantCfg = suite.setConfigFromMap(test.config, wantCfg)
-
+			if !test.wantErr {
+				wantCfg = suite.setConfigFromMap(test.config.(map[string]any), wantCfg)
+			}
 		}
 		if test.flag != nil {
 			// prepare flag for test
@@ -336,9 +346,14 @@ func (suite *ConfigTestSuite) TestInit() {
 			if test.config != nil {
 				cfg.Config = cnfFile
 			}
+
 			cfg, err = cfg.Init()
-			assert.NoError(t, err)
-			assert.Equal(t, true, reflect.DeepEqual(cfg, wantCfg), fmt.Sprintf("expected: %v\n  actual: %v", wantCfg, cfg))
+			if (err != nil) != test.wantErr {
+				t.Errorf("Close() error = %v, wantErr %v", err, test.wantErr)
+			}
+			if !test.wantErr {
+				assert.Equal(t, true, reflect.DeepEqual(cfg, wantCfg), fmt.Sprintf("expected: %v\n  actual: %v", wantCfg, cfg))
+			}
 		})
 
 		if test.env != nil {

@@ -16,8 +16,9 @@ import (
 	"time"
 )
 
+// CreateCertificates
+// create test certificates
 func CreateCertificates(privateFile, publicFile string) {
-
 	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
 		log.Fatal(err)
@@ -69,6 +70,8 @@ func CreateCertificates(privateFile, publicFile string) {
 
 }
 
+// CreateConfigFile
+// create come json config file. if config is string or byte, it will be saved "as is"
 func CreateConfigFile(configFile string, config any) (err error) {
 	var file *os.File
 	file, err = os.Create(configFile)
@@ -81,10 +84,8 @@ func CreateConfigFile(configFile string, config any) (err error) {
 	var b []byte
 	switch c := config.(type) {
 	case []byte:
-		// may need raw checker
 		b = c
 	case string:
-		// may need raw checker
 		b = []byte(c)
 	default:
 		b, err = json.Marshal(config)
