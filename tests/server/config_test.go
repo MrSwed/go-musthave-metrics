@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/MrSwed/go-musthave-metrics/internal/server/config"
-	testhelpers "github.com/MrSwed/go-musthave-metrics/tests"
+	helper "github.com/MrSwed/go-musthave-metrics/tests"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -27,7 +27,7 @@ func (suite *ConfigTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
 	suite.privateKey = filepath.Join(suite.T().TempDir(), "/testPrivate.key")
 	suite.publicKey = filepath.Join(suite.T().TempDir(), "/testPublic.crt")
-	testhelpers.CreateCertificates(suite.privateKey, suite.publicKey)
+	helper.CreateCertificates(suite.privateKey, suite.publicKey)
 }
 
 func (suite *ConfigTestSuite) TearDownSuite() {
@@ -313,7 +313,7 @@ func (suite *ConfigTestSuite) TestInit() {
 
 		if test.config != nil {
 			// prepare config file for test
-			err := testhelpers.CreateConfigFile(cnfFile, test.config)
+			err := helper.CreateConfigFile(cnfFile, test.config)
 			require.NoError(t, err)
 			if !test.wantErr {
 				wantCfg = suite.setConfigFromMap(test.config.(map[string]any), wantCfg)
