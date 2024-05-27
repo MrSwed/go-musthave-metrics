@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/MrSwed/go-musthave-metrics/internal/agent/config"
-	"github.com/MrSwed/go-musthave-metrics/tests"
+	testhelpers "github.com/MrSwed/go-musthave-metrics/tests"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
