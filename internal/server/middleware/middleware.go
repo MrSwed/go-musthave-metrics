@@ -9,6 +9,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"io"
+	"net"
 	"net/http"
 
 	"github.com/MrSwed/go-musthave-metrics/internal/server/config"
@@ -103,6 +104,31 @@ func CheckSign(conf *config.WEB, l *zap.Logger) func(next http.Handler) http.Han
 					if _, err = rw.Write([]byte("Bad HashKey")); err != nil {
 						l.Error("Error return answer", zap.Error(err))
 					}
+					return
+				}
+			}
+			next.ServeHTTP(rw, r)
+		})
+	}
+}
+
+// CheckNetwork check allowed network
+func CheckNetwork(conf *config.WEB, l *zap.Logger) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+			if conf != nil && conf.TrustedSubnet != "" {
+				if r.Header.Get(constant.HeaderXRealIP) == "" {
+					rw.WriteHeader(http.StatusForbidden)
+				}
+				ip := net.ParseIP(r.Header.Get(constant.HeaderXRealIP))
+				_, addr, err := net.ParseCIDR(conf.TrustedSubnet)
+				if err != nil {
+					l.Error("Error parseCIDR", zap.Error(err))
+					rw.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+				if !addr.Contains(ip) {
+					rw.WriteHeader(http.StatusForbidden)
 					return
 				}
 			}

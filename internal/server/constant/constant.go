@@ -36,6 +36,7 @@ const (
 	DBTableNameCounters = "counters"
 
 	HeaderSignKey = "HashSHA256"
+	HeaderXRealIP = "X-Real-IP"
 )
 
 var (

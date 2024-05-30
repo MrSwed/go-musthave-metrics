@@ -7,6 +7,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"flag"
+	"net"
 	"os"
 	"strings"
 
@@ -24,9 +25,10 @@ type StorageConfig struct {
 
 // WEB  config
 type WEB struct {
-	cryptoKey *rsa.PrivateKey
-	Key       string `env:"KEY" json:"key" flag:"k" usage:"Private theKey"`
-	CryptoKey string `env:"CRYPTO_KEY"  json:"crypto_key" flag:"crypto-key" usage:"Provide the private server key for decryption"`
+	cryptoKey     *rsa.PrivateKey
+	Key           string `env:"KEY" json:"key" flag:"k" usage:"Private theKey"`
+	CryptoKey     string `env:"CRYPTO_KEY" json:"crypto_key" flag:"crypto-key" usage:"Provide the private server key for decryption"`
+	TrustedSubnet string `env:"TRUSTED_SUBNET" json:"trusted_subnet" flag:"t" usage:"Provide the trusted subnet"`
 }
 
 // Config all configs
@@ -64,6 +66,11 @@ func (c *Config) Init() (*Config, error) {
 		)
 	} else {
 		err = errors.Join(err, er)
+	}
+	if c.TrustedSubnet != "" {
+		if _, _, er := net.ParseCIDR(c.TrustedSubnet); er != nil {
+			err = errors.Join(err, er)
+		}
 	}
 
 	err = errors.Join(err, c.LoadPrivateKey())

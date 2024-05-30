@@ -58,6 +58,7 @@ func (h *Handler) Handler() http.Handler {
 	h.app.Use(myMiddleware.Decrypt(h.c.GetPrivateKey(), h.log))
 	h.app.Use(myMiddleware.Decompress(h.log))
 	h.app.Use(myMiddleware.CheckSign(h.c, h.log))
+	h.app.Use(myMiddleware.CheckNetwork(h.c, h.log))
 
 	h.app.Mount("/debug", middleware.Profiler())
 
