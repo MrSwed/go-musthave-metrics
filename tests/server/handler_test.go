@@ -1332,6 +1332,19 @@ func testHashKey(suite HandlerTestSuite) {
 			},
 		},
 		{
+			name: "Save json. BAD secret key. ",
+			args: args{
+				method: http.MethodPost,
+				body:   dataBody1,
+				headers: map[string]string{
+					constant.HeaderSignKey: "bad secret data key",
+				},
+			},
+			want: want{
+				code: http.StatusBadRequest,
+			},
+		},
+		{
 			name: "Save json, WRONG secret key (gzip).",
 			args: args{
 				method: http.MethodPost,
