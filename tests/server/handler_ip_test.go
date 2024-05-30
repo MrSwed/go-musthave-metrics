@@ -25,12 +25,12 @@ type HandlerIPTestSuite struct {
 	app http.Handler
 	srv *service.Service
 	cfg *config.Config
+	log *zap.Logger
 }
 
 func (suite *HandlerIPTestSuite) SetupSuite() {
 	var (
-		err    error
-		logger *zap.Logger
+		err error
 	)
 	suite.cfg = config.NewConfig()
 	suite.cfg.TrustedSubnet = "10.17.0.0/16"
@@ -39,12 +39,12 @@ func (suite *HandlerIPTestSuite) SetupSuite() {
 	repo := repository.NewRepository(&suite.cfg.StorageConfig, nil)
 
 	suite.srv = service.NewService(repo, &suite.cfg.StorageConfig)
-	logger, err = zap.NewDevelopment()
+	suite.log, err = zap.NewDevelopment()
 	if err != nil {
 		suite.Fail(err.Error())
 	}
 
-	suite.app = handler.NewHandler(chi.NewRouter(), suite.srv, &suite.cfg.WEB, logger).Handler()
+	suite.app = handler.NewHandler(chi.NewRouter(), suite.srv, &suite.cfg.WEB, suite.log).Handler()
 }
 
 func TestHandlersIP(t *testing.T) {
@@ -67,9 +67,10 @@ func (suite *HandlerIPTestSuite) TestRequestWithXRealIp() {
 		code int
 	}
 	type args struct {
-		method  string
-		headers map[string]string
-		path    string
+		method           string
+		headers          map[string]string
+		path             string
+		cfgTrustedSubnet string
 	}
 	tests := []struct {
 		name string
@@ -112,13 +113,33 @@ func (suite *HandlerIPTestSuite) TestRequestWithXRealIp() {
 				code: http.StatusForbidden,
 			},
 		},
+		{
+			name: "Bad server config",
+			args: args{
+				method: http.MethodGet,
+				headers: map[string]string{
+					"X-Real-Ip": "10.17.0.10",
+				},
+				path:             "/value/gauge/" + testGaugeName,
+				cfgTrustedSubnet: "10.17.0.545",
+			},
+			want: want{
+				code: http.StatusInternalServerError,
+			},
+		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			if test.args.cfgTrustedSubnet != "" {
+				suite.cfg.TrustedSubnet = test.args.cfgTrustedSubnet
+				suite.app = handler.NewHandler(chi.NewRouter(), suite.srv, &suite.cfg.WEB, suite.log).Handler()
+				ts.Close()
+				ts = httptest.NewServer(suite.app)
+				defer ts.Close()
+			}
 			req, err := http.NewRequest(test.args.method, ts.URL+test.args.path, nil)
 			require.NoError(t, err)
-
 			for k, v := range test.args.headers {
 				req.Header.Add(k, v)
 			}
