@@ -1064,6 +1064,7 @@ func testGzip(suite HandlerTestSuite) {
 	testCounterName1 := fmt.Sprintf("testCounter%d", rand.Int())
 	testCounterName2 := fmt.Sprintf("testCounter%d", rand.Int())
 	testCounterName3 := fmt.Sprintf("testCounter%d", rand.Int())
+	testCounterName4 := fmt.Sprintf("testCounter%d", rand.Int())
 
 	type want struct {
 		headers     map[string]string
@@ -1075,6 +1076,7 @@ func testGzip(suite HandlerTestSuite) {
 		body    interface{}
 		headers map[string]string
 		method  string
+		noGzip  bool
 	}
 	tests := []struct {
 		args args
@@ -1104,6 +1106,37 @@ func testGzip(suite HandlerTestSuite) {
 			want: want{
 				code:        http.StatusOK,
 				response:    []domain.Metric{{ID: testCounterName1, MType: "counter", Delta: &[]domain.Counter{1}[0]}, {ID: "testGauge", MType: "gauge", Value: &[]domain.Gauge{100.0015}[0]}},
+				contentType: "application/json; charset=utf-8",
+				headers: map[string]string{
+					"Content-Encoding": "gzip",
+				},
+			},
+		},
+		{
+			name: "Gzip send header, but no compress, StatusOk",
+			args: args{
+				noGzip: true,
+				method: http.MethodPost,
+				body: []map[string]interface{}{
+					{
+						"id":    testCounterName4,
+						"type":  "counter",
+						"delta": 1,
+					},
+					{
+						"id":    "testGauge",
+						"type":  "gauge",
+						"value": 100.0015,
+					},
+				},
+				headers: map[string]string{
+					"Content-Encoding": "gzip",
+					"Accept-Encoding":  "gzip",
+				},
+			},
+			want: want{
+				code:        http.StatusOK,
+				response:    []domain.Metric{{ID: testCounterName4, MType: "counter", Delta: &[]domain.Counter{1}[0]}, {ID: "testGauge", MType: "gauge", Value: &[]domain.Gauge{100.0015}[0]}},
 				contentType: "application/json; charset=utf-8",
 				headers: map[string]string{
 					"Content-Encoding": "gzip",
@@ -1172,7 +1205,7 @@ func testGzip(suite HandlerTestSuite) {
 			b := new(bytes.Buffer)
 			err := json.NewEncoder(b).Encode(test.args.body)
 			require.NoError(t, err)
-			if len(test.args.headers) > 0 && test.args.headers["Content-Encoding"] == "gzip" {
+			if len(test.args.headers) > 0 && test.args.headers["Content-Encoding"] == "gzip" && !test.args.noGzip {
 				compB := new(bytes.Buffer)
 				w := gzip.NewWriter(compB)
 				_, err = w.Write(b.Bytes())
@@ -1209,7 +1242,8 @@ func testGzip(suite HandlerTestSuite) {
 			require.NoError(t, err)
 
 			for k, v := range test.want.headers {
-				assert.True(t, res.Header.Get(k) == v)
+				assert.True(t, res.Header.Get(k) == v,
+					fmt.Sprintf("expected %v header: %s actual: %s", k, v, res.Header.Get(k)))
 			}
 
 			if len(test.want.response) > 0 {

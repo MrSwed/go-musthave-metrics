@@ -43,13 +43,20 @@ func Decompress(l *zap.Logger) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 			if r.Header.Get(`Content-Encoding`) == `gzip` {
-				gz, err := gzip.NewReader(r.Body)
+				body, err := io.ReadAll(r.Body)
+				if err != nil {
+					rw.WriteHeader(http.StatusInternalServerError)
+					l.Error(err.Error())
+					return
+				}
+				gz, err := gzip.NewReader(bytes.NewReader(body))
 				if err == nil {
 					r.Body = gz
 					err = gz.Close()
 				}
 				if err != nil {
-					l.Error("gzip", zap.Error(err))
+					r.Body = io.NopCloser(bytes.NewReader(body))
+					l.Warn("gzip", zap.Error(err))
 				}
 			}
 			next.ServeHTTP(rw, r)
