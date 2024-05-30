@@ -222,6 +222,8 @@ func (m *MetricsCollects) request(metrics []*Metric) (err error) {
 		err = errors.Join(err, myErr.ErrWrap(er))
 		return
 	}
+	var ip = GetLocalIP()
+	req.Header.Set(constant.HeaderXRealIP, ip)
 	req.Header.Set("Content-Encoding", "gzip")
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 
@@ -251,7 +253,8 @@ func (m *MetricsCollects) request(metrics []*Metric) (err error) {
 		err = errors.Join(err, myErr.ErrWrap(er))
 	}
 	if res.StatusCode != http.StatusOK {
-		err = errors.Join(err, fmt.Errorf("post to %s with body: %s. Get: statusCode: %d;  answer body: %s", urlStr, body, res.StatusCode, resultBody))
+		err = errors.Join(err, fmt.Errorf("post from %s to %s with body: %s. Get: statusCode: %d;  answer body: %s",
+			ip, urlStr, body, res.StatusCode, resultBody))
 	}
 
 	return
