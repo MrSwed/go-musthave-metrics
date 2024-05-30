@@ -71,7 +71,8 @@ func (suite *ConfigTestSuite) setConfigFromMap(m map[string]any, sc ...*config.C
 			case "config2", "-c":
 				c.Config = v
 				c.Config2 = v
-
+			case "trusted_subnet", "TRUSTED_SUBNET", "-t":
+				c.TrustedSubnet = v
 			}
 		case bool:
 			switch k {
@@ -99,7 +100,6 @@ func (suite *ConfigTestSuite) TestInit() {
 	// do not use t.Parallel with one config file
 	cnfFile := filepath.Join(t.TempDir(), "config.json")
 	defer func() {
-		_ = os.Remove(cnfFile)
 		copy(os.Args, osArgs)
 	}()
 
@@ -299,6 +299,51 @@ func (suite *ConfigTestSuite) TestInit() {
 				"address":           "localhost:0000",
 				"file_storage_path": "config-store.json",
 			}`,
+			wantErr: true,
+		},
+		{
+			name: "TrustedSubnet config",
+			config: map[string]any{
+				"config":         cnfFile,
+				"trusted_subnet": "10.10.10.0/8",
+			},
+			wantErr: false,
+		},
+		{
+			name: "TrustedSubnet config, bad trusted_subnet",
+			config: map[string]any{
+				"trusted_subnet": "10.10.10.588",
+			},
+			wantErr: true,
+		},
+
+		{
+			name: "TrustedSubnet flag",
+			flag: map[string]any{
+				"t": "10.10.10.0/8",
+			},
+			wantErr: false,
+		},
+		{
+			name: "TrustedSubnet flag, bad trusted_subnet",
+			flag: map[string]any{
+				"-t": "10.10.10.588",
+			},
+			wantErr: true,
+		},
+
+		{
+			name: "TrustedSubnet env",
+			env: map[string]any{
+				"TRUSTED_SUBNET": "10.10.10.0/8",
+			},
+			wantErr: false,
+		},
+		{
+			name: "TrustedSubnet env, bad trusted_subnet",
+			env: map[string]any{
+				"TRUSTED_SUBNET": "10.10.10.588",
+			},
 			wantErr: true,
 		},
 	}
