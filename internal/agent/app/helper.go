@@ -17,3 +17,10 @@ func GetLocalIP() string {
 	}
 	return ""
 }
+
+func BuildInfo(s string) string {
+	if s == "" {
+		return "N/A"
+	}
+	return s
+}
