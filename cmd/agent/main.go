@@ -32,4 +32,5 @@ func main() {
 	})
 
 	appHandler.Run()
+	appHandler.Stop()
 }

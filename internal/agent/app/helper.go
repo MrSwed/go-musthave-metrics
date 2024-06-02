@@ -18,7 +18,7 @@ func GetLocalIP() string {
 	return ""
 }
 
-func BuildInfo(s string) string {
+func buildInfo(s string) string {
 	if s == "" {
 		return "N/A"
 	}

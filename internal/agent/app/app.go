@@ -132,9 +132,9 @@ With config:
   CryptoKey: %s
   Metric names count: %d
 `,
-		BuildInfo(a.build.Version),
-		BuildInfo(a.build.Date),
-		BuildInfo(a.build.Commit),
+		buildInfo(a.build.Version),
+		buildInfo(a.build.Date),
+		buildInfo(a.build.Commit),
 		a.cfg.Address, constant.BaseURL, a.cfg.ReportInterval, a.cfg.PollInterval,
 		a.cfg.RateLimit, a.cfg.SendSize, a.cfg.Key, a.cfg.CryptoKey, len(a.cfg.GaugesList)+len(a.cfg.CountersList))
 
@@ -146,7 +146,9 @@ With config:
 
 	// send metrics
 	a.sender()
-	a.wg.Wait()
+}
 
+func (a *app) Stop() {
+	a.wg.Wait()
 	log.Println("Agent stopped")
 }

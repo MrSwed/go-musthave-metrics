@@ -82,6 +82,7 @@ func Test_app_Run(t *testing.T) {
 			}()
 
 			appHandler.Run()
+			appHandler.Stop()
 
 			t.Log(buf.String())
 			for i := 0; i < len(tt.wantStrings); i++ {
