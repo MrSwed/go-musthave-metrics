@@ -1,13 +1,22 @@
 package server_test
 
 import (
+	"bytes"
 	"context"
 	"crypto/rsa"
 	"errors"
+	"fmt"
+	"io"
+	"math/rand"
+	"net"
 	"net/http"
 	"os"
+	"os/signal"
+	"strconv"
+	"syscall"
 	"testing"
 
+	"github.com/MrSwed/go-musthave-metrics/internal/server/app"
 	"github.com/MrSwed/go-musthave-metrics/internal/server/config"
 	"github.com/MrSwed/go-musthave-metrics/internal/server/handler"
 	errM "github.com/MrSwed/go-musthave-metrics/internal/server/migrate"
@@ -17,12 +26,14 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
 	"log"
 	"time"
@@ -132,6 +143,131 @@ func TestHandlersDB(t *testing.T) {
 func (suite *HandlerDBTestSuite) TestMigrate() {
 	testMigrate(suite)
 }
+
+func (suite *HandlerDBTestSuite) TestApp() {
+	t := suite.T()
+
+	type fields struct {
+		ctx   context.Context
+		stop  context.CancelFunc
+		cfg   *config.Config
+		build app.BuildMetadata
+	}
+	tests := []struct {
+		name             string
+		fields           fields
+		wantStrings      []string
+		doNotWantStrings []string
+	}{
+		{
+			name: "Server app run. default",
+			fields: func() fields {
+				ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+				return fields{
+					ctx:  ctx,
+					stop: cancel,
+					cfg: func() *config.Config {
+						cfg := suite.cfg
+						cfg.Address = ":" + strconv.Itoa(rand.Intn(65000)+1000)
+						// cfg.FileStoragePath = filepath.Join(t.TempDir(), fmt.Sprintf("metrict-db-%d.json", rand.Int()))
+						return cfg
+					}(),
+					build: app.BuildMetadata{
+						Version: "1.0-testing",
+						Date:    "24.05.24",
+						Commit:  "444333",
+					},
+				}
+			}(),
+			wantStrings: []string{
+				`"Init app"`,
+				`"Build version":"1.0-testing"`,
+				`"Build date":"24.05.24"`,
+				`"Build commit":"444333"`,
+				`Start server`,
+				`Server started`,
+				`Shutting down server gracefully`,
+				`Store save on interval finished`,
+				`Storage saved`,
+				`Server stopped`,
+			},
+			doNotWantStrings: []string{
+				`"error"`,
+			},
+		},
+		{
+			name: "Server app run. port busy",
+			fields: func() fields {
+				cfg := config.NewConfig()
+				cfg.Address = ":" + strconv.Itoa(rand.Intn(65000)+1000)
+
+				portUse, err := net.Listen("tcp", cfg.Address)
+				require.NoError(t, err)
+
+				ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+				return fields{
+					ctx: ctx,
+					stop: func() {
+						_ = portUse.Close()
+						cancel()
+					},
+					cfg: cfg,
+					build: app.BuildMetadata{
+						Version: "1.0-testing",
+						Date:    "24.05.24",
+						Commit:  "444333",
+					},
+				}
+			}(),
+			wantStrings: []string{
+				`"Init app"`,
+				`"Build version":"1.0-testing"`,
+				`"Build date":"24.05.24"`,
+				`"Build commit":"444333"`,
+				`Start server`,
+				`Shutting down server gracefully`,
+				`"error"`,
+				`listen tcp`,
+				`bind: address already in use`,
+			},
+			doNotWantStrings: []string{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, stop := signal.NotifyContext(tt.fields.ctx, os.Interrupt, syscall.SIGTERM)
+			defer stop()
+			defer tt.fields.stop()
+
+			tt.fields.cfg = tt.fields.cfg.CleanSchemes()
+
+			var buf bytes.Buffer
+			logger := zap.New(func(pipeTo io.Writer) zapcore.Core {
+				return zapcore.NewCore(
+					zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()),
+					zap.CombineWriteSyncers(os.Stderr, zapcore.AddSync(pipeTo)),
+					zapcore.InfoLevel,
+				)
+			}(&buf))
+			// flag.
+
+			appHandler := app.NewApp(ctx, stop, tt.fields.build, tt.fields.cfg, logger)
+
+			appHandler.Run()
+			appHandler.Stop()
+
+			t.Log(buf.String())
+			for i := 0; i < len(tt.wantStrings); i++ {
+				assert.Contains(t, buf.String(), tt.wantStrings[i], fmt.Sprintf("%s is expected at log out", tt.wantStrings[i]))
+			}
+			for i := 0; i < len(tt.doNotWantStrings); i++ {
+				assert.NotContains(t, buf.String(), tt.doNotWantStrings[i], fmt.Sprintf("%s is not expected at log out", tt.doNotWantStrings[i]))
+			}
+		})
+	}
+}
+
 func (suite *HandlerDBTestSuite) TestGetMetric() {
 	testGetMetric(suite)
 }
