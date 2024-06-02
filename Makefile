@@ -36,7 +36,7 @@ run_app: build_app
 run_agent: build_agent
 	./bin/${AGENT_NAME}
 
-run_staticlint: build_staticlint
+run_staticlint: build_staticlint run_nargs
 	go vet -vettool=./bin/${STATICLINT} ./...
 
 test:
@@ -45,11 +45,21 @@ test:
 race:
 	go test -v -race -count=1 ./...
 
-go-cover-treemap:
+install_nargs:
+	 go install github.com/alexkohler/nargs/cmd/nargs@latest
+
+run_nargs: install_nargs
+	nargs ./...
+
+install_go_cover_treemap:
 	go install github.com/nikolaydubina/go-cover-treemap@latest
 
+run_go_cover_treemap:
+	go-cover-treemap -coverprofile coverage.out > coverage.out.svg
+
+
 .PHONY: cover
-cover: go-cover-treemap
+cover: install_go_cover_treemap
 	go test -v -coverpkg=./... -coverprofile=coverage.out -covermode=count ./...
 	go tool cover -func coverage.out
 	go-cover-treemap -coverprofile coverage.out > coverage.out.svg
