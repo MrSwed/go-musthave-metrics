@@ -91,3 +91,7 @@ func (suite *HandlerMemTestSuite) TestHashKey() {
 func (suite *HandlerMemTestSuite) TestPing() {
 	testPing(suite)
 }
+
+func (suite *HandlerMemTestSuite) TestSaveToFile() {
+	testSaveToFile(suite, suite.ctx)
+}

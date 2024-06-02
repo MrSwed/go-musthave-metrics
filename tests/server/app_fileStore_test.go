@@ -82,3 +82,11 @@ func (suite *HandlerFileStoreTestSuite) TestUpdateMetricJson() {
 func (suite *HandlerFileStoreTestSuite) TestUpdateMetrics() {
 	testUpdateMetrics(suite)
 }
+
+func (suite *HandlerFileStoreTestSuite) TestRestoreFromFile() {
+	t := suite.T()
+	t.Run("Restore from file", func(t *testing.T) {
+		_, err := suite.srv.RestoreFromFile(suite.ctx)
+		require.NoError(t, err)
+	})
+}

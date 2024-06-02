@@ -1580,6 +1580,23 @@ func testPing(suite HandlerTestSuite) {
 	}
 }
 
+func testSaveToFile(suite HandlerTestSuite, suiteCtx context.Context) {
+	t := suite.T()
+	testCounter := domain.Counter(1)
+	testGauge := domain.Gauge(1.0001)
+	testGaugeName := fmt.Sprintf("testGauge%d", rand.Int())
+	testCounterName := fmt.Sprintf("testCounter%d", rand.Int())
+	// save some values
+	ctx := context.Background()
+	_ = suite.Srv().SetGauge(ctx, testGaugeName, testGauge)
+	_ = suite.Srv().IncreaseCounter(ctx, testCounterName, testCounter)
+
+	t.Run("Save file", func(t *testing.T) {
+		_, err := suite.Srv().SaveToFile(suiteCtx)
+		require.NoError(t, err)
+	})
+}
+
 func maybeCryptBody(bodyBuf *bytes.Buffer, publicKey *rsa.PublicKey) {
 	if publicKey != nil {
 		cipherBody, err := rsa.EncryptOAEP(sha256.New(), crand.Reader, publicKey, bodyBuf.Bytes(), nil)
