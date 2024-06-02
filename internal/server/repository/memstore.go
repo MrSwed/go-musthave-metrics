@@ -35,17 +35,17 @@ func NewMemRepository() *MemStorageRepo {
 }
 
 // Ping for memory storage it always true
-func (r *MemStorageRepo) Ping(ctx context.Context) (err error) {
+func (r *MemStorageRepo) Ping(_ context.Context) (err error) {
 	return
 }
 
 // MemStore return memory store off all metrics
-func (r *MemStorageRepo) MemStore(ctx context.Context) (*MemStorageRepo, error) {
+func (r *MemStorageRepo) MemStore(_ context.Context) (*MemStorageRepo, error) {
 	return r, nil
 }
 
 // SetGauge save gauge to memory store
-func (r *MemStorageRepo) SetGauge(ctx context.Context, k string, v domain.Gauge) (err error) {
+func (r *MemStorageRepo) SetGauge(_ context.Context, k string, v domain.Gauge) (err error) {
 	r.mg.Lock()
 	defer r.mg.Unlock()
 	r.Gauge[k] = v
@@ -53,7 +53,7 @@ func (r *MemStorageRepo) SetGauge(ctx context.Context, k string, v domain.Gauge)
 }
 
 // SetCounter save counter cot memory store
-func (r *MemStorageRepo) SetCounter(ctx context.Context, k string, v domain.Counter) (err error) {
+func (r *MemStorageRepo) SetCounter(_ context.Context, k string, v domain.Counter) (err error) {
 	r.mc.Lock()
 	defer r.mc.Unlock()
 	r.Counter[k] = v
@@ -61,7 +61,7 @@ func (r *MemStorageRepo) SetCounter(ctx context.Context, k string, v domain.Coun
 }
 
 // GetGauge get gauge from memory store
-func (r *MemStorageRepo) GetGauge(ctx context.Context, k string) (v domain.Gauge, err error) {
+func (r *MemStorageRepo) GetGauge(_ context.Context, k string) (v domain.Gauge, err error) {
 	var ok bool
 	r.mg.RLock()
 	defer r.mg.RUnlock()
@@ -72,7 +72,7 @@ func (r *MemStorageRepo) GetGauge(ctx context.Context, k string) (v domain.Gauge
 }
 
 // GetCounter get counter from memory store
-func (r *MemStorageRepo) GetCounter(ctx context.Context, k string) (v domain.Counter, err error) {
+func (r *MemStorageRepo) GetCounter(_ context.Context, k string) (v domain.Counter, err error) {
 	var ok bool
 	r.mc.RLock()
 	defer r.mc.RUnlock()
@@ -83,13 +83,13 @@ func (r *MemStorageRepo) GetCounter(ctx context.Context, k string) (v domain.Cou
 }
 
 // GetAllGauges get all gauges from memory store
-func (r *MemStorageRepo) GetAllGauges(ctx context.Context) (domain.Gauges, error) {
+func (r *MemStorageRepo) GetAllGauges(_ context.Context) (domain.Gauges, error) {
 	var err error
 	return r.Gauge, err
 }
 
 // GetAllCounters get all counter from memory store
-func (r *MemStorageRepo) GetAllCounters(ctx context.Context) (domain.Counters, error) {
+func (r *MemStorageRepo) GetAllCounters(_ context.Context) (domain.Counters, error) {
 	var err error
 	return r.Counter, err
 }
