@@ -8,8 +8,6 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-//go:generate  mockgen -destination=../mock/repository/repository.go -package=mock "github.com/MrSwed/go-musthave-metrics/internal/server/repository" Repository
-
 // DataStorage methods
 type DataStorage interface {
 	// SetGauge save gauge to store
