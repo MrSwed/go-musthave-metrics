@@ -3,6 +3,7 @@ module github.com/MrSwed/go-musthave-metrics
 go 1.21
 
 require (
+	github.com/caarlos0/env/v11 v11.0.1
 	github.com/go-chi/chi/v5 v5.0.11
 	github.com/go-critic/go-critic v0.11.3
 	github.com/go-playground/validator/v10 v10.17.0
@@ -17,6 +18,7 @@ require (
 	github.com/stretchr/testify v1.9.0
 	github.com/testcontainers/testcontainers-go v0.30.0
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.30.0
+	github.com/ucarion/structflag v0.1.0
 	go.uber.org/zap v1.26.0
 	golang.org/x/net v0.24.0
 	golang.org/x/sync v0.7.0

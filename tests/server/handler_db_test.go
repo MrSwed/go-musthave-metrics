@@ -2,8 +2,10 @@ package server_test
 
 import (
 	"context"
+	"crypto/rsa"
 	"errors"
 	"net/http"
+	"os"
 	"testing"
 
 	"github.com/MrSwed/go-musthave-metrics/internal/server/config"
@@ -15,6 +17,7 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
@@ -66,6 +69,9 @@ func (suite *HandlerDBTestSuite) DBx() *sqlx.DB {
 func (suite *HandlerDBTestSuite) Cfg() *config.Config {
 	return suite.cfg
 }
+func (suite *HandlerDBTestSuite) PublicKey() *rsa.PublicKey {
+	return nil
+}
 
 func (suite *HandlerDBTestSuite) SetupSuite() {
 	var (
@@ -113,6 +119,7 @@ func (suite *HandlerDBTestSuite) TearDownSuite() {
 	if err := suite.pgCont.Terminate(suite.ctx); err != nil {
 		log.Fatalf("error terminating postgres container: %s", err)
 	}
+	require.NoError(suite.T(), os.RemoveAll(suite.T().TempDir()))
 }
 
 func TestHandlersDB(t *testing.T) {
@@ -148,4 +155,7 @@ func (suite *HandlerDBTestSuite) TestGzip() {
 }
 func (suite *HandlerDBTestSuite) TestHashKey() {
 	testHashKey(suite)
+}
+func (suite *HandlerDBTestSuite) TestPing() {
+	testPing(suite)
 }

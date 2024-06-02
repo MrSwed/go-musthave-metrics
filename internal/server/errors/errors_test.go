@@ -1,6 +1,7 @@
 package errors
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/jackc/pgerrcode"
@@ -72,6 +73,11 @@ func TestIsPQClass08Error(t *testing.T) {
 			err: &pq.Error{
 				Code: pgerrcode.SQLStatementNotYetComplete,
 			},
+			wantYes: false,
+		},
+		{
+			name:    "some other error",
+			err:     errors.New("some other error"),
 			wantYes: false,
 		},
 	}

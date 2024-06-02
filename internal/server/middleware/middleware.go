@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"compress/gzip"
 	"crypto/hmac"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/hex"
 	"io"
@@ -13,6 +15,27 @@ import (
 	"github.com/MrSwed/go-musthave-metrics/internal/server/constant"
 	"go.uber.org/zap"
 )
+
+// Decrypt request content if config private key present
+func Decrypt(key *rsa.PrivateKey, l *zap.Logger) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+			if key != nil {
+				body, err := io.ReadAll(r.Body)
+				if err != nil {
+					rw.WriteHeader(http.StatusInternalServerError)
+					l.Error(err.Error())
+					return
+				}
+				decryptBody, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, key, body, nil)
+				if err == nil {
+					r.Body = io.NopCloser(bytes.NewReader(decryptBody))
+				}
+			}
+			next.ServeHTTP(rw, r)
+		})
+	}
+}
 
 // Decompress request content if it compressed
 func Decompress(l *zap.Logger) func(next http.Handler) http.Handler {

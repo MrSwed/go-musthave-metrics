@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	crand "crypto/rand"
+	"crypto/rsa"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -32,6 +35,7 @@ type HandlerTestSuite interface {
 	T() *testing.T
 	DBx() *sqlx.DB
 	Cfg() *config.Config
+	PublicKey() *rsa.PublicKey
 }
 
 func testMigrate(suite HandlerTestSuite) {
@@ -418,6 +422,7 @@ func testGetMetricJSON(suite HandlerTestSuite) {
 			err := json.NewEncoder(b).Encode(test.args.body)
 			require.NoError(t, err)
 
+			maybeCryptBody(b, suite.PublicKey())
 			req, err := http.NewRequest(test.args.method, ts.URL+constant.ValueRoute, b)
 			require.NoError(t, err)
 
@@ -835,6 +840,7 @@ func testUpdateMetricJSON(suite HandlerTestSuite) {
 			err := json.NewEncoder(b).Encode(test.args.body)
 			require.NoError(t, err)
 
+			maybeCryptBody(b, suite.PublicKey())
 			req, err := http.NewRequest(test.args.method, ts.URL+constant.UpdateRoute, b)
 			require.NoError(t, err)
 
@@ -1020,6 +1026,7 @@ func testUpdateMetrics(suite HandlerTestSuite) {
 			err := json.NewEncoder(b).Encode(test.args.body)
 			require.NoError(t, err)
 
+			maybeCryptBody(b, suite.PublicKey())
 			req, err := http.NewRequest(test.args.method, ts.URL+constant.UpdatesRoute, b)
 			require.NoError(t, err)
 
@@ -1179,6 +1186,7 @@ func testGzip(suite HandlerTestSuite) {
 				require.NoError(t, err)
 			}
 
+			maybeCryptBody(b, suite.PublicKey())
 			req, err := http.NewRequest(test.args.method, ts.URL+constant.UpdatesRoute, b)
 			require.NoError(t, err)
 
@@ -1373,6 +1381,7 @@ func testHashKey(suite HandlerTestSuite) {
 				require.NoError(t, err)
 			}
 
+			maybeCryptBody(b, suite.PublicKey())
 			req, err := http.NewRequest(test.args.method, ts.URL+constant.UpdatesRoute, b)
 			require.NoError(t, err)
 
@@ -1424,5 +1433,114 @@ func testHashKey(suite HandlerTestSuite) {
 				assert.Equal(t, test.want.contentType, res.Header.Get("Content-Type"))
 			}
 		})
+	}
+}
+
+func testPing(suite HandlerTestSuite) {
+	t := suite.T()
+	ts := httptest.NewServer(suite.App())
+	defer func() {
+		ts.Close()
+	}()
+
+	type want struct {
+		headers     map[string]string
+		contentType string
+		response    []byte
+		code        int
+	}
+	type args struct {
+		headers map[string]string
+		method  string
+	}
+	tests := []struct {
+		name string
+		args args
+		want want
+	}{
+		{
+			name: "Ping",
+			args: args{
+				method: http.MethodGet,
+			},
+			want: want{
+				code:        http.StatusOK,
+				response:    []byte("Status: ok"),
+				contentType: "text/plain; charset=utf-8",
+			},
+		},
+		{
+			name: "Ping, wrong method",
+			args: args{
+				method: http.MethodPost,
+			},
+			want: want{
+				code: http.StatusMethodNotAllowed,
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+
+			req, err := http.NewRequest(test.args.method, ts.URL+"/ping", nil)
+			require.NoError(t, err)
+
+			for k, v := range test.args.headers {
+				req.Header.Add(k, v)
+			}
+			res, err := http.DefaultClient.Do(req)
+			require.NoError(t, err)
+			defer func() {
+				err = res.Body.Close()
+				require.NoError(t, err)
+			}()
+
+			var resBody []byte
+
+			// проверяем код ответа
+			require.Equal(t, test.want.code, res.StatusCode)
+			resBody, err = io.ReadAll(res.Body)
+			require.NoError(t, err)
+
+			for k, v := range test.want.headers {
+				assert.True(t, res.Header.Get(k) == v, fmt.Sprintf("want %s, get %s", v, res.Header.Get(k)))
+			}
+
+			if len(test.want.response) > 0 {
+				assert.True(t, len(resBody) > 0)
+				if len(test.args.headers) > 0 && test.args.headers["Accept-Encoding"] == "gzip" {
+					b := bytes.NewBuffer(resBody)
+					var r *gzip.Reader
+					r, err = gzip.NewReader(b)
+					if !errors.Is(err, io.EOF) {
+						require.NoError(t, err)
+					}
+					var resB bytes.Buffer
+					_, err = resB.ReadFrom(r)
+					require.NoError(t, err)
+
+					resBody = resB.Bytes()
+					err = r.Close()
+					require.NoError(t, err)
+				}
+				assert.Equal(t, test.want.response, resBody)
+			}
+
+			if test.want.contentType != "" {
+				assert.Equal(t, test.want.contentType, res.Header.Get("Content-Type"))
+			}
+		})
+	}
+}
+
+func maybeCryptBody(bodyBuf *bytes.Buffer, publicKey *rsa.PublicKey) {
+	if publicKey != nil {
+		cipherBody, err := rsa.EncryptOAEP(sha256.New(), crand.Reader, publicKey, bodyBuf.Bytes(), nil)
+		bodyBuf.Reset()
+		if err != nil {
+			bodyBuf.WriteString(err.Error())
+			return
+		}
+		bodyBuf.Write(cipherBody)
 	}
 }

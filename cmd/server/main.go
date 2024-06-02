@@ -51,7 +51,10 @@ Build commit: %s
 
 func runServer(ctx context.Context) {
 	var wg sync.WaitGroup
-	conf := config.NewConfig().Init()
+	conf, err := config.NewConfig().Init()
+	if err != nil {
+		panic(err)
+	}
 
 	logger, err := zap.NewDevelopment()
 	if err != nil {
@@ -120,12 +123,12 @@ func runServer(ctx context.Context) {
 		}
 	}
 
-	server := &http.Server{Addr: conf.ServerAddress, Handler: h.Handler()}
+	server := &http.Server{Addr: conf.Address, Handler: h.Handler()}
 	lockDBCLose := make(chan struct{})
 
 	sCloser.Add("WEB", server.Shutdown)
 
-	if conf.FileStoragePath != "" && conf.FileStoreInterval == 0 {
+	if conf.FileStoragePath != "" {
 		sCloser.Add("Storage save", func(ctx context.Context) (err error) {
 			defer close(lockDBCLose)
 			var n int64
