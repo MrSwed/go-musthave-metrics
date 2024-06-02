@@ -29,11 +29,11 @@ func main() {
 		panic(err)
 	}
 
-	appHandler := app.NewApp(ctx, cfg, app.BuildMetadata{
+	appHandler := app.NewApp(ctx, stop, app.BuildMetadata{
 		Version: buildVersion,
 		Date:    buildDate,
 		Commit:  buildCommit,
-	}, log)
+	}, cfg, log)
 
 	appHandler.Run()
 	appHandler.Stop()

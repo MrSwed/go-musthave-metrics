@@ -35,6 +35,7 @@ type BuildMetadata struct {
 
 type app struct {
 	ctx        context.Context
+	stop       context.CancelFunc
 	cfg        *config.Config
 	build      BuildMetadata
 	wg         *sync.WaitGroup
@@ -47,9 +48,12 @@ type app struct {
 	lockDB     chan struct{}
 }
 
-func NewApp(ctx context.Context, cfg *config.Config, metadata BuildMetadata, log *zap.Logger) *app {
+func NewApp(ctx context.Context, stop context.CancelFunc,
+	metadata BuildMetadata, cfg *config.Config, log *zap.Logger) *app {
+
 	a := app{
 		ctx:        ctx,
+		stop:       stop,
 		build:      metadata,
 		cfg:        cfg,
 		wg:         &sync.WaitGroup{},
@@ -175,7 +179,8 @@ func (a *app) Run() {
 
 	go func() {
 		if err = a.http.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			a.log.Error("Start server", zap.Error(err))
+			err = errors.Join(errors.New("ListenAndServe"), err)
+			a.stop()
 		}
 	}()
 
