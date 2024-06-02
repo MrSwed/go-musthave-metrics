@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"syscall"
 	"testing"
 	"time"
@@ -44,6 +45,7 @@ func Test_app_Run(t *testing.T) {
 					stop: cancel,
 					cfg: func() *config.Config {
 						cfg := config.NewConfig()
+						cfg.Address = ":" + strconv.Itoa(rand.Intn(65000)+1000)
 						cfg.FileStoragePath = filepath.Join(t.TempDir(), fmt.Sprintf("metrict-db-%d.json", rand.Int()))
 						return cfg
 					}(),
@@ -66,11 +68,15 @@ func Test_app_Run(t *testing.T) {
 				`Storage saved`,
 				`Server stopped`,
 			},
+			doNotWantStrings: []string{
+				`"error"`,
+			},
 		},
 		{
 			name: "Server app run. port busy",
 			fields: func() fields {
 				cfg := config.NewConfig()
+				cfg.Address = ":" + strconv.Itoa(rand.Intn(65000)+1000)
 				cfg.FileStoragePath = ""
 
 				portUse, err := net.Listen("tcp", cfg.Address)
@@ -97,22 +103,22 @@ func Test_app_Run(t *testing.T) {
 				`"Build date":"24.05.24"`,
 				`"Build commit":"444333"`,
 				`Start server`,
-				`Server started`,
 				`Shutting down server gracefully`,
-				`Store save on interval finished`,
-				`Storage saved`,
-				`Server stopped`,
+				`"error"`,
+				`listen tcp`,
+				`bind: address already in use`,
 			},
+			doNotWantStrings: []string{},
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx, stop := signal.NotifyContext(tt.fields.ctx, os.Interrupt, syscall.SIGTERM)
 			defer stop()
 			defer tt.fields.stop()
 
-			_, err := tt.fields.cfg.Init()
-			require.NoError(t, err)
+			tt.fields.cfg = tt.fields.cfg.CleanSchemes()
 
 			var buf bytes.Buffer
 			logger := zap.New(func(pipeTo io.Writer) zapcore.Core {
@@ -122,8 +128,9 @@ func Test_app_Run(t *testing.T) {
 					zapcore.InfoLevel,
 				)
 			}(&buf))
+			// flag.
 
-			appHandler := NewApp(ctx, tt.fields.cfg, tt.fields.build, logger)
+			appHandler := NewApp(ctx, stop, tt.fields.build, tt.fields.cfg, logger)
 
 			appHandler.Run()
 			appHandler.Stop()
@@ -131,6 +138,9 @@ func Test_app_Run(t *testing.T) {
 			t.Log(buf.String())
 			for i := 0; i < len(tt.wantStrings); i++ {
 				assert.Contains(t, buf.String(), tt.wantStrings[i], fmt.Sprintf("%s is expected at log out", tt.wantStrings[i]))
+			}
+			for i := 0; i < len(tt.doNotWantStrings); i++ {
+				assert.NotContains(t, buf.String(), tt.doNotWantStrings[i], fmt.Sprintf("%s is not expected at log out", tt.doNotWantStrings[i]))
 			}
 		})
 	}
