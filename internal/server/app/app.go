@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/MrSwed/go-musthave-metrics/internal/server/closer"
@@ -18,6 +17,7 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 )
 
 func buildInfo(s string) string {
@@ -38,7 +38,7 @@ type app struct {
 	stop       context.CancelFunc
 	cfg        *config.Config
 	build      BuildMetadata
-	wg         *sync.WaitGroup
+	eg         *errgroup.Group
 	http       *http.Server
 	srv        *service.Service
 	log        *zap.Logger
@@ -48,15 +48,15 @@ type app struct {
 	lockDB     chan struct{}
 }
 
-func NewApp(ctx context.Context, stop context.CancelFunc,
+func NewApp(c context.Context, stop context.CancelFunc,
 	metadata BuildMetadata, cfg *config.Config, log *zap.Logger) *app {
-
+	g, ctx := errgroup.WithContext(c)
 	a := app{
 		ctx:        ctx,
 		stop:       stop,
 		build:      metadata,
 		cfg:        cfg,
-		wg:         &sync.WaitGroup{},
+		eg:         g,
 		isNewStore: true,
 		closer:     &closer.Closer{},
 		log:        log,
@@ -118,9 +118,7 @@ func (a *app) maybeRestoreStore() {
 
 func (a *app) maybeRunStoreSaver() {
 	if a.cfg.FileStoragePath != "" && a.cfg.FileStoreInterval > 0 {
-		a.wg.Add(1)
-		go func() {
-			defer a.wg.Done()
+		a.eg.Go(func() error {
 			for {
 				select {
 				case <-time.After(time.Duration(a.cfg.FileStoreInterval) * time.Second):
@@ -131,10 +129,10 @@ func (a *app) maybeRunStoreSaver() {
 					}
 				case <-a.ctx.Done():
 					a.log.Info("Store save on interval finished")
-					return
+					return nil
 				}
 			}
-		}()
+		})
 	}
 }
 
@@ -161,10 +159,6 @@ func (a *app) shutdownDBStore(_ context.Context) (err error) {
 func (a *app) Run() {
 	a.log.Info("Start server", zap.Any("Config", a.cfg))
 
-	var (
-		err error
-	)
-
 	a.closer.Add("WEB", a.http.Shutdown)
 
 	if a.cfg.FileStoragePath != "" {
@@ -178,24 +172,22 @@ func (a *app) Run() {
 	}
 
 	go func() {
-		if err = a.http.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			err = errors.Join(errors.New("ListenAndServe"), err)
+		if err := a.http.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			a.log.Error("Start server", zap.Error(err))
 			a.stop()
 		}
 	}()
-
 	a.log.Info("Server started")
-
 	<-a.ctx.Done()
-
 }
 
 func (a *app) Stop() {
 	a.log.Info("Shutting down server gracefully")
 
 	// wait FileStoreInterval
-	a.wg.Wait()
-
+	if err := a.eg.Wait(); err != nil {
+		a.log.Error("Service", zap.Error(err))
+	}
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), constant.ServerShutdownTimeout*time.Second)
 	defer cancel()
 
