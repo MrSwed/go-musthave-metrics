@@ -1,4 +1,4 @@
-package app
+package agent
 
 import (
 	"bytes"
@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/MrSwed/go-musthave-metrics/internal/agent/app"
 	"github.com/MrSwed/go-musthave-metrics/internal/agent/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -21,7 +22,7 @@ func Test_app_Run(t *testing.T) {
 		ctx   context.Context
 		stop  context.CancelFunc
 		cfg   *config.Config
-		build BuildMetadata
+		build app.BuildMetadata
 	}
 	tests := []struct {
 		name             string
@@ -36,7 +37,7 @@ func Test_app_Run(t *testing.T) {
 				ctx:  ctx,
 				stop: cancel,
 				cfg:  config.NewConfig(),
-				build: BuildMetadata{
+				build: app.BuildMetadata{
 					Version: "1.0-testing",
 					Date:    "24.05.24",
 					Commit:  "444333",
@@ -73,7 +74,7 @@ func Test_app_Run(t *testing.T) {
 
 			require.NoError(t, tt.fields.cfg.Init())
 
-			appHandler := NewApp(ctx, tt.fields.cfg, tt.fields.build)
+			appHandler := app.NewApp(ctx, tt.fields.cfg, tt.fields.build)
 
 			var buf bytes.Buffer
 			log.SetOutput(&buf)
