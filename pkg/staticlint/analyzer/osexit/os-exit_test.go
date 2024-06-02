@@ -1,4 +1,4 @@
-package main
+package osexit
 
 import (
 	"testing"

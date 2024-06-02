@@ -28,6 +28,8 @@ package main
 import (
 	"strings"
 
+	"github.com/MrSwed/go-musthave-metrics/pkg/staticlint/analyzer/osexit"
+
 	gocritic "github.com/go-critic/go-critic/checkers/analyzer"
 	"github.com/gordonklaus/ineffassign/pkg/ineffassign"
 	"golang.org/x/tools/go/analysis"
@@ -139,8 +141,8 @@ func main() {
 		gocritic.Analyzer,
 		ineffassign.Analyzer,
 
-		// own analyzer for deny os.Exit()
-		OsExitCheckAnalyzer,
+		// own osexit for deny os.Exit()
+		osexit.OsExitCheckAnalyzer,
 	}
 	for _, v := range staticcheck.Analyzers {
 		// all SAxxxx and other by one from staticcheck.io
