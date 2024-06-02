@@ -28,6 +28,7 @@ package main
 import (
 	"strings"
 
+	"github.com/MrSwed/go-musthave-metrics/pkg/staticlint/analyzer/nargs"
 	"github.com/MrSwed/go-musthave-metrics/pkg/staticlint/analyzer/osexit"
 
 	gocritic "github.com/go-critic/go-critic/checkers/analyzer"
@@ -143,6 +144,7 @@ func main() {
 
 		// own osexit for deny os.Exit()
 		osexit.OsExitCheckAnalyzer,
+		nargs.NArgsAnalyzer,
 	}
 	for _, v := range staticcheck.Analyzers {
 		// all SAxxxx and other by one from staticcheck.io
