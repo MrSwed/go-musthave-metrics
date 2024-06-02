@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"net"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -33,38 +34,76 @@ func Test_app_Run(t *testing.T) {
 		fields           fields
 		wantStrings      []string
 		doNotWantStrings []string
-	}{{
-		name: "Test_Run",
-		fields: func() fields {
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-			return fields{
-				ctx:  ctx,
-				stop: cancel,
-				cfg: func() *config.Config {
-					cfg := config.NewConfig()
-					cfg.FileStoragePath = filepath.Join(t.TempDir(), fmt.Sprintf("metrict-db-%d.json", rand.Int()))
-					return cfg
-				}(),
-				build: BuildMetadata{
-					Version: "1.0-testing",
-					Date:    "24.05.24",
-					Commit:  "444333",
-				},
-			}
-		}(),
-		wantStrings: []string{
-			`"Init app"`,
-			`"Build version":"1.0-testing"`,
-			`"Build date":"24.05.24"`,
-			`"Build commit":"444333"`,
-			`Start server`,
-			`Server started`,
-			`Shutting down server gracefully`,
-			`Store save on interval finished`,
-			`Storage saved`,
-			`Server stopped`,
+	}{
+		{
+			name: "Server app run. default",
+			fields: func() fields {
+				ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+				return fields{
+					ctx:  ctx,
+					stop: cancel,
+					cfg: func() *config.Config {
+						cfg := config.NewConfig()
+						cfg.FileStoragePath = filepath.Join(t.TempDir(), fmt.Sprintf("metrict-db-%d.json", rand.Int()))
+						return cfg
+					}(),
+					build: BuildMetadata{
+						Version: "1.0-testing",
+						Date:    "24.05.24",
+						Commit:  "444333",
+					},
+				}
+			}(),
+			wantStrings: []string{
+				`"Init app"`,
+				`"Build version":"1.0-testing"`,
+				`"Build date":"24.05.24"`,
+				`"Build commit":"444333"`,
+				`Start server`,
+				`Server started`,
+				`Shutting down server gracefully`,
+				`Store save on interval finished`,
+				`Storage saved`,
+				`Server stopped`,
+			},
 		},
-	},
+		{
+			name: "Server app run. port busy",
+			fields: func() fields {
+				cfg := config.NewConfig()
+				cfg.FileStoragePath = ""
+
+				portUse, err := net.Listen("tcp", cfg.Address)
+				require.NoError(t, err)
+
+				ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+				return fields{
+					ctx: ctx,
+					stop: func() {
+						_ = portUse.Close()
+						cancel()
+					},
+					cfg: cfg,
+					build: BuildMetadata{
+						Version: "1.0-testing",
+						Date:    "24.05.24",
+						Commit:  "444333",
+					},
+				}
+			}(),
+			wantStrings: []string{
+				`"Init app"`,
+				`"Build version":"1.0-testing"`,
+				`"Build date":"24.05.24"`,
+				`"Build commit":"444333"`,
+				`Start server`,
+				`Server started`,
+				`Shutting down server gracefully`,
+				`Store save on interval finished`,
+				`Storage saved`,
+				`Server stopped`,
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
