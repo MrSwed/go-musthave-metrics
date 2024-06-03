@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -22,44 +21,23 @@ import (
 //	GET http://server:port/value/metricType/metricName
 func (h *Handler) GetMetric() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		action, metricKey := chi.URLParam(r, constant.MetricTypeParam), chi.URLParam(r, constant.MetricNameParam)
-		var metricValue string
+		mType, mKey := chi.URLParam(r, constant.MetricTypeParam), chi.URLParam(r, constant.MetricNameParam)
 		ctx, cancel := context.WithTimeout(r.Context(), constant.ServerOperationTimeout*time.Second)
 		defer cancel()
-
-		switch action {
-		case constant.MetricTypeGauge:
-			if gauge, err := h.s.GetGauge(ctx, metricKey); err != nil {
-				if errors.Is(err, myErr.ErrNotExist) {
-					w.WriteHeader(http.StatusNotFound)
-				} else {
-					w.WriteHeader(http.StatusInternalServerError)
-					h.log.Error("Error get gauge", zap.Error(err))
-				}
-				return
+		metric, err := h.s.GetMetric(ctx, mType, mKey)
+		if err != nil {
+			if errors.Is(err, myErr.ErrNotExist) {
+				w.WriteHeader(http.StatusNotFound)
 			} else {
-				metricValue = fmt.Sprintf("%v", gauge)
+				w.WriteHeader(http.StatusInternalServerError)
+				h.log.Error("Error get "+metric.MType, zap.Error(err))
 			}
-
-		case constant.MetricTypeCounter:
-			if count, err := h.s.GetCounter(ctx, metricKey); err != nil {
-				if errors.Is(err, myErr.ErrNotExist) {
-					w.WriteHeader(http.StatusNotFound)
-				} else {
-					w.WriteHeader(http.StatusInternalServerError)
-					h.log.Error("Error get counter", zap.Error(err))
-				}
-				return
-			} else {
-				metricValue = fmt.Sprintf("%v", count)
-			}
-		default:
-			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		setHeaderSHA(w, h.c.Key, []byte(metricValue))
+
+		setHeaderSHA(w, h.c.Key, []byte(metric.String()))
 		w.WriteHeader(http.StatusOK)
-		if _, err := w.Write([]byte(metricValue)); err != nil {
+		if _, err := w.Write([]byte(metric.String())); err != nil {
 			h.log.Error("Error return answer", zap.Error(err))
 		}
 	}
@@ -81,35 +59,16 @@ func (h *Handler) GetMetricJSON() func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), constant.ServerOperationTimeout*time.Second)
 		defer cancel()
 
-		switch metric.MType {
-		case constant.MetricTypeGauge:
-			if gauge, er := h.s.GetGauge(ctx, metric.ID); er != nil {
-				if errors.Is(er, myErr.ErrNotExist) {
-					w.WriteHeader(http.StatusNotFound)
-				} else {
-					w.WriteHeader(http.StatusInternalServerError)
-					h.log.Error("Error get gauge", zap.Error(er))
-				}
-				return
+		if metric, err = h.s.GetMetric(ctx, metric.MType, metric.ID); err != nil {
+			if errors.Is(err, myErr.ErrNotExist) {
+				w.WriteHeader(http.StatusNotFound)
 			} else {
-				metric.Value = &gauge
+				w.WriteHeader(http.StatusInternalServerError)
+				h.log.Error("Error get "+metric.MType, zap.Error(err))
 			}
-		case constant.MetricTypeCounter:
-			if count, er := h.s.GetCounter(ctx, metric.ID); er != nil {
-				if errors.Is(er, myErr.ErrNotExist) {
-					w.WriteHeader(http.StatusNotFound)
-				} else {
-					w.WriteHeader(http.StatusInternalServerError)
-					h.log.Error("Error get counter", zap.Error(er))
-				}
-				return
-			} else {
-				metric.Delta = &count
-			}
-		default:
-			w.WriteHeader(http.StatusNotFound)
 			return
 		}
+
 		var out []byte
 		if out, err = json.Marshal(metric); err != nil {
 			h.log.Error("Error marshal metric", zap.Error(err))
@@ -133,7 +92,7 @@ func (h *Handler) GetListMetrics() func(w http.ResponseWriter, r *http.Request) 
 		ctx, cancel := context.WithTimeout(r.Context(), constant.ServerOperationTimeout*time.Second)
 		defer cancel()
 
-		html, err := h.s.GetCountersHTMLPage(ctx)
+		html, err := h.s.GetMetricsHTMLPage(ctx)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			h.log.Error("Error get html page", zap.Error(err))

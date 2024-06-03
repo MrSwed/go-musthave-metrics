@@ -17,8 +17,7 @@ import (
 type Metrics interface {
 	SetGauge(ctx context.Context, k string, v domain.Gauge) error
 	IncreaseCounter(ctx context.Context, k string, v domain.Counter) error
-	GetGauge(ctx context.Context, k string) (domain.Gauge, error)
-	GetCounter(ctx context.Context, k string) (domain.Counter, error)
+	GetMetric(ctx context.Context, mType, k string) (domain.Metric, error)
 	SetMetric(ctx context.Context, metric domain.Metric) (domain.Metric, error)
 	SetMetrics(ctx context.Context, metrics []domain.Metric) ([]domain.Metric, error)
 }
@@ -64,15 +63,30 @@ func (s *MetricsService) IncreaseCounter(ctx context.Context, k string, v domain
 	}
 }
 
-// GetGauge get gauge value
-func (s *MetricsService) GetGauge(ctx context.Context, k string) (v domain.Gauge, err error) {
-	v, err = s.r.GetGauge(ctx, k)
-	return
-}
-
-// GetCounter get counter value
-func (s *MetricsService) GetCounter(ctx context.Context, k string) (v domain.Counter, err error) {
-	v, err = s.r.GetCounter(ctx, k)
+// GetMetric
+// get counter or gauge depends type of metric
+func (s *MetricsService) GetMetric(ctx context.Context, mType, id string) (v domain.Metric, err error) {
+	switch mType {
+	case constant.MetricTypeGauge:
+		if gauge, er := s.r.GetGauge(ctx, id); er != nil {
+			err = er
+			return
+		} else {
+			v.Value = &gauge
+		}
+	case constant.MetricTypeCounter:
+		if count, er := s.r.GetCounter(ctx, id); er != nil {
+			err = er
+			return
+		} else {
+			v.Delta = &count
+		}
+	default:
+		err = myErr.ErrNotExist
+		return
+	}
+	v.ID = id
+	v.MType = mType
 	return
 }
 
@@ -92,7 +106,7 @@ func (s *MetricsService) SetMetric(ctx context.Context, metric domain.Metric) (r
 			return
 		}
 		var count domain.Counter
-		if count, err = s.GetCounter(ctx, metric.ID); err != nil {
+		if count, err = s.r.GetCounter(ctx, metric.ID); err != nil {
 			return
 		} else {
 			metric.Delta = &count
