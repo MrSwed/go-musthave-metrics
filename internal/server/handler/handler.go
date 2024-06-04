@@ -13,7 +13,6 @@ import (
 	"github.com/MrSwed/go-musthave-metrics/internal/server/constant"
 	myMiddleware "github.com/MrSwed/go-musthave-metrics/internal/server/middleware"
 	"github.com/MrSwed/go-musthave-metrics/internal/server/service"
-
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"go.uber.org/zap"
@@ -52,7 +51,7 @@ func setHeaderSHA(r http.ResponseWriter, key string, data []byte) {
 
 // Handler
 // init app routes
-func (h *Handler) Handler() http.Handler {
+func (h *Handler) HTTPHandler() http.Handler {
 	h.app.Use(myMiddleware.Logger(h.log))
 	h.app.Use(middleware.Compress(gzip.DefaultCompression, "application/json", "text/html"))
 	h.app.Use(myMiddleware.Decrypt(h.c.GetPrivateKey(), h.log))

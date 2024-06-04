@@ -76,7 +76,7 @@ func NewApp(c context.Context, stop context.CancelFunc,
 	a.maybeRestoreStore()
 	a.maybeRunStoreSaver()
 
-	a.http = &http.Server{Addr: a.cfg.Address, Handler: h.Handler()}
+	a.http = &http.Server{Addr: a.cfg.Address, Handler: h.HTTPHandler()}
 
 	return &a
 }

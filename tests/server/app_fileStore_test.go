@@ -45,7 +45,7 @@ func (suite *HandlerFileStoreTestSuite) SetupSuite() {
 		suite.Fail(err.Error())
 	}
 
-	suite.app = handler.NewHandler(chi.NewRouter(), suite.srv, &suite.cfg.WEB, logger).Handler()
+	suite.app = handler.NewHandler(chi.NewRouter(), suite.srv, &suite.cfg.WEB, logger).HTTPHandler()
 }
 func (suite *HandlerFileStoreTestSuite) TearDownSuite() {
 	require.NoError(suite.T(), os.RemoveAll(suite.T().TempDir()))

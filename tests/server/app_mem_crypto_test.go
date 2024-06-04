@@ -86,7 +86,7 @@ func (suite *HandlerMemCryptoTestSuite) SetupSuite() {
 		suite.Fail(err.Error())
 	}
 
-	suite.app = handler.NewHandler(chi.NewRouter(), suite.srv, &suite.cfg.WEB, logger).Handler()
+	suite.app = handler.NewHandler(chi.NewRouter(), suite.srv, &suite.cfg.WEB, logger).HTTPHandler()
 }
 func (suite *HandlerMemCryptoTestSuite) TearDownSuite() {
 	require.NoError(suite.T(), os.RemoveAll(suite.T().TempDir()))
@@ -154,7 +154,7 @@ func (suite *HandlerMemCryptoTestSuite) TestUpdateMetricsNoCrypt() {
 		want want
 	}{
 		{
-			name: "No crypt UpdateMetricJSON",
+			name: "No crypt updateMetricJSON",
 			args: args{
 				path:   constant.UpdatesRoute,
 				method: http.MethodPost,
@@ -176,7 +176,7 @@ func (suite *HandlerMemCryptoTestSuite) TestUpdateMetricsNoCrypt() {
 			},
 		},
 		{
-			name: "No crypt UpdateMetric",
+			name: "No crypt updateMetric",
 			args: args{
 				path:   constant.UpdateRoute,
 				method: http.MethodPost,
