@@ -14,14 +14,6 @@ const (
 	FileStoragePath = "/tmp/metrics-db.json"
 	StorageRestore  = true
 
-	EnvNameServerAddress   = "ADDRESS"
-	EnvNameFileStoragePath = "FILE_STORAGE_PATH"
-	EnvNameStoreInterval   = "STORE_INTERVAL"
-	EnvNameRestore         = "RESTORE"
-	EnvNameDBDSN           = "DATABASE_DSN"
-	EnvNameKey             = "KEY"
-	EnvNameCryptoKey       = "CRYPTO_KEY"
-
 	UpdateRoute      = "/update"
 	UpdatesRoute     = "/updates"
 	ValueRoute       = "/value"
