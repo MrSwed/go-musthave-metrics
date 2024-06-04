@@ -10,7 +10,6 @@ import (
 	"github.com/MrSwed/go-musthave-metrics/internal/server/handler"
 	"github.com/MrSwed/go-musthave-metrics/internal/server/repository"
 	"github.com/MrSwed/go-musthave-metrics/internal/server/service"
-	"github.com/go-chi/chi/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
 	"github.com/stretchr/testify/suite"
@@ -41,7 +40,7 @@ func (suite *HandlerMemTestSuite) SetupSuite() {
 		suite.Fail(err.Error())
 	}
 
-	suite.app = handler.NewHandler(chi.NewRouter(), suite.srv, &suite.cfg.WEB, logger).HTTPHandler()
+	suite.app = handler.NewHandler(suite.srv, &suite.cfg.WEB, logger).HTTPHandler()
 }
 
 func (suite *HandlerMemTestSuite) App() http.Handler {

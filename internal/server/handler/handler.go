@@ -27,8 +27,12 @@ type Handler struct {
 }
 
 // NewHandler return app handler
-func NewHandler(app *chi.Mux, s *service.Service, c *config.WEB, log *zap.Logger) *Handler {
-	return &Handler{app: app, s: s, c: c, log: log}
+func NewHandler(s *service.Service, c *config.WEB, log *zap.Logger) *Handler {
+	return &Handler{
+		app: chi.NewRouter(),
+		s:   s,
+		c:   c,
+		log: log}
 }
 
 func SignData(key string, data []byte) string {

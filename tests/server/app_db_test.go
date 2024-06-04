@@ -22,7 +22,6 @@ import (
 	errM "github.com/MrSwed/go-musthave-metrics/internal/server/migrate"
 	"github.com/MrSwed/go-musthave-metrics/internal/server/repository"
 	"github.com/MrSwed/go-musthave-metrics/internal/server/service"
-	"github.com/go-chi/chi/v5"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
@@ -123,7 +122,7 @@ func (suite *HandlerDBTestSuite) SetupSuite() {
 		panic(err)
 	}
 
-	suite.app = handler.NewHandler(chi.NewRouter(), suite.srv, &suite.cfg.WEB, logger).HTTPHandler()
+	suite.app = handler.NewHandler(suite.srv, &suite.cfg.WEB, logger).HTTPHandler()
 }
 
 func (suite *HandlerDBTestSuite) TearDownSuite() {

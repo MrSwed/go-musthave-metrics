@@ -13,7 +13,6 @@ import (
 	"github.com/MrSwed/go-musthave-metrics/internal/server/handler"
 	"github.com/MrSwed/go-musthave-metrics/internal/server/repository"
 	"github.com/MrSwed/go-musthave-metrics/internal/server/service"
-	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
@@ -44,7 +43,7 @@ func (suite *HandlerIPTestSuite) SetupSuite() {
 		suite.Fail(err.Error())
 	}
 
-	suite.app = handler.NewHandler(chi.NewRouter(), suite.srv, &suite.cfg.WEB, suite.log).HTTPHandler()
+	suite.app = handler.NewHandler(suite.srv, &suite.cfg.WEB, suite.log).HTTPHandler()
 }
 
 func TestHandlersIP(t *testing.T) {
@@ -133,7 +132,7 @@ func (suite *HandlerIPTestSuite) TestRequestWithXRealIp() {
 		t.Run(test.name, func(t *testing.T) {
 			if test.args.cfgTrustedSubnet != "" {
 				suite.cfg.TrustedSubnet = test.args.cfgTrustedSubnet
-				suite.app = handler.NewHandler(chi.NewRouter(), suite.srv, &suite.cfg.WEB, suite.log).HTTPHandler()
+				suite.app = handler.NewHandler(suite.srv, &suite.cfg.WEB, suite.log).HTTPHandler()
 				ts.Close()
 				ts = httptest.NewServer(suite.app)
 				defer ts.Close()

@@ -13,7 +13,6 @@ import (
 	myMigrate "github.com/MrSwed/go-musthave-metrics/internal/server/migrate"
 	"github.com/MrSwed/go-musthave-metrics/internal/server/repository"
 	"github.com/MrSwed/go-musthave-metrics/internal/server/service"
-	"github.com/go-chi/chi/v5"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
@@ -71,7 +70,7 @@ func NewApp(c context.Context, stop context.CancelFunc,
 	a.maybeConnectDB()
 
 	a.srv = service.NewService(repository.NewRepository(&a.cfg.StorageConfig, a.db), &a.cfg.StorageConfig)
-	h := handler.NewHandler(chi.NewRouter(), a.srv, &a.cfg.WEB, a.log)
+	h := handler.NewHandler(a.srv, &a.cfg.WEB, a.log)
 
 	a.maybeRestoreStore()
 	a.maybeRunStoreSaver()
