@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/agent/config"
-	testhelpers "github.com/MrSwed/go-musthave-metrics/tests"
+	"go-musthave-metrics/internal/agent/config"
+	testhelpers "go-musthave-metrics/tests"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

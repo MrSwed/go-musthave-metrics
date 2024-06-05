@@ -22,9 +22,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/agent/config"
-	"github.com/MrSwed/go-musthave-metrics/internal/agent/constant"
-	myErr "github.com/MrSwed/go-musthave-metrics/internal/agent/error"
+	"go-musthave-metrics/internal/agent/config"
+	"go-musthave-metrics/internal/agent/constant"
+	myErr "go-musthave-metrics/internal/agent/error"
 
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/mem"

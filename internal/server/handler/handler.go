@@ -9,9 +9,9 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/server/config"
-	"github.com/MrSwed/go-musthave-metrics/internal/server/constant"
-	"github.com/MrSwed/go-musthave-metrics/internal/server/service"
+	"go-musthave-metrics/internal/server/config"
+	"go-musthave-metrics/internal/server/constant"
+	"go-musthave-metrics/internal/server/service"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"go.uber.org/zap"

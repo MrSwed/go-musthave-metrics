@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/server/config"
-	helper "github.com/MrSwed/go-musthave-metrics/tests"
+	"go-musthave-metrics/internal/server/config"
+	helper "go-musthave-metrics/tests"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"

@@ -7,8 +7,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/agent/app"
-	"github.com/MrSwed/go-musthave-metrics/internal/agent/config"
+	"go-musthave-metrics/internal/agent/app"
+	"go-musthave-metrics/internal/agent/config"
 )
 
 var buildVersion string

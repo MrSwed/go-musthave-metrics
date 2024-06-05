@@ -14,8 +14,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/server/config"
-	"github.com/MrSwed/go-musthave-metrics/internal/server/constant"
+	"go-musthave-metrics/internal/server/config"
+	"go-musthave-metrics/internal/server/constant"
 	"github.com/go-chi/chi/v5/middleware"
 	"go.uber.org/zap"
 )

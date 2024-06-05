@@ -3,10 +3,10 @@ package service
 import (
 	"context"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/server/constant"
-	"github.com/MrSwed/go-musthave-metrics/internal/server/domain"
-	"github.com/MrSwed/go-musthave-metrics/internal/server/helper"
-	"github.com/MrSwed/go-musthave-metrics/internal/server/repository"
+	"go-musthave-metrics/internal/server/constant"
+	"go-musthave-metrics/internal/server/domain"
+	"go-musthave-metrics/internal/server/helper"
+	"go-musthave-metrics/internal/server/repository"
 )
 
 type MetricsHTML interface {

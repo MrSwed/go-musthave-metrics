@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/MrSwed/go-musthave-metrics/pkg/structflag"
+	"go-musthave-metrics/pkg/structflag"
 	"github.com/caarlos0/env/v11"
 )
 

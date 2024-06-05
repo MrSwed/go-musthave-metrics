@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/agent/config"
-	"github.com/MrSwed/go-musthave-metrics/internal/agent/constant"
+	"go-musthave-metrics/internal/agent/config"
+	"go-musthave-metrics/internal/agent/constant"
 )
 
 type BuildMetadata struct {
@@ -19,11 +19,11 @@ type BuildMetadata struct {
 }
 
 type app struct {
+	wg    *sync.WaitGroup
 	ctx   context.Context
 	cfg   *config.Config
-	build BuildMetadata
 	m     *MetricsCollects
-	wg    *sync.WaitGroup
+	build BuildMetadata
 }
 
 func NewApp(ctx context.Context, cfg *config.Config, metadata BuildMetadata) *app {

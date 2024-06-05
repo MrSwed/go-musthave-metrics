@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/server/config"
+	"go-musthave-metrics/internal/server/config"
 )
 
 // FileStorage handle file storage methods

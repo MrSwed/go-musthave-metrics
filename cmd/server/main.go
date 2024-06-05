@@ -6,8 +6,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/server/app"
-	"github.com/MrSwed/go-musthave-metrics/internal/server/config"
+	"go-musthave-metrics/internal/server/app"
+	"go-musthave-metrics/internal/server/config"
 	_ "github.com/lib/pq"
 	"go.uber.org/zap"
 )

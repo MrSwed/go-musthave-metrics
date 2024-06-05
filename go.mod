@@ -1,4 +1,4 @@
-module github.com/MrSwed/go-musthave-metrics
+module go-musthave-metrics
 
 go 1.21
 
@@ -8,7 +8,6 @@ require (
 	github.com/go-critic/go-critic v0.11.3
 	github.com/go-playground/validator/v10 v10.17.0
 	github.com/golang-migrate/migrate/v4 v4.17.0
-	github.com/golang/mock v1.6.0
 	github.com/gordonklaus/ineffassign v0.1.0
 	github.com/jackc/pgerrcode v0.0.0-20220416144525-469b46aa5efa
 	github.com/jackc/pgx/v5 v5.5.4

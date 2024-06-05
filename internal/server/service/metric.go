@@ -5,11 +5,11 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/server/config"
-	"github.com/MrSwed/go-musthave-metrics/internal/server/constant"
-	"github.com/MrSwed/go-musthave-metrics/internal/server/domain"
-	myErr "github.com/MrSwed/go-musthave-metrics/internal/server/errors"
-	"github.com/MrSwed/go-musthave-metrics/internal/server/repository"
+	"go-musthave-metrics/internal/server/config"
+	"go-musthave-metrics/internal/server/constant"
+	"go-musthave-metrics/internal/server/domain"
+	myErr "go-musthave-metrics/internal/server/errors"
+	"go-musthave-metrics/internal/server/repository"
 
 	"github.com/go-playground/validator/v10"
 )
