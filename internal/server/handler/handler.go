@@ -23,11 +23,11 @@ type Handler struct {
 	s   *service.Service
 	app *chi.Mux
 	log *zap.Logger
-	c   *config.WEB
+	c   *config.Config
 }
 
 // NewHandler return app handler
-func NewHandler(s *service.Service, c *config.WEB, log *zap.Logger) *Handler {
+func NewHandler(s *service.Service, c *config.Config, log *zap.Logger) *Handler {
 	return &Handler{
 		app: chi.NewRouter(),
 		s:   s,
@@ -59,8 +59,8 @@ func (h *Handler) HTTPHandler() http.Handler {
 	h.app.Use(middleware.Compress(gzip.DefaultCompression, "application/json", "text/html"))
 	h.app.Use(Decrypt(h.c.GetPrivateKey(), h.log))
 	h.app.Use(Decompress(h.log))
-	h.app.Use(CheckSign(h.c, h.log))
-	h.app.Use(CheckNetwork(h.c, h.log))
+	h.app.Use(CheckSign(&h.c.WEB, h.log))
+	h.app.Use(CheckNetwork(&h.c.WEB, h.log))
 
 	h.app.Mount("/debug", middleware.Profiler())
 

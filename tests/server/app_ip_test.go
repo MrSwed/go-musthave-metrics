@@ -43,7 +43,7 @@ func (suite *HandlerIPTestSuite) SetupSuite() {
 		suite.Fail(err.Error())
 	}
 
-	suite.app = handler.NewHandler(suite.srv, &suite.cfg.WEB, suite.log).HTTPHandler()
+	suite.app = handler.NewHandler(suite.srv, suite.cfg, suite.log).HTTPHandler()
 }
 
 func TestHandlersIP(t *testing.T) {
@@ -132,7 +132,7 @@ func (suite *HandlerIPTestSuite) TestRequestWithXRealIp() {
 		t.Run(test.name, func(t *testing.T) {
 			if test.args.cfgTrustedSubnet != "" {
 				suite.cfg.TrustedSubnet = test.args.cfgTrustedSubnet
-				suite.app = handler.NewHandler(suite.srv, &suite.cfg.WEB, suite.log).HTTPHandler()
+				suite.app = handler.NewHandler(suite.srv, suite.cfg, suite.log).HTTPHandler()
 				ts.Close()
 				ts = httptest.NewServer(suite.app)
 				defer ts.Close()

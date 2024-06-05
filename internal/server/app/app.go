@@ -70,7 +70,7 @@ func NewApp(c context.Context, stop context.CancelFunc,
 	a.maybeConnectDB()
 
 	a.srv = service.NewService(repository.NewRepository(&a.cfg.StorageConfig, a.db), &a.cfg.StorageConfig)
-	h := handler.NewHandler(a.srv, &a.cfg.WEB, a.log)
+	h := handler.NewHandler(a.srv, a.cfg, a.log)
 
 	a.maybeRestoreStore()
 	a.maybeRunStoreSaver()

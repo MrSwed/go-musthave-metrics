@@ -122,7 +122,7 @@ func (suite *HandlerDBTestSuite) SetupSuite() {
 		panic(err)
 	}
 
-	suite.app = handler.NewHandler(suite.srv, &suite.cfg.WEB, logger).HTTPHandler()
+	suite.app = handler.NewHandler(suite.srv, suite.cfg, logger).HTTPHandler()
 }
 
 func (suite *HandlerDBTestSuite) TearDownSuite() {

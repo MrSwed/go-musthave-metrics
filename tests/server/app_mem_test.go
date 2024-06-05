@@ -40,7 +40,7 @@ func (suite *HandlerMemTestSuite) SetupSuite() {
 		suite.Fail(err.Error())
 	}
 
-	suite.app = handler.NewHandler(suite.srv, &suite.cfg.WEB, logger).HTTPHandler()
+	suite.app = handler.NewHandler(suite.srv, suite.cfg, logger).HTTPHandler()
 }
 
 func (suite *HandlerMemTestSuite) App() http.Handler {
