@@ -1,4 +1,4 @@
-package handler
+package rest
 
 import (
 	"compress/gzip"
@@ -12,6 +12,7 @@ import (
 	"go-musthave-metrics/internal/server/config"
 	"go-musthave-metrics/internal/server/constant"
 	"go-musthave-metrics/internal/server/service"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"go.uber.org/zap"

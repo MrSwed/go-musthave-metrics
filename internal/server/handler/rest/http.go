@@ -1,4 +1,4 @@
-package handler
+package rest
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 	"go-musthave-metrics/internal/server/constant"
 	"go-musthave-metrics/internal/server/domain"
 	myErr "go-musthave-metrics/internal/server/errors"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 	"go.uber.org/zap"

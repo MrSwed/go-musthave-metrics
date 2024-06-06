@@ -1,4 +1,4 @@
-package handler
+package rest
 
 import (
 	"bytes"
@@ -16,6 +16,7 @@ import (
 
 	"go-musthave-metrics/internal/server/config"
 	"go-musthave-metrics/internal/server/constant"
+
 	"github.com/go-chi/chi/v5/middleware"
 	"go.uber.org/zap"
 )

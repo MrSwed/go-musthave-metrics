@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"go-musthave-metrics/internal/server/handler/rest"
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
@@ -10,9 +11,9 @@ import (
 
 	"go-musthave-metrics/internal/server/config"
 	"go-musthave-metrics/internal/server/domain"
-	"go-musthave-metrics/internal/server/handler"
 	"go-musthave-metrics/internal/server/repository"
 	"go-musthave-metrics/internal/server/service"
+
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
@@ -43,7 +44,7 @@ func (suite *HandlerIPTestSuite) SetupSuite() {
 		suite.Fail(err.Error())
 	}
 
-	suite.app = handler.NewHandler(suite.srv, suite.cfg, suite.log).HTTPHandler()
+	suite.app = rest.NewHandler(suite.srv, suite.cfg, suite.log).HTTPHandler()
 }
 
 func TestHandlersIP(t *testing.T) {
@@ -132,7 +133,7 @@ func (suite *HandlerIPTestSuite) TestRequestWithXRealIp() {
 		t.Run(test.name, func(t *testing.T) {
 			if test.args.cfgTrustedSubnet != "" {
 				suite.cfg.TrustedSubnet = test.args.cfgTrustedSubnet
-				suite.app = handler.NewHandler(suite.srv, suite.cfg, suite.log).HTTPHandler()
+				suite.app = rest.NewHandler(suite.srv, suite.cfg, suite.log).HTTPHandler()
 				ts.Close()
 				ts = httptest.NewServer(suite.app)
 				defer ts.Close()

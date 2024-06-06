@@ -3,13 +3,14 @@ package server_test
 import (
 	"context"
 	"crypto/rsa"
+	"go-musthave-metrics/internal/server/handler/rest"
 	"net/http"
 	"testing"
 
 	"go-musthave-metrics/internal/server/config"
-	"go-musthave-metrics/internal/server/handler"
 	"go-musthave-metrics/internal/server/repository"
 	"go-musthave-metrics/internal/server/service"
+
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
 	"github.com/stretchr/testify/suite"
@@ -40,7 +41,7 @@ func (suite *HandlerMemTestSuite) SetupSuite() {
 		suite.Fail(err.Error())
 	}
 
-	suite.app = handler.NewHandler(suite.srv, suite.cfg, logger).HTTPHandler()
+	suite.app = rest.NewHandler(suite.srv, suite.cfg, logger).HTTPHandler()
 }
 
 func (suite *HandlerMemTestSuite) App() http.Handler {

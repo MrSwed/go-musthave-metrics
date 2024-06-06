@@ -9,6 +9,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"go-musthave-metrics/internal/server/handler/rest"
 	"io"
 	"math/rand"
 	"net/http"
@@ -19,10 +20,10 @@ import (
 	"go-musthave-metrics/internal/server/config"
 	"go-musthave-metrics/internal/server/constant"
 	"go-musthave-metrics/internal/server/domain"
-	"go-musthave-metrics/internal/server/handler"
 	"go-musthave-metrics/internal/server/repository"
 	"go-musthave-metrics/internal/server/service"
 	testHelpers "go-musthave-metrics/tests"
+
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
 	"github.com/stretchr/testify/assert"
@@ -85,7 +86,7 @@ func (suite *HandlerMemCryptoTestSuite) SetupSuite() {
 		suite.Fail(err.Error())
 	}
 
-	suite.app = handler.NewHandler(suite.srv, suite.cfg, logger).HTTPHandler()
+	suite.app = rest.NewHandler(suite.srv, suite.cfg, logger).HTTPHandler()
 }
 func (suite *HandlerMemCryptoTestSuite) TearDownSuite() {
 	require.NoError(suite.T(), os.RemoveAll(suite.T().TempDir()))

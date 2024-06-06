@@ -9,7 +9,7 @@ import (
 	"go-musthave-metrics/internal/server/closer"
 	"go-musthave-metrics/internal/server/config"
 	"go-musthave-metrics/internal/server/constant"
-	"go-musthave-metrics/internal/server/handler"
+	"go-musthave-metrics/internal/server/handler/rest"
 	myMigrate "go-musthave-metrics/internal/server/migrate"
 	"go-musthave-metrics/internal/server/repository"
 	"go-musthave-metrics/internal/server/service"
@@ -71,7 +71,7 @@ func NewApp(c context.Context, stop context.CancelFunc,
 	a.maybeConnectDB()
 
 	a.srv = service.NewService(repository.NewRepository(&a.cfg.StorageConfig, a.db), &a.cfg.StorageConfig)
-	h := handler.NewHandler(a.srv, a.cfg, a.log)
+	h := rest.NewHandler(a.srv, a.cfg, a.log)
 
 	a.maybeRestoreStore()
 	a.maybeRunStoreSaver()

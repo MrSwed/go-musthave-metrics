@@ -6,6 +6,7 @@ import (
 	"crypto/rsa"
 	"errors"
 	"fmt"
+	"go-musthave-metrics/internal/server/handler/rest"
 	"io"
 	"math/rand"
 	"net"
@@ -18,10 +19,10 @@ import (
 
 	"go-musthave-metrics/internal/server/app"
 	"go-musthave-metrics/internal/server/config"
-	"go-musthave-metrics/internal/server/handler"
 	errM "go-musthave-metrics/internal/server/migrate"
 	"go-musthave-metrics/internal/server/repository"
 	"go-musthave-metrics/internal/server/service"
+
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
@@ -122,7 +123,7 @@ func (suite *HandlerDBTestSuite) SetupSuite() {
 		panic(err)
 	}
 
-	suite.app = handler.NewHandler(suite.srv, suite.cfg, logger).HTTPHandler()
+	suite.app = rest.NewHandler(suite.srv, suite.cfg, logger).HTTPHandler()
 }
 
 func (suite *HandlerDBTestSuite) TearDownSuite() {

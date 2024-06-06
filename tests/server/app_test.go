@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"go-musthave-metrics/internal/server/handler/rest"
 	"io"
 	"math/rand"
 	"net/http"
@@ -19,9 +20,9 @@ import (
 	"go-musthave-metrics/internal/server/config"
 	"go-musthave-metrics/internal/server/constant"
 	"go-musthave-metrics/internal/server/domain"
-	"go-musthave-metrics/internal/server/handler"
 	errM "go-musthave-metrics/internal/server/migrate"
 	"go-musthave-metrics/internal/server/service"
+
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
@@ -1319,7 +1320,7 @@ func testHashKey(suite HandlerTestSuite) {
 				method: http.MethodPost,
 				body:   dataBody1,
 				headers: map[string]string{
-					constant.HeaderSignKey: handler.SignData(suite.Cfg().Key, dataBody1),
+					constant.HeaderSignKey: rest.SignData(suite.Cfg().Key, dataBody1),
 				},
 			},
 			want: want{
@@ -1327,7 +1328,7 @@ func testHashKey(suite HandlerTestSuite) {
 				response:    data1,
 				contentType: "application/json; charset=utf-8",
 				headers: map[string]string{
-					constant.HeaderSignKey: handler.SignData(suite.Cfg().Key, dataBody1),
+					constant.HeaderSignKey: rest.SignData(suite.Cfg().Key, dataBody1),
 				},
 			},
 		},
@@ -1339,7 +1340,7 @@ func testHashKey(suite HandlerTestSuite) {
 				headers: map[string]string{
 					"Accept-Encoding":      "gzip",
 					"Content-Encoding":     "gzip",
-					constant.HeaderSignKey: handler.SignData(suite.Cfg().Key, dataBody2),
+					constant.HeaderSignKey: rest.SignData(suite.Cfg().Key, dataBody2),
 				},
 			},
 			want: want{
@@ -1348,7 +1349,7 @@ func testHashKey(suite HandlerTestSuite) {
 				contentType: "application/json; charset=utf-8",
 				headers: map[string]string{
 					"Content-Encoding":     "gzip",
-					constant.HeaderSignKey: handler.SignData(suite.Cfg().Key, dataBody2),
+					constant.HeaderSignKey: rest.SignData(suite.Cfg().Key, dataBody2),
 				},
 			},
 		},
@@ -1358,7 +1359,7 @@ func testHashKey(suite HandlerTestSuite) {
 				method: http.MethodPost,
 				body:   dataBody1,
 				headers: map[string]string{
-					constant.HeaderSignKey: handler.SignData("wrong secret key", dataBody1),
+					constant.HeaderSignKey: rest.SignData("wrong secret key", dataBody1),
 				},
 			},
 			want: want{
@@ -1386,7 +1387,7 @@ func testHashKey(suite HandlerTestSuite) {
 				headers: map[string]string{
 					"Accept-Encoding":      "gzip",
 					"Content-Encoding":     "gzip",
-					constant.HeaderSignKey: handler.SignData("wrong secret key", dataBody2),
+					constant.HeaderSignKey: rest.SignData("wrong secret key", dataBody2),
 				},
 			},
 			want: want{
