@@ -55,7 +55,7 @@ func setHeaderSHA(r http.ResponseWriter, key string, data []byte) {
 
 // Handler
 // init app routes
-func (h *Handler) HTTPHandler() http.Handler {
+func (h *Handler) Handler() http.Handler {
 	h.app.Use(Logger(h.log))
 	h.app.Use(middleware.Compress(gzip.DefaultCompression, "application/json", "text/html"))
 	h.app.Use(Decrypt(h.c.GetPrivateKey(), h.log))

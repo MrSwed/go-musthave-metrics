@@ -41,7 +41,7 @@ func (suite *HandlerMemTestSuite) SetupSuite() {
 		suite.Fail(err.Error())
 	}
 
-	suite.app = rest.NewHandler(suite.srv, suite.cfg, logger).HTTPHandler()
+	suite.app = rest.NewHandler(suite.srv, suite.cfg, logger).Handler()
 }
 
 func (suite *HandlerMemTestSuite) App() http.Handler {

@@ -86,7 +86,7 @@ func (suite *HandlerMemCryptoTestSuite) SetupSuite() {
 		suite.Fail(err.Error())
 	}
 
-	suite.app = rest.NewHandler(suite.srv, suite.cfg, logger).HTTPHandler()
+	suite.app = rest.NewHandler(suite.srv, suite.cfg, logger).Handler()
 }
 func (suite *HandlerMemCryptoTestSuite) TearDownSuite() {
 	require.NoError(suite.T(), os.RemoveAll(suite.T().TempDir()))

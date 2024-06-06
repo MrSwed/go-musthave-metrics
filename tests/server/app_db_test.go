@@ -123,7 +123,7 @@ func (suite *HandlerDBTestSuite) SetupSuite() {
 		panic(err)
 	}
 
-	suite.app = rest.NewHandler(suite.srv, suite.cfg, logger).HTTPHandler()
+	suite.app = rest.NewHandler(suite.srv, suite.cfg, logger).Handler()
 }
 
 func (suite *HandlerDBTestSuite) TearDownSuite() {
