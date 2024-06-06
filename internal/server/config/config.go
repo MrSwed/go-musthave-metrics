@@ -13,6 +13,7 @@ import (
 
 	"go-musthave-metrics/internal/server/constant"
 	"go-musthave-metrics/pkg/structflag"
+
 	"github.com/caarlos0/env/v11"
 )
 

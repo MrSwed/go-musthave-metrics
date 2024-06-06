@@ -9,6 +9,7 @@ import (
 
 	"go-musthave-metrics/internal/agent/config"
 	testhelpers "go-musthave-metrics/tests"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

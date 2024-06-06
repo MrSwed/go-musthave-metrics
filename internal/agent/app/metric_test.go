@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	myErr "go-musthave-metrics/internal/agent/error"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
