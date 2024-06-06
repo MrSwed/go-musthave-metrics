@@ -3,12 +3,14 @@ package app
 import (
 	"context"
 	"errors"
+	"net"
 	"net/http"
 	"time"
 
 	"go-musthave-metrics/internal/server/closer"
 	"go-musthave-metrics/internal/server/config"
 	"go-musthave-metrics/internal/server/constant"
+	hgrpc "go-musthave-metrics/internal/server/handler/grpc"
 	"go-musthave-metrics/internal/server/handler/rest"
 	myMigrate "go-musthave-metrics/internal/server/migrate"
 	"go-musthave-metrics/internal/server/repository"
@@ -18,6 +20,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/grpc"
 )
 
 func buildInfo(s string) string {
@@ -40,6 +43,7 @@ type app struct {
 	build      BuildMetadata
 	eg         *errgroup.Group
 	http       *http.Server
+	grpc       *grpc.Server
 	srv        *service.Service
 	log        *zap.Logger
 	db         *sqlx.DB
@@ -50,13 +54,13 @@ type app struct {
 
 func NewApp(c context.Context, stop context.CancelFunc,
 	metadata BuildMetadata, cfg *config.Config, log *zap.Logger) *app {
-	g, ctx := errgroup.WithContext(c)
+	eg, ctx := errgroup.WithContext(c)
 	a := app{
 		ctx:        ctx,
 		stop:       stop,
 		build:      metadata,
 		cfg:        cfg,
-		eg:         g,
+		eg:         eg,
 		isNewStore: true,
 		closer:     &closer.Closer{},
 		log:        log,
@@ -71,12 +75,15 @@ func NewApp(c context.Context, stop context.CancelFunc,
 	a.maybeConnectDB()
 
 	a.srv = service.NewService(repository.NewRepository(&a.cfg.StorageConfig, a.db), &a.cfg.StorageConfig)
-	h := rest.NewHandler(a.srv, a.cfg, a.log)
 
 	a.maybeRestoreStore()
 	a.maybeRunStoreSaver()
 
+	h := rest.NewHandler(a.srv, a.cfg, a.log)
+	g := hgrpc.NewServer(a.srv, a.cfg, a.log)
+
 	a.http = &http.Server{Addr: a.cfg.Address, Handler: h.Handler()}
+	a.grpc = g.Handler()
 
 	return &a
 }
@@ -156,10 +163,18 @@ func (a *app) shutdownDBStore(_ context.Context) (err error) {
 	return
 }
 
+func (a *app) grpcShutdown(_ context.Context) error {
+	if a.grpc != nil {
+		a.grpc.GracefulStop()
+	}
+	return nil
+}
+
 func (a *app) Run() {
 	a.log.Info("Start server", zap.Any("Config", a.cfg))
 
 	a.closer.Add("WEB", a.http.Shutdown)
+	a.closer.Add("grpc", a.grpcShutdown)
 
 	if a.cfg.FileStoragePath != "" {
 		a.closer.Add("Storage save", a.shutdownFileStore)
@@ -173,11 +188,25 @@ func (a *app) Run() {
 
 	go func() {
 		if err := a.http.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			a.log.Error("Start server", zap.Error(err))
+			a.log.Error("http server", zap.Error(err))
 			a.stop()
 		}
 	}()
-	a.log.Info("Server started")
+	a.log.Info("http server started")
+
+	if a.grpc != nil {
+		go func() {
+			listen, err := net.Listen("tcp", a.cfg.GRPCAddress)
+			if err != nil {
+				a.log.Error("grpc server", zap.Error(err))
+			}
+			if err = a.grpc.Serve(listen); err != nil {
+				a.log.Error("grpc server", zap.Error(err))
+				a.stop()
+			}
+		}()
+		a.log.Info("grpc server started")
+	}
 	<-a.ctx.Done()
 }
 

@@ -14,6 +14,9 @@ const (
 	FileStoragePath = "/tmp/metrics-db.json"
 	StorageRestore  = true
 
+	GRPCAddress = ":3200"
+	GRPCToken   = "#GRPCSomeTokenString#"
+
 	UpdateRoute      = "/update"
 	UpdatesRoute     = "/updates"
 	ValueRoute       = "/value"

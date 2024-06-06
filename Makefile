@@ -63,3 +63,9 @@ cover: install_go_cover_treemap
 	go test -v -coverpkg=./... -coverprofile=coverage.out -covermode=count ./...
 	go tool cover -func coverage.out
 	go-cover-treemap -coverprofile coverage.out > coverage.out.svg
+
+proto:
+	protoc --go_out=. --go_opt=paths=source_relative \
+      --go-grpc_out=. --go-grpc_opt=paths=source_relative \
+      internal/grpc/proto/service.proto
+

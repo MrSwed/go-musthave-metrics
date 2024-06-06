@@ -32,6 +32,11 @@ type WEB struct {
 	TrustedSubnet string `env:"TRUSTED_SUBNET" json:"trusted_subnet" flag:"t" usage:"Provide the trusted subnet"`
 }
 
+type GRPC struct {
+	GRPCAddress string `env:"GRPC_ADDRESS" json:"grpc_address"  flag:"g" usage:"Provide the grpc service address"`
+	GRPCToken   string `env:"GRPC_TOKEN" json:"grpc_token"  flag:"token" usage:"Provide the grpc service token"`
+}
+
 // Config all configs
 type Config struct {
 	Address     string `env:"ADDRESS" json:"address"  flag:"a" usage:"Provide the address start server"`
@@ -40,6 +45,7 @@ type Config struct {
 	Config2     string `json:"-" env:"-" flag:"c" usage:"same as -config"` // ?
 	WEB
 	StorageConfig
+	GRPC
 }
 
 func NewConfig() *Config {
@@ -49,6 +55,10 @@ func NewConfig() *Config {
 			FileStoreInterval: constant.StoreInterval,
 			FileStoragePath:   constant.FileStoragePath,
 			StorageRestore:    constant.StorageRestore,
+		},
+		GRPC: GRPC{
+			GRPCAddress: constant.GRPCAddress,
+			GRPCToken:   constant.GRPCToken,
 		},
 	}
 }
