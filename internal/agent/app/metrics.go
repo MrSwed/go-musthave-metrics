@@ -25,10 +25,13 @@ import (
 	"go-musthave-metrics/internal/agent/config"
 	"go-musthave-metrics/internal/agent/constant"
 	myErr "go-musthave-metrics/internal/agent/error"
+	pb "go-musthave-metrics/internal/grpc/proto"
 
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/mem"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 // MetricsCollects metrics collection
@@ -167,7 +170,11 @@ func (m *MetricsCollects) SendMetrics(ctx context.Context) (n int, err error) {
 				semaphore.Acquire()
 				defer wg.Done()
 				defer semaphore.Release()
-				err = m.request(metrics)
+				if m.c.GRPCAddress == "" {
+					err = m.httpRequest(metrics)
+				} else {
+					err = m.grpcRequest(metrics)
+				}
 			}(metrics[start:finish])
 			return err
 		})
@@ -178,7 +185,7 @@ func (m *MetricsCollects) SendMetrics(ctx context.Context) (n int, err error) {
 	return
 }
 
-func (m *MetricsCollects) request(metrics []*Metric) (err error) {
+func (m *MetricsCollects) httpRequest(metrics []*Metric) (err error) {
 	var er error
 
 	// data to json body
@@ -216,7 +223,7 @@ func (m *MetricsCollects) request(metrics []*Metric) (err error) {
 		bodyBuf.Write(cipherBody)
 	}
 
-	// prepare request
+	// prepare httpRequest
 	var req *http.Request
 	if req, er = http.NewRequest("POST", urlStr, bodyBuf); er != nil {
 		err = errors.Join(err, myErr.ErrWrap(er))
@@ -237,7 +244,7 @@ func (m *MetricsCollects) request(metrics []*Metric) (err error) {
 		req.Header.Set(constant.HeaderSignKey, hex.EncodeToString(h.Sum(nil)))
 	}
 
-	// do request
+	// do httpRequest
 	var res *http.Response
 	if res, er = http.DefaultClient.Do(req); er != nil {
 		err = errors.Join(err, myErr.ErrWrap(er))
@@ -257,5 +264,40 @@ func (m *MetricsCollects) request(metrics []*Metric) (err error) {
 			ip, urlStr, body, res.StatusCode, resultBody))
 	}
 
+	return
+}
+func (m *MetricsCollects) grpcRequest(metrics []*Metric) (err error) {
+	ctx := context.Background()
+
+	conn, err := grpc.Dial(m.c.GRPCAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer func() {
+		err = errors.Join(err, conn.Close())
+	}()
+
+	reqM := make([]*pb.Metric, len(metrics))
+	for i := 0; i < len(metrics); i++ {
+		reqM[i] = &pb.Metric{
+			Id:    metrics[i].ID,
+			Mtype: metrics[i].MType,
+		}
+		if metrics[i].Delta != nil {
+			reqM[i].Delta = int64(*metrics[i].Delta)
+		}
+		if metrics[i].Value != nil {
+			reqM[i].Value = float32(*metrics[i].Value)
+		}
+	}
+
+	c := pb.NewMetricsClient(conn)
+	_, err = c.SetMetrics(ctx, &pb.SetMetricsRequest{
+		Metric: reqM,
+	})
+	if err != nil {
+		err = errors.Join(err, myErr.ErrWrap(err))
+		return
+	}
 	return
 }
