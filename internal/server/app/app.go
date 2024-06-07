@@ -40,7 +40,6 @@ type app struct {
 	ctx        context.Context
 	stop       context.CancelFunc
 	cfg        *config.Config
-	build      BuildMetadata
 	eg         *errgroup.Group
 	http       *http.Server
 	grpc       *grpc.Server
@@ -48,8 +47,9 @@ type app struct {
 	log        *zap.Logger
 	db         *sqlx.DB
 	closer     *closer.Closer
-	isNewStore bool
 	lockDB     chan struct{}
+	build      BuildMetadata
+	isNewStore bool
 }
 
 func NewApp(c context.Context, stop context.CancelFunc,
