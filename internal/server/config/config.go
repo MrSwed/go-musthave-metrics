@@ -44,8 +44,8 @@ type Config struct {
 	Config      string `json:"-" env:"CONFIG" flag:"config" usage:"Provide file with config"`
 	Config2     string `json:"-" env:"-" flag:"c" usage:"same as -config"` // ?
 	WEB
-	StorageConfig
 	GRPC
+	StorageConfig
 }
 
 func NewConfig() *Config {
