@@ -34,6 +34,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 )
 
 // MetricsCollects metrics collection
@@ -277,9 +278,11 @@ func (m *MetricsCollects) grpcRequest(metrics []*Metric) (err error) {
 	}
 	conn, err := grpc.Dial(m.c.GRPCAddress,
 		grpc.WithChainUnaryInterceptor(
-			logging.UnaryClientInterceptor(InterceptorLogger(logger), opts...),
+			logging.UnaryClientInterceptor(interceptorLogger(logger), opts...),
+			UnaryClientInterceptorF(m.c),
 		),
 		grpc.WithTransportCredentials(insecure.NewCredentials()))
+
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -312,7 +315,7 @@ func (m *MetricsCollects) grpcRequest(metrics []*Metric) (err error) {
 	return
 }
 
-func InterceptorLogger(l *log.Logger) logging.Logger {
+func interceptorLogger(l *log.Logger) logging.Logger {
 	return logging.LoggerFunc(func(_ context.Context, lvl logging.Level, msg string, fields ...any) {
 		switch lvl {
 		case logging.LevelDebug:
@@ -328,4 +331,14 @@ func InterceptorLogger(l *log.Logger) logging.Logger {
 		}
 		l.Println(append([]any{"msg", msg}, fields...))
 	})
+}
+
+func UnaryClientInterceptorF(cfg *config.Config) func(ctx context.Context, method string, req any, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+	return func(ctx context.Context, method string, req any, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+		if len(cfg.GRPCToken) > 0 {
+			md := metadata.New(map[string]string{"token": cfg.GRPCToken})
+			ctx = metadata.NewIncomingContext(ctx, md)
+		}
+		return nil
+	}
 }

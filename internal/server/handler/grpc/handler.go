@@ -37,7 +37,8 @@ func (h *Handler) Handler() (s *grpc.Server) {
 
 	s = grpc.NewServer(grpc.ChainUnaryInterceptor(
 		logging.UnaryServerInterceptor(h.interceptorLogger(h.log), opts...),
-	), grpc.UnaryInterceptor(h.unaryInterceptor))
+		h.unaryInterceptor,
+	))
 	pb.RegisterMetricsServer(s, NewMetricsServer(h.s, h.c, h.log))
 
 	return
