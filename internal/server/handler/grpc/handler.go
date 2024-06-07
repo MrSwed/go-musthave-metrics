@@ -2,9 +2,12 @@ package grpc
 
 import (
 	"context"
+	"fmt"
 	pb "go-musthave-metrics/internal/grpc/proto"
 	"go-musthave-metrics/internal/server/config"
 	"go-musthave-metrics/internal/server/service"
+
+	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -27,7 +30,14 @@ func NewServer(s *service.Service, c *config.Config, log *zap.Logger) *Handler {
 }
 
 func (h *Handler) Handler() (s *grpc.Server) {
-	s = grpc.NewServer(grpc.UnaryInterceptor(h.unaryInterceptor))
+
+	opts := []logging.Option{
+		logging.WithLogOnEvents(logging.FinishCall),
+	}
+
+	s = grpc.NewServer(grpc.ChainUnaryInterceptor(
+		logging.UnaryServerInterceptor(h.interceptorLogger(h.log), opts...),
+	), grpc.UnaryInterceptor(h.unaryInterceptor))
 	pb.RegisterMetricsServer(s, NewMetricsServer(h.s, h.c, h.log))
 
 	return
@@ -50,4 +60,43 @@ func (h *Handler) unaryInterceptor(ctx context.Context, req interface{}, _ *grpc
 	}
 
 	return handler(ctx, req)
+}
+
+// interceptorLogger adapts zap logger to interceptor logger.
+// This code is simple enough to be copied and not imported.
+func (h *Handler) interceptorLogger(l *zap.Logger) logging.Logger {
+	return logging.LoggerFunc(func(ctx context.Context, lvl logging.Level, msg string, fields ...any) {
+		f := make([]zap.Field, 0, len(fields)/2)
+
+		for i := 0; i < len(fields); i += 2 {
+			key := fields[i]
+			value := fields[i+1]
+
+			switch v := value.(type) {
+			case string:
+				f = append(f, zap.String(key.(string), v))
+			case int:
+				f = append(f, zap.Int(key.(string), v))
+			case bool:
+				f = append(f, zap.Bool(key.(string), v))
+			default:
+				f = append(f, zap.Any(key.(string), v))
+			}
+		}
+
+		logger := l.WithOptions(zap.AddCallerSkip(1)).With(f...)
+
+		switch lvl {
+		case logging.LevelDebug:
+			logger.Debug(msg)
+		case logging.LevelInfo:
+			logger.Info(msg)
+		case logging.LevelWarn:
+			logger.Warn(msg)
+		case logging.LevelError:
+			logger.Error(msg)
+		default:
+			panic(fmt.Sprintf("unknown level %v", lvl))
+		}
+	})
 }

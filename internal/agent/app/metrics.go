@@ -16,6 +16,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"os"
 	"reflect"
 	"runtime"
 	"strconv"
@@ -27,6 +28,7 @@ import (
 	myErr "go-musthave-metrics/internal/agent/error"
 	pb "go-musthave-metrics/internal/grpc/proto"
 
+	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/mem"
 	"golang.org/x/sync/errgroup"
@@ -266,10 +268,18 @@ func (m *MetricsCollects) httpRequest(metrics []*Metric) (err error) {
 
 	return
 }
+
 func (m *MetricsCollects) grpcRequest(metrics []*Metric) (err error) {
 	ctx := context.Background()
-
-	conn, err := grpc.Dial(m.c.GRPCAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	logger := log.New(os.Stderr, "", log.Ldate|log.Ltime|log.Lshortfile)
+	opts := []logging.Option{
+		logging.WithLogOnEvents(logging.FinishCall),
+	}
+	conn, err := grpc.Dial(m.c.GRPCAddress,
+		grpc.WithChainUnaryInterceptor(
+			logging.UnaryClientInterceptor(InterceptorLogger(logger), opts...),
+		),
+		grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -300,4 +310,22 @@ func (m *MetricsCollects) grpcRequest(metrics []*Metric) (err error) {
 		return
 	}
 	return
+}
+
+func InterceptorLogger(l *log.Logger) logging.Logger {
+	return logging.LoggerFunc(func(_ context.Context, lvl logging.Level, msg string, fields ...any) {
+		switch lvl {
+		case logging.LevelDebug:
+			msg = fmt.Sprintf("DEBUG :%v", msg)
+		case logging.LevelInfo:
+			msg = fmt.Sprintf("INFO :%v", msg)
+		case logging.LevelWarn:
+			msg = fmt.Sprintf("WARN :%v", msg)
+		case logging.LevelError:
+			msg = fmt.Sprintf("ERROR :%v", msg)
+		default:
+			panic(fmt.Sprintf("unknown level %v", lvl))
+		}
+		l.Println(append([]any{"msg", msg}, fields...))
+	})
 }

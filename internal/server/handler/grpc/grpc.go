@@ -87,8 +87,8 @@ func (g *MetricsServer) SetMetric(ctx context.Context, in *pb.SetMetricRequest) 
 	defer cancel()
 	request := in.GetMetric()
 	var metric domain.Metric
-	metrikIn := metricSetFromPb(request)[0]
-	if metric, err = g.s.SetMetric(ctx, metrikIn); err != nil {
+	metricIn := metricSetFromPb(request)[0]
+	if metric, err = g.s.SetMetric(ctx, metricIn); err != nil {
 		if errors.As(err, &validator.ValidationErrors{}) {
 			err = errors.Join(errors.New("bad input data: "), err)
 		} else {
