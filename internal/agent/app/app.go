@@ -3,13 +3,13 @@ package app
 import (
 	"context"
 	"errors"
+	"go-musthave-metrics/internal/agent/constant"
 	"log"
 	"net/url"
 	"sync"
 	"time"
 
 	"go-musthave-metrics/internal/agent/config"
-	"go-musthave-metrics/internal/agent/constant"
 )
 
 type BuildMetadata struct {
@@ -130,13 +130,15 @@ With config:
   Number of metrics at once: %d
   Key: %s
   CryptoKey: %s
+  GRPCAddres: %s
   Metric names count: %d
 `,
 		buildInfo(a.build.Version),
 		buildInfo(a.build.Date),
 		buildInfo(a.build.Commit),
 		a.cfg.Address, constant.BaseURL, a.cfg.ReportInterval, a.cfg.PollInterval,
-		a.cfg.RateLimit, a.cfg.SendSize, a.cfg.Key, a.cfg.CryptoKey, len(a.cfg.GaugesList)+len(a.cfg.CountersList))
+		a.cfg.RateLimit, a.cfg.SendSize, a.cfg.Key, a.cfg.CryptoKey, a.cfg.GRPCAddress,
+		len(a.cfg.GaugesList)+len(a.cfg.CountersList))
 
 	// collect runtime metrics
 	a.collectRuntime()
