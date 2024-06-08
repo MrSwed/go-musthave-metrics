@@ -276,10 +276,10 @@ func (m *MetricsCollects) grpcRequest(metrics []*Metric) (err error) {
 	opts := []logging.Option{
 		logging.WithLogOnEvents(logging.FinishCall),
 	}
-	conn, err := grpc.Dial(m.c.GRPCAddress,
+	var conn *grpc.ClientConn
+	conn, err = grpc.DialContext(ctx, m.c.GRPCAddress,
 		grpc.WithChainUnaryInterceptor(
 			logging.UnaryClientInterceptor(interceptorLogger(logger), opts...),
-			UnaryClientInterceptorF(m.c),
 		),
 		grpc.WithTransportCredentials(insecure.NewCredentials()))
 
@@ -304,14 +304,24 @@ func (m *MetricsCollects) grpcRequest(metrics []*Metric) (err error) {
 		}
 	}
 
+	var callOpt []grpc.CallOption
+
+	if m.c.GRPCToken != "" {
+		meta := metadata.New(map[string]string{"token": m.c.GRPCToken})
+		ctx = metadata.NewOutgoingContext(ctx, meta)
+		callOpt = append(callOpt, grpc.Header(&meta))
+	}
+
 	c := pb.NewMetricsClient(conn)
-	_, err = c.SetMetrics(ctx, &pb.SetMetricsRequest{
+	result, er := c.SetMetrics(ctx, &pb.SetMetricsRequest{
 		Metric: reqM,
-	})
-	if err != nil {
-		err = errors.Join(err, myErr.ErrWrap(err))
+	}, callOpt...)
+	if er != nil {
+		err = errors.Join(err, myErr.ErrWrap(er))
 		return
 	}
+
+	log.Printf("grpc set metrics success len: %v", len(result.Metric))
 	return
 }
 
@@ -331,14 +341,4 @@ func interceptorLogger(l *log.Logger) logging.Logger {
 		}
 		l.Println(append([]any{"msg", msg}, fields...))
 	})
-}
-
-func UnaryClientInterceptorF(cfg *config.Config) func(ctx context.Context, method string, req any, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
-	return func(ctx context.Context, method string, req any, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
-		if len(cfg.GRPCToken) > 0 {
-			md := metadata.New(map[string]string{"token": cfg.GRPCToken})
-			ctx = metadata.NewIncomingContext(ctx, md)
-		}
-		return nil
-	}
 }

@@ -34,7 +34,7 @@ type WEB struct {
 
 type GRPC struct {
 	GRPCAddress string `env:"GRPC_ADDRESS" json:"grpc_address"  flag:"g" usage:"Provide the grpc service address"`
-	GRPCToken   string `env:"GRPC_TOKEN" json:"grpc_token"  flag:"token" usage:"Provide the grpc service token"`
+	GRPCToken   string `env:"GRPC_TOKEN" json:"grpc_token"  flag:"grpc_token" usage:"Provide the grpc service token"`
 }
 
 // Config all configs
