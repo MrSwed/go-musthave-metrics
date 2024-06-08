@@ -95,3 +95,19 @@ func (suite *HandlerMemTestSuite) TestPing() {
 func (suite *HandlerMemTestSuite) TestSaveToFile() {
 	testSaveToFile(suite, suite.ctx)
 }
+
+func (suite *HandlerMemTestSuite) TestGRPCGetMetric() {
+	testGRPCGetMetric(suite)
+}
+
+func (suite *HandlerMemTestSuite) TestGRPCGetMetrics() {
+	testGRPCGetMetrics(suite)
+}
+
+func (suite *HandlerMemTestSuite) TestGRPCSetMetric() {
+	testGRPCSetMetric(suite)
+}
+
+func (suite *HandlerMemTestSuite) TestGRPCSetMetrics() {
+	testGRPCSetMetrics(suite)
+}

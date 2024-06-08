@@ -82,8 +82,13 @@ func NewApp(c context.Context, stop context.CancelFunc,
 	h := rest.NewHandler(a.srv, a.cfg, a.log)
 	g := hgrpc.NewServer(a.srv, a.cfg, a.log)
 
-	a.http = &http.Server{Addr: a.cfg.Address, Handler: h.Handler()}
-	a.grpc = g.Handler()
+	if a.cfg.Address != "" {
+		a.http = &http.Server{Addr: a.cfg.Address, Handler: h.Handler()}
+	}
+
+	if a.cfg.GRPCAddress != "" {
+		a.grpc = g.Handler()
+	}
 
 	return &a
 }

@@ -300,3 +300,19 @@ func (suite *HandlerDBTestSuite) TestPing() {
 func (suite *HandlerDBTestSuite) TestSaveToFile() {
 	testSaveToFile(suite, suite.ctx)
 }
+
+func (suite *HandlerDBTestSuite) TestGRPCGetMetric() {
+	testGRPCGetMetric(suite)
+}
+
+func (suite *HandlerDBTestSuite) TestGRPCGetMetrics() {
+	testGRPCGetMetrics(suite)
+}
+
+func (suite *HandlerDBTestSuite) TestGRPCSetMetric() {
+	testGRPCSetMetric(suite)
+}
+
+func (suite *HandlerDBTestSuite) TestGRPCSetMetrics() {
+	testGRPCSetMetrics(suite)
+}
