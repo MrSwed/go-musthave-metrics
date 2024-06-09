@@ -41,14 +41,14 @@ type Storage struct {
 }
 
 // NewRepository return repository of database or memory if no db set
-func NewRepository(c *config.StorageConfig, db *sqlx.DB) (s Storage) {
+func NewRepository(c *config.StorageConfig, db *sqlx.DB) (s *Storage) {
 	if db != nil {
-		s = Storage{
+		s = &Storage{
 			DataStorage: NewDBStorageRepository(db),
 			FileStorage: NewFileStorageRepository(c),
 		}
 	} else {
-		s = Storage{
+		s = &Storage{
 			DataStorage: NewMemRepository(),
 			FileStorage: NewFileStorageRepository(c),
 		}

@@ -36,7 +36,7 @@ type BuildMetadata struct {
 	Commit  string `json:"buildCommit"`
 }
 
-type app struct {
+type App struct {
 	ctx        context.Context
 	stop       context.CancelFunc
 	cfg        *config.Config
@@ -53,9 +53,9 @@ type app struct {
 }
 
 func NewApp(c context.Context, stop context.CancelFunc,
-	metadata BuildMetadata, cfg *config.Config, log *zap.Logger) *app {
+	metadata BuildMetadata, cfg *config.Config, log *zap.Logger) *App {
 	eg, ctx := errgroup.WithContext(c)
-	a := app{
+	a := App{
 		ctx:        ctx,
 		stop:       stop,
 		build:      metadata,
@@ -93,7 +93,7 @@ func NewApp(c context.Context, stop context.CancelFunc,
 	return &a
 }
 
-func (a *app) maybeConnectDB() {
+func (a *App) maybeConnectDB() {
 	if len(a.cfg.DatabaseDSN) > 0 {
 		var err error
 		if a.db, err = sqlx.Connect("postgres", a.cfg.DatabaseDSN); err != nil {
@@ -114,7 +114,7 @@ func (a *app) maybeConnectDB() {
 	}
 }
 
-func (a *app) maybeRestoreStore() {
+func (a *App) maybeRestoreStore() {
 	if a.cfg.FileStoragePath != "" && a.cfg.StorageRestore {
 		if a.isNewStore {
 			if n, er := a.srv.RestoreFromFile(a.ctx); er != nil {
@@ -128,7 +128,7 @@ func (a *app) maybeRestoreStore() {
 	}
 }
 
-func (a *app) maybeRunStoreSaver() {
+func (a *App) maybeRunStoreSaver() {
 	if a.cfg.FileStoragePath != "" && a.cfg.FileStoreInterval > 0 {
 		a.eg.Go(func() error {
 			for {
@@ -148,7 +148,7 @@ func (a *app) maybeRunStoreSaver() {
 	}
 }
 
-func (a *app) shutdownFileStore(ctx context.Context) (err error) {
+func (a *App) shutdownFileStore(ctx context.Context) (err error) {
 	defer close(a.lockDB)
 	var n int64
 	if n, err = a.srv.SaveToFile(ctx); err == nil {
@@ -158,7 +158,7 @@ func (a *app) shutdownFileStore(ctx context.Context) (err error) {
 
 }
 
-func (a *app) shutdownDBStore(_ context.Context) (err error) {
+func (a *App) shutdownDBStore(_ context.Context) (err error) {
 	if a.db != nil {
 		<-a.lockDB
 		if err = a.db.Close(); err == nil {
@@ -168,14 +168,14 @@ func (a *app) shutdownDBStore(_ context.Context) (err error) {
 	return
 }
 
-func (a *app) grpcShutdown(_ context.Context) error {
+func (a *App) grpcShutdown(_ context.Context) error {
 	if a.grpc != nil {
 		a.grpc.GracefulStop()
 	}
 	return nil
 }
 
-func (a *app) Run() {
+func (a *App) Run() {
 	a.log.Info("Start server", zap.Any("Config", a.cfg))
 
 	a.closer.Add("WEB", a.http.Shutdown)
@@ -215,7 +215,7 @@ func (a *app) Run() {
 	<-a.ctx.Done()
 }
 
-func (a *app) Stop() {
+func (a *App) Stop() {
 	a.log.Info("Shutting down server gracefully")
 
 	// wait FileStoreInterval
