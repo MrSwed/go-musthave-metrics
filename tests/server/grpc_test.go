@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	pb "go-musthave-metrics/internal/grpc/proto"
+	"go-musthave-metrics/internal/server/domain"
 	myErr "go-musthave-metrics/internal/server/errors"
+	myGrpc "go-musthave-metrics/internal/server/handler/grpc"
 	"math/rand"
 	"reflect"
 	"testing"
@@ -14,6 +16,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
@@ -42,7 +45,8 @@ func testGRPCGetMetric(suite HandlerTestSuite) {
 	t := suite.T()
 
 	type args struct {
-		in *pb.GetMetricRequest
+		in         *pb.GetMetricRequest
+		useSrvServ bool
 	}
 	tests := []struct {
 		args    args
@@ -85,7 +89,26 @@ func testGRPCGetMetric(suite HandlerTestSuite) {
 			},
 			wantErr: nil,
 		},
-
+		{
+			name: "grpc metric get counter from service success",
+			args: args{
+				useSrvServ: true,
+				in: &pb.GetMetricRequest{
+					Metric: &pb.Metric{
+						Id:    "testCounter-1",
+						Mtype: "counter",
+					},
+				},
+			},
+			wantOut: &pb.GetMetricResponse{
+				Metric: &pb.Metric{
+					Delta: int64(1),
+					Id:    "testCounter-1",
+					Mtype: "counter",
+				},
+			},
+			wantErr: nil,
+		},
 		{
 			name: "grpc metric get gauge success",
 			args: args{
@@ -108,7 +131,6 @@ func testGRPCGetMetric(suite HandlerTestSuite) {
 			},
 			wantErr: nil,
 		},
-
 		{
 			name: "grpc metric get unknown gauge",
 			headers: map[string]string{
@@ -134,11 +156,22 @@ func testGRPCGetMetric(suite HandlerTestSuite) {
 
 			ctx, stop := context.WithTimeout(context.Background(), 2*time.Second)
 			defer stop()
-			ctx, conn, g, callOpt, err := testGRPCDial(suite, ctx, tt.headers)
-			require.NoError(t, err)
-			defer func() { require.NoError(t, conn.Close()) }()
-
-			gotOut, err := g.GetMetric(ctx, tt.args.in, callOpt...)
+			var (
+				gotOut   *pb.GetMetricResponse
+				err      error
+				conn     *grpc.ClientConn
+				pbClient pb.MetricsClient
+				callOpt  []grpc.CallOption
+			)
+			if tt.args.useSrvServ {
+				g := myGrpc.NewMetricsServer(suite.Srv(), suite.Cfg(), zap.NewNop())
+				gotOut, err = g.GetMetric(ctx, tt.args.in)
+			} else {
+				ctx, conn, pbClient, callOpt, err = testGRPCDial(suite, ctx, tt.headers)
+				require.NoError(t, err)
+				defer func() { require.NoError(t, conn.Close()) }()
+				gotOut, err = pbClient.GetMetric(ctx, tt.args.in, callOpt...)
+			}
 			if (err != nil) != (tt.wantErr != nil) ||
 				(tt.wantErr != nil && !errors.Is(err, tt.wantErr) && !assert.Contains(t, err.Error(), tt.wantErr.Error())) {
 				t.Errorf("GetMetric() error = %v, wantErr %v", err, tt.wantErr)
@@ -165,11 +198,15 @@ func testGRPCGetMetric(suite HandlerTestSuite) {
 func testGRPCGetMetrics(suite HandlerTestSuite) {
 	t := suite.T()
 
+	type args struct {
+		useSrvServ bool
+	}
 	type want struct {
 		responseContain []string
 	}
 
 	tests := []struct {
+		args    args
 		name    string
 		wantErr error
 		headers map[string]string
@@ -180,7 +217,20 @@ func testGRPCGetMetrics(suite HandlerTestSuite) {
 			wantErr: status.Error(codes.Unauthenticated, "missing token"),
 		},
 		{
-			name: "grpc metric get html",
+			name: "grpc app metric get html",
+			headers: map[string]string{
+				"token": suite.Cfg().GRPCToken,
+			},
+			want: want{
+				responseContain: []string{"<!doctype html>", "testCounter", "testGauge"},
+			},
+			wantErr: nil,
+		},
+		{
+			name: "grpc srv metric get html",
+			args: args{
+				useSrvServ: true,
+			},
 			headers: map[string]string{
 				"token": suite.Cfg().GRPCToken,
 			},
@@ -194,11 +244,23 @@ func testGRPCGetMetrics(suite HandlerTestSuite) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx, stop := context.WithTimeout(context.Background(), 2*time.Second)
 			defer stop()
-			ctx, conn, g, callOpt, err := testGRPCDial(suite, ctx, tt.headers)
-			require.NoError(t, err)
-			defer func() { require.NoError(t, conn.Close()) }()
 
-			gotOut, err := g.GetMetrics(ctx, &pb.GetMetricsRequest{}, callOpt...)
+			var (
+				gotOut   *pb.GetMetricsResponse
+				err      error
+				conn     *grpc.ClientConn
+				pbClient pb.MetricsClient
+				callOpt  []grpc.CallOption
+			)
+			if tt.args.useSrvServ {
+				g := myGrpc.NewMetricsServer(suite.Srv(), suite.Cfg(), zap.NewNop())
+				gotOut, err = g.GetMetrics(ctx, nil)
+			} else {
+				ctx, conn, pbClient, callOpt, err = testGRPCDial(suite, ctx, tt.headers)
+				require.NoError(t, err)
+				defer func() { require.NoError(t, conn.Close()) }()
+				gotOut, err = pbClient.GetMetrics(ctx, &pb.GetMetricsRequest{}, callOpt...)
+			}
 			if (err != nil) != (tt.wantErr != nil) ||
 				(tt.wantErr != nil && !errors.Is(err, tt.wantErr) && !assert.Contains(t, err.Error(), tt.wantErr.Error())) {
 				t.Errorf("GetMetrics() error = %v, wantErr %v", err, tt.wantErr)
@@ -215,11 +277,20 @@ func testGRPCGetMetrics(suite HandlerTestSuite) {
 func testGRPCSetMetric(suite HandlerTestSuite) {
 	t := suite.T()
 
+	testCounter := domain.Counter(1)
+	testGauge := domain.Gauge(1.0001)
+	testCounterPresetName := fmt.Sprintf("testCounter%d", rand.Intn(500))
+	testGaugePresetName := fmt.Sprintf("testCounter%d", rand.Intn(500))
 	testCounterName := fmt.Sprintf("testCounter%d", rand.Intn(500))
 	testGaugeName := fmt.Sprintf("testGauge%d", rand.Intn(500))
 
+	ctx := context.Background()
+	_ = suite.Srv().SetGauge(ctx, testGaugePresetName, testGauge)
+	_ = suite.Srv().IncreaseCounter(ctx, testCounterPresetName, testCounter)
+
 	type args struct {
-		in *pb.SetMetricRequest
+		in         *pb.SetMetricRequest
+		useSrvServ bool
 	}
 	tests := []struct {
 		args    args
@@ -287,13 +358,13 @@ func testGRPCSetMetric(suite HandlerTestSuite) {
 				}},
 			wantErr: nil,
 		},
-		/* need test data before * /
 		{
 			name: "tick counter. Ok",
 			headers: map[string]string{
 				"token": suite.Cfg().GRPCToken,
 			},
 			args: args{
+				useSrvServ: true,
 				in: &pb.SetMetricRequest{
 					Metric: &pb.Metric{
 						Delta: 1,
@@ -360,11 +431,24 @@ func testGRPCSetMetric(suite HandlerTestSuite) {
 
 			ctx, stop := context.WithTimeout(context.Background(), 2*time.Second)
 			defer stop()
-			ctx, conn, g, callOpt, err := testGRPCDial(suite, ctx, tt.headers)
-			require.NoError(t, err)
-			defer func() { require.NoError(t, conn.Close()) }()
 
-			gotOut, err := g.SetMetric(ctx, tt.args.in, callOpt...)
+			var (
+				gotOut   *pb.SetMetricResponse
+				err      error
+				conn     *grpc.ClientConn
+				pbClient pb.MetricsClient
+				callOpt  []grpc.CallOption
+			)
+			if tt.args.useSrvServ {
+				g := myGrpc.NewMetricsServer(suite.Srv(), suite.Cfg(), zap.NewNop())
+				gotOut, err = g.SetMetric(ctx, tt.args.in)
+			} else {
+				ctx, conn, pbClient, callOpt, err = testGRPCDial(suite, ctx, tt.headers)
+				require.NoError(t, err)
+				defer func() { require.NoError(t, conn.Close()) }()
+				gotOut, err = pbClient.SetMetric(ctx, tt.args.in, callOpt...)
+			}
+
 			if (err != nil) != (tt.wantErr != nil) ||
 				(tt.wantErr != nil && !errors.Is(err, tt.wantErr) && !assert.Contains(t, err.Error(), tt.wantErr.Error())) {
 				t.Errorf("SetMetric() error = %v, wantErr %v", err, tt.wantErr)
@@ -390,7 +474,8 @@ func testGRPCSetMetrics(suite HandlerTestSuite) {
 	testGaugeName := fmt.Sprintf("testGauge%d", rand.Intn(500))
 
 	type args struct {
-		in *pb.SetMetricsRequest
+		in         *pb.SetMetricsRequest
+		useSrvServ bool
 	}
 	tests := []struct {
 		args    args
@@ -512,11 +597,24 @@ func testGRPCSetMetrics(suite HandlerTestSuite) {
 
 			ctx, stop := context.WithTimeout(context.Background(), 2*time.Second)
 			defer stop()
-			ctx, conn, g, callOpt, err := testGRPCDial(suite, ctx, tt.headers)
-			require.NoError(t, err)
-			defer func() { require.NoError(t, conn.Close()) }()
 
-			gotOut, err := g.SetMetrics(ctx, tt.args.in, callOpt...)
+			var (
+				gotOut   *pb.SetMetricsResponse
+				err      error
+				conn     *grpc.ClientConn
+				pbClient pb.MetricsClient
+				callOpt  []grpc.CallOption
+			)
+			if tt.args.useSrvServ {
+				g := myGrpc.NewMetricsServer(suite.Srv(), suite.Cfg(), zap.NewNop())
+				gotOut, err = g.SetMetrics(ctx, tt.args.in)
+			} else {
+				ctx, conn, pbClient, callOpt, err = testGRPCDial(suite, ctx, tt.headers)
+				require.NoError(t, err)
+				defer func() { require.NoError(t, conn.Close()) }()
+				gotOut, err = pbClient.SetMetrics(ctx, tt.args.in, callOpt...)
+			}
+
 			if (err != nil) != (tt.wantErr != nil) ||
 				(tt.wantErr != nil && !errors.Is(err, tt.wantErr) && !assert.Contains(t, err.Error(), tt.wantErr.Error())) {
 				t.Errorf("SetMetrics() error = %v, wantErr %v", err, tt.wantErr)

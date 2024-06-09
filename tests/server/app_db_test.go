@@ -5,7 +5,6 @@ import (
 	"crypto/rsa"
 	"errors"
 	"fmt"
-	"go-musthave-metrics/internal/server/domain"
 	"math/rand"
 	"net"
 	"os"
@@ -110,12 +109,7 @@ func (suite *HandlerDBTestSuite) SetupSuite() {
 
 	suite.srv = service.NewService(repo, &suite.cfg.StorageConfig)
 
-	ctx := context.Background()
-	require.NoError(suite.T(), suite.Srv().SetGauge(ctx, "testGauge-1", domain.Gauge(1.0001)))
-	require.NoError(suite.T(), suite.Srv().IncreaseCounter(ctx, "testCounter-1", domain.Counter(1)))
-
-	_, err = suite.srv.SaveToFile(ctx)
-	require.NoError(suite.T(), err)
+	testData(suite)
 
 	suite.a = app.NewApp(suite.ctx, suite.stop,
 		app.BuildMetadata{Version: "testing..", Date: time.Now().String(), Commit: ""},
