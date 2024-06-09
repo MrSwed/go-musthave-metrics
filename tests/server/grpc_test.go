@@ -45,11 +45,11 @@ func testGRPCGetMetric(suite HandlerTestSuite) {
 		in *pb.GetMetricRequest
 	}
 	tests := []struct {
-		name    string
 		args    args
-		headers map[string]string
 		wantOut *pb.GetMetricResponse
+		headers map[string]string
 		wantErr error
+		name    string
 	}{
 		{
 			name: "grpc metric get counter Unauthenticated",
@@ -171,9 +171,9 @@ func testGRPCGetMetrics(suite HandlerTestSuite) {
 
 	tests := []struct {
 		name    string
+		wantErr error
 		headers map[string]string
 		want    want
-		wantErr error
 	}{
 		{
 			name:    "try get without token",
@@ -222,11 +222,11 @@ func testGRPCSetMetric(suite HandlerTestSuite) {
 		in *pb.SetMetricRequest
 	}
 	tests := []struct {
-		name    string
 		args    args
-		headers map[string]string
 		wantOut *pb.SetMetricResponse
+		headers map[string]string
 		wantErr error
+		name    string
 	}{
 		{
 			name: "Save counter. Unauthenticated",
@@ -393,11 +393,11 @@ func testGRPCSetMetrics(suite HandlerTestSuite) {
 		in *pb.SetMetricsRequest
 	}
 	tests := []struct {
-		name    string
 		args    args
-		headers map[string]string
 		wantOut *pb.SetMetricsResponse
+		headers map[string]string
 		wantErr error
+		name    string
 	}{
 		{
 			name: "Save. Unauthenticated",
