@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"go-musthave-metrics/internal/server/handler/rest"
 	"net/http"
+	"os"
 	"testing"
 
 	"go-musthave-metrics/internal/server/config"
@@ -13,6 +14,7 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 )
@@ -23,6 +25,22 @@ type HandlerMemTestSuite struct {
 	app http.Handler
 	srv *service.Service
 	cfg *config.Config
+}
+
+func (suite *HandlerMemTestSuite) App() http.Handler {
+	return suite.app
+}
+func (suite *HandlerMemTestSuite) Srv() *service.Service {
+	return suite.srv
+}
+func (suite *HandlerMemTestSuite) DBx() *sqlx.DB {
+	return nil
+}
+func (suite *HandlerMemTestSuite) Cfg() *config.Config {
+	return suite.cfg
+}
+func (suite *HandlerMemTestSuite) PublicKey() *rsa.PublicKey {
+	return nil
 }
 
 func (suite *HandlerMemTestSuite) SetupSuite() {
@@ -44,20 +62,8 @@ func (suite *HandlerMemTestSuite) SetupSuite() {
 	suite.app = rest.NewHandler(suite.srv, suite.cfg, logger).Handler()
 }
 
-func (suite *HandlerMemTestSuite) App() http.Handler {
-	return suite.app
-}
-func (suite *HandlerMemTestSuite) Srv() *service.Service {
-	return suite.srv
-}
-func (suite *HandlerMemTestSuite) DBx() *sqlx.DB {
-	return nil
-}
-func (suite *HandlerMemTestSuite) Cfg() *config.Config {
-	return suite.cfg
-}
-func (suite *HandlerMemTestSuite) PublicKey() *rsa.PublicKey {
-	return nil
+func (suite *HandlerMemTestSuite) TearDownSuite() {
+	require.NoError(suite.T(), os.RemoveAll(suite.T().TempDir()))
 }
 
 func TestHandlersMem(t *testing.T) {
