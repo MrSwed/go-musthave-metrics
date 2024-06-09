@@ -25,6 +25,7 @@ func testGRPCGetMetric(suite HandlerTestSuite) {
 	ctx := context.Background()
 	_ = suite.Srv().SetGauge(ctx, "testGauge", testGauge)
 	_ = suite.Srv().IncreaseCounter(ctx, "testCounter", testCounter)
+	g := grpc.NewMetricsServer(suite.Srv(), suite.Cfg(), zap.NewNop())
 
 	type args struct {
 		in *pb.GetMetricRequest
@@ -94,7 +95,6 @@ func testGRPCGetMetric(suite HandlerTestSuite) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g := grpc.NewMetricsServer(suite.Srv(), suite.Cfg(), zap.NewNop())
 
 			gotOut, err := g.GetMetric(context.Background(), tt.args.in)
 			if (err != nil) != (tt.wantErr != nil) ||
@@ -118,6 +118,7 @@ func testGRPCGetMetrics(suite HandlerTestSuite) {
 	testGauge := domain.Gauge(1.0001)
 	_ = suite.Srv().SetGauge(ctx, "testGauge", testGauge)
 	_ = suite.Srv().IncreaseCounter(ctx, "testCounter", testCounter)
+	g := grpc.NewMetricsServer(suite.Srv(), suite.Cfg(), zap.NewNop())
 
 	type want struct {
 		responseContain []string
@@ -137,7 +138,6 @@ func testGRPCGetMetrics(suite HandlerTestSuite) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g := grpc.NewMetricsServer(suite.Srv(), suite.Cfg(), zap.NewNop())
 
 			gotOut, err := g.GetMetrics(context.Background(), nil)
 			if (err != nil) != (tt.wantErr != nil) ||
@@ -166,6 +166,7 @@ func testGRPCSetMetric(suite HandlerTestSuite) {
 	ctx := context.Background()
 	_ = suite.Srv().SetGauge(ctx, testGaugePresetName, testGauge)
 	_ = suite.Srv().IncreaseCounter(ctx, testCounterPresetName, testCounter)
+	g := grpc.NewMetricsServer(suite.Srv(), suite.Cfg(), zap.NewNop())
 
 	type args struct {
 		in *pb.SetMetricRequest
@@ -272,7 +273,6 @@ func testGRPCSetMetric(suite HandlerTestSuite) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g := grpc.NewMetricsServer(suite.Srv(), suite.Cfg(), zap.NewNop())
 
 			gotOut, err := g.SetMetric(context.Background(), tt.args.in)
 			if (err != nil) != (tt.wantErr != nil) ||
@@ -301,6 +301,7 @@ func testGRPCSetMetrics(suite HandlerTestSuite) {
 	ctx := context.Background()
 	_ = suite.Srv().SetGauge(ctx, testGaugePresetName, testGauge)
 	_ = suite.Srv().IncreaseCounter(ctx, testCounterPresetName, testCounter)
+	g := grpc.NewMetricsServer(suite.Srv(), suite.Cfg(), zap.NewNop())
 
 	type args struct {
 		in *pb.SetMetricsRequest
@@ -390,7 +391,6 @@ func testGRPCSetMetrics(suite HandlerTestSuite) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g := grpc.NewMetricsServer(suite.Srv(), suite.Cfg(), zap.NewNop())
 
 			gotOut, err := g.SetMetrics(context.Background(), tt.args.in)
 			if (err != nil) != (tt.wantErr != nil) ||
