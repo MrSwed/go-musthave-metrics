@@ -193,6 +193,18 @@ func testGRPCGetMetric(suite HandlerTestSuite) {
 			}
 		})
 	}
+	t.Run("generated grpc proto not implemented", func(t *testing.T) {
+		g := myGrpc.NewMetricsServer(suite.Srv(), suite.Cfg(), zap.NewNop())
+		ctx := context.Background()
+		_, err := g.UnimplementedMetricsServer.GetMetrics(ctx, nil)
+		assert.Error(t, err, status.Errorf(codes.Unimplemented, "method GetMetrics not implemented"))
+		_, err = g.UnimplementedMetricsServer.GetMetric(ctx, nil)
+		assert.Error(t, err, status.Errorf(codes.Unimplemented, "method GetMetric not implemented"))
+		_, err = g.UnimplementedMetricsServer.SetMetrics(ctx, nil)
+		assert.Error(t, err, status.Errorf(codes.Unimplemented, "method SetMetrics not implemented"))
+		_, err = g.UnimplementedMetricsServer.SetMetric(ctx, nil)
+		assert.Error(t, err, status.Errorf(codes.Unimplemented, "method SetMetric not implemented"))
+	})
 }
 
 func testGRPCGetMetrics(suite HandlerTestSuite) {
