@@ -3,17 +3,21 @@ package server_test
 import (
 	"context"
 	"crypto/rsa"
-	"go-musthave-metrics/internal/server/handler/rest"
-	"net/http"
+	"fmt"
+	"go-musthave-metrics/internal/server/app"
+	"go-musthave-metrics/internal/server/domain"
+	"go-musthave-metrics/internal/server/repository"
+	"math/rand"
+	"net"
 	"os"
+	"path/filepath"
 	"testing"
+	"time"
 
 	"go-musthave-metrics/internal/server/config"
-	"go-musthave-metrics/internal/server/repository"
 	"go-musthave-metrics/internal/server/service"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/jmoiron/sqlx"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
@@ -21,20 +25,15 @@ import (
 
 type HandlerMemTestSuite struct {
 	suite.Suite
-	ctx context.Context
-	app http.Handler
-	srv *service.Service
-	cfg *config.Config
+	ctx  context.Context
+	stop context.CancelFunc
+	srv  *service.Service
+	cfg  *config.Config
+	a    *app.App
 }
 
-func (suite *HandlerMemTestSuite) App() http.Handler {
-	return suite.app
-}
 func (suite *HandlerMemTestSuite) Srv() *service.Service {
 	return suite.srv
-}
-func (suite *HandlerMemTestSuite) DBx() *sqlx.DB {
-	return nil
 }
 func (suite *HandlerMemTestSuite) Cfg() *config.Config {
 	return suite.cfg
@@ -44,26 +43,37 @@ func (suite *HandlerMemTestSuite) PublicKey() *rsa.PublicKey {
 }
 
 func (suite *HandlerMemTestSuite) SetupSuite() {
-	var (
-		err    error
-		logger *zap.Logger
-	)
+
 	suite.cfg = config.NewConfig()
-	suite.ctx = context.Background()
+	suite.ctx, suite.stop = context.WithCancel(context.Background())
+	suite.cfg.StorageConfig.FileStoragePath = filepath.Join(suite.T().TempDir(), fmt.Sprintf("store-data-%d.json", rand.Intn(200000)))
+	suite.cfg.Address = net.JoinHostPort("localhost", fmt.Sprintf("%d", rand.Intn(200)+20000))
+	suite.cfg.GRPCAddress = net.JoinHostPort("", fmt.Sprintf("%d", rand.Intn(200)+30000))
 
 	repo := repository.NewRepository(&suite.cfg.StorageConfig, nil)
-
 	suite.srv = service.NewService(repo, &suite.cfg.StorageConfig)
-	logger, err = zap.NewDevelopment()
-	if err != nil {
-		suite.Fail(err.Error())
-	}
 
-	suite.app = rest.NewHandler(suite.srv, suite.cfg, logger).Handler()
+	ctx := context.Background()
+	require.NoError(suite.T(), suite.Srv().SetGauge(ctx, "testGauge-1", domain.Gauge(1.0001)))
+	require.NoError(suite.T(), suite.Srv().IncreaseCounter(ctx, "testCounter-1", domain.Counter(1)))
+
+	_, err := suite.srv.SaveToFile(ctx)
+	require.NoError(suite.T(), err)
+
+	// clear OS ARGS
+	// os.Args = make([]string, 0)
+
+	suite.a = app.NewApp(suite.ctx, suite.stop,
+		app.BuildMetadata{Version: "testing..", Date: time.Now().String(), Commit: ""},
+		suite.cfg, zap.NewNop())
+
+	go suite.a.Run()
 }
 
 func (suite *HandlerMemTestSuite) TearDownSuite() {
 	require.NoError(suite.T(), os.RemoveAll(suite.T().TempDir()))
+	suite.stop()
+	suite.a.Stop()
 }
 
 func TestHandlersMem(t *testing.T) {

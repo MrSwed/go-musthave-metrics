@@ -17,6 +17,8 @@ import (
 	"go.uber.org/zap"
 )
 
+// todo refactor to send via runned app. not srv
+
 func testGRPCGetMetric(suite HandlerTestSuite) {
 	t := suite.T()
 
@@ -113,11 +115,6 @@ func testGRPCGetMetric(suite HandlerTestSuite) {
 func testGRPCGetMetrics(suite HandlerTestSuite) {
 	t := suite.T()
 
-	ctx := context.Background()
-	testCounter := domain.Counter(1)
-	testGauge := domain.Gauge(1.0001)
-	_ = suite.Srv().SetGauge(ctx, "testGauge", testGauge)
-	_ = suite.Srv().IncreaseCounter(ctx, "testCounter", testCounter)
 	g := grpc.NewMetricsServer(suite.Srv(), suite.Cfg(), zap.NewNop())
 
 	type want struct {
@@ -290,17 +287,9 @@ func testGRPCSetMetric(suite HandlerTestSuite) {
 func testGRPCSetMetrics(suite HandlerTestSuite) {
 	t := suite.T()
 
-	testCounter := domain.Counter(1)
-	testGauge := domain.Gauge(1.0001)
-
-	testCounterPresetName := fmt.Sprintf("testCounter%d", rand.Intn(500))
-	testGaugePresetName := fmt.Sprintf("testCounter%d", rand.Intn(500))
 	testCounterName := fmt.Sprintf("testCounter%d", rand.Intn(500))
 	testGaugeName := fmt.Sprintf("testGauge%d", rand.Intn(500))
 
-	ctx := context.Background()
-	_ = suite.Srv().SetGauge(ctx, testGaugePresetName, testGauge)
-	_ = suite.Srv().IncreaseCounter(ctx, testCounterPresetName, testCounter)
 	g := grpc.NewMetricsServer(suite.Srv(), suite.Cfg(), zap.NewNop())
 
 	type args struct {

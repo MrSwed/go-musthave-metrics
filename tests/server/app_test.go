@@ -11,17 +11,16 @@ import (
 	"errors"
 	"fmt"
 	"go-musthave-metrics/internal/server/handler/rest"
+	"go-musthave-metrics/internal/server/service"
 	"io"
 	"math/rand"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"go-musthave-metrics/internal/server/config"
 	"go-musthave-metrics/internal/server/constant"
 	"go-musthave-metrics/internal/server/domain"
 	errM "go-musthave-metrics/internal/server/migrate"
-	"go-musthave-metrics/internal/server/service"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -31,18 +30,16 @@ import (
 )
 
 type HandlerTestSuite interface {
-	App() http.Handler
 	Srv() *service.Service
 	T() *testing.T
-	DBx() *sqlx.DB
 	Cfg() *config.Config
 	PublicKey() *rsa.PublicKey
 }
 
-func testMigrate(suite HandlerTestSuite) {
+func testMigrate(suite HandlerTestSuite, db *sqlx.DB) {
 	t := suite.T()
 	t.Run("Migrate", func(t *testing.T) {
-		_, err := errM.Migrate(suite.DBx().DB)
+		_, err := errM.Migrate(db.DB)
 		switch {
 		case errors.Is(err, migrate.ErrNoChange):
 		default:
@@ -53,18 +50,6 @@ func testMigrate(suite HandlerTestSuite) {
 
 func testGetMetric(suite HandlerTestSuite) {
 	t := suite.T()
-
-	ts := httptest.NewServer(suite.App())
-	defer ts.Close()
-
-	testCounter := domain.Counter(1)
-	testGauge := domain.Gauge(1.0001)
-	testGaugeName := fmt.Sprintf("testGauge%d", rand.Int())
-	testCounterName := fmt.Sprintf("testCounter%d", rand.Int())
-	// save some values
-	ctx := context.Background()
-	_ = suite.Srv().SetGauge(ctx, testGaugeName, testGauge)
-	_ = suite.Srv().IncreaseCounter(ctx, testCounterName, testCounter)
 
 	type want struct {
 		response    string
@@ -84,11 +69,11 @@ func testGetMetric(suite HandlerTestSuite) {
 			name: "Get counter. Ok",
 			args: args{
 				method: http.MethodGet,
-				path:   "/value/counter/" + testCounterName,
+				path:   "/value/counter/" + "testCounter-1",
 			},
 			want: want{
 				code:        http.StatusOK,
-				response:    fmt.Sprint(testCounter),
+				response:    fmt.Sprint(1),
 				contentType: "text/plain; charset=utf-8",
 			},
 		},
@@ -96,11 +81,11 @@ func testGetMetric(suite HandlerTestSuite) {
 			name: "Get gauge. Ok",
 			args: args{
 				method: http.MethodGet,
-				path:   "/value/gauge/" + testGaugeName,
+				path:   "/value/gauge/" + "testGauge-1",
 			},
 			want: want{
 				code:        http.StatusOK,
-				response:    fmt.Sprint(testGauge),
+				response:    fmt.Sprint(1.0001),
 				contentType: "text/plain; charset=utf-8",
 			},
 		},
@@ -108,7 +93,7 @@ func testGetMetric(suite HandlerTestSuite) {
 			name: "Bad method",
 			args: args{
 				method: http.MethodPost,
-				path:   "/value/gauge/" + testGaugeName,
+				path:   "/value/gauge/" + "testGauge-1",
 			},
 			want: want{
 				code: http.StatusMethodNotAllowed,
@@ -159,7 +144,7 @@ func testGetMetric(suite HandlerTestSuite) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 
-			req, err := http.NewRequest(test.args.method, ts.URL+test.args.path, nil)
+			req, err := http.NewRequest(test.args.method, "http://"+suite.Cfg().Address+test.args.path, nil)
 			require.NoError(t, err)
 
 			res, err := http.DefaultClient.Do(req)
@@ -187,16 +172,6 @@ func testGetMetric(suite HandlerTestSuite) {
 
 func testGetListMetrics(suite HandlerTestSuite) {
 	t := suite.T()
-
-	ts := httptest.NewServer(suite.App())
-	defer ts.Close()
-
-	testCounter := domain.Counter(1)
-	testGauge := domain.Gauge(1.0001)
-	// save some values
-	ctx := context.Background()
-	_ = suite.Srv().SetGauge(ctx, "testGauge", testGauge)
-	_ = suite.Srv().IncreaseCounter(ctx, "testCounter", testCounter)
 
 	type want struct {
 		responseContain string
@@ -239,7 +214,7 @@ func testGetListMetrics(suite HandlerTestSuite) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 
-			req, err := http.NewRequest(test.args.method, ts.URL+test.args.path, nil)
+			req, err := http.NewRequest(test.args.method, "http://"+suite.Cfg().Address+test.args.path, nil)
 			require.NoError(t, err)
 
 			res, err := http.DefaultClient.Do(req)
@@ -270,18 +245,6 @@ func testGetListMetrics(suite HandlerTestSuite) {
 func testGetMetricJSON(suite HandlerTestSuite) {
 	t := suite.T()
 
-	ts := httptest.NewServer(suite.App())
-	defer ts.Close()
-
-	testCounter := domain.Counter(1)
-	testGauge := domain.Gauge(1.0001)
-	testGaugeName := fmt.Sprintf("testGauge%d", rand.Int())
-	testCounterName := fmt.Sprintf("testCounter%d", rand.Int())
-	// save some values
-	ctx := context.Background()
-	_ = suite.Srv().SetGauge(ctx, testGaugeName, testGauge)
-	_ = suite.Srv().IncreaseCounter(ctx, testCounterName, testCounter)
-
 	type want struct {
 		response    domain.Metric
 		contentType string
@@ -301,13 +264,13 @@ func testGetMetricJSON(suite HandlerTestSuite) {
 			args: args{
 				method: http.MethodPost,
 				body: map[string]interface{}{
-					"id":   testCounterName,
+					"id":   "testCounter-1",
 					"type": "counter",
 				},
 			},
 			want: want{
 				code:        http.StatusOK,
-				response:    domain.Metric{ID: testCounterName, MType: "counter", Delta: &[]domain.Counter{1}[0]},
+				response:    domain.Metric{ID: "testCounter-1", MType: "counter", Delta: &[]domain.Counter{1}[0]},
 				contentType: "application/json; charset=utf-8",
 			},
 		},
@@ -316,13 +279,13 @@ func testGetMetricJSON(suite HandlerTestSuite) {
 			args: args{
 				method: http.MethodPost,
 				body: map[string]interface{}{
-					"id":   testGaugeName,
+					"id":   "testGauge-1",
 					"type": "gauge",
 				},
 			},
 			want: want{
 				code:        http.StatusOK,
-				response:    domain.Metric{ID: testGaugeName, MType: "gauge", Value: &[]domain.Gauge{1.0001}[0]},
+				response:    domain.Metric{ID: "testGauge-1", MType: "gauge", Value: &[]domain.Gauge{1.0001}[0]},
 				contentType: "application/json; charset=utf-8",
 			},
 		},
@@ -331,7 +294,7 @@ func testGetMetricJSON(suite HandlerTestSuite) {
 			args: args{
 				method: http.MethodGet,
 				body: map[string]interface{}{
-					"id":   testGaugeName,
+					"id":   "testGauge-1",
 					"type": "gauge",
 				},
 			},
@@ -344,7 +307,7 @@ func testGetMetricJSON(suite HandlerTestSuite) {
 			args: args{
 				method: http.MethodPut,
 				body: map[string]interface{}{
-					"id":   testGaugeName,
+					"id":   "testGauge-1",
 					"type": "gauge",
 				},
 			},
@@ -408,7 +371,7 @@ func testGetMetricJSON(suite HandlerTestSuite) {
 			args: args{
 				method: http.MethodPost,
 				body: map[string]interface{}{
-					"id": testCounterName,
+					"id": "testCounter-1",
 				},
 			},
 			want: want{
@@ -424,7 +387,7 @@ func testGetMetricJSON(suite HandlerTestSuite) {
 			require.NoError(t, err)
 
 			maybeCryptBody(b, suite.PublicKey())
-			req, err := http.NewRequest(test.args.method, ts.URL+constant.ValueRoute, b)
+			req, err := http.NewRequest(test.args.method, "http://"+suite.Cfg().Address+constant.ValueRoute, b)
 			require.NoError(t, err)
 
 			res, err := http.DefaultClient.Do(req)
@@ -455,9 +418,6 @@ func testGetMetricJSON(suite HandlerTestSuite) {
 
 func testUpdateMetric(suite HandlerTestSuite) {
 	t := suite.T()
-
-	ts := httptest.NewServer(suite.App())
-	defer ts.Close()
 
 	type want struct {
 		response    string
@@ -614,7 +574,7 @@ func testUpdateMetric(suite HandlerTestSuite) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 
-			req, err := http.NewRequest(test.args.method, ts.URL+test.args.path, nil)
+			req, err := http.NewRequest(test.args.method, "http://"+suite.Cfg().Address+test.args.path, nil)
 			require.NoError(t, err)
 
 			res, err := http.DefaultClient.Do(req)
@@ -642,9 +602,6 @@ func testUpdateMetric(suite HandlerTestSuite) {
 
 func testUpdateMetricJSON(suite HandlerTestSuite) {
 	t := suite.T()
-
-	ts := httptest.NewServer(suite.App())
-	defer ts.Close()
 
 	testCounterName := fmt.Sprintf("testCounter%d", rand.Int())
 	type want struct {
@@ -842,7 +799,7 @@ func testUpdateMetricJSON(suite HandlerTestSuite) {
 			require.NoError(t, err)
 
 			maybeCryptBody(b, suite.PublicKey())
-			req, err := http.NewRequest(test.args.method, ts.URL+constant.UpdateRoute, b)
+			req, err := http.NewRequest(test.args.method, "http://"+suite.Cfg().Address+constant.UpdateRoute, b)
 			require.NoError(t, err)
 
 			res, err := http.DefaultClient.Do(req)
@@ -872,9 +829,6 @@ func testUpdateMetricJSON(suite HandlerTestSuite) {
 
 func testUpdateMetrics(suite HandlerTestSuite) {
 	t := suite.T()
-
-	ts := httptest.NewServer(suite.App())
-	defer ts.Close()
 
 	testCounterName := fmt.Sprintf("testCounter%d", rand.Int())
 
@@ -1028,7 +982,7 @@ func testUpdateMetrics(suite HandlerTestSuite) {
 			require.NoError(t, err)
 
 			maybeCryptBody(b, suite.PublicKey())
-			req, err := http.NewRequest(test.args.method, ts.URL+constant.UpdatesRoute, b)
+			req, err := http.NewRequest(test.args.method, "http://"+suite.Cfg().Address+constant.UpdatesRoute, b)
 			require.NoError(t, err)
 
 			res, err := http.DefaultClient.Do(req)
@@ -1058,9 +1012,6 @@ func testUpdateMetrics(suite HandlerTestSuite) {
 
 func testGzip(suite HandlerTestSuite) {
 	t := suite.T()
-
-	ts := httptest.NewServer(suite.App())
-	defer ts.Close()
 
 	testCounterName1 := fmt.Sprintf("testCounter%d", rand.Int())
 	testCounterName2 := fmt.Sprintf("testCounter%d", rand.Int())
@@ -1221,7 +1172,7 @@ func testGzip(suite HandlerTestSuite) {
 			}
 
 			maybeCryptBody(b, suite.PublicKey())
-			req, err := http.NewRequest(test.args.method, ts.URL+constant.UpdatesRoute, b)
+			req, err := http.NewRequest(test.args.method, "http://"+suite.Cfg().Address+constant.UpdatesRoute, b)
 			require.NoError(t, err)
 
 			for k, v := range test.args.headers {
@@ -1280,11 +1231,6 @@ func testGzip(suite HandlerTestSuite) {
 func testHashKey(suite HandlerTestSuite) {
 	t := suite.T()
 	suite.Cfg().Key = "secretKey"
-	ts := httptest.NewServer(suite.App())
-	defer func() {
-		ts.Close()
-		suite.Cfg().Key = ""
-	}()
 
 	data1 := []domain.Metric{{ID: fmt.Sprintf("testCounter%d", rand.Int()), MType: "counter", Delta: &[]domain.Counter{1}[0]}, {ID: "testGauge", MType: "gauge", Value: &[]domain.Gauge{100.0015}[0]}}
 	dataBody1, err := json.Marshal(data1)
@@ -1430,7 +1376,7 @@ func testHashKey(suite HandlerTestSuite) {
 			}
 
 			maybeCryptBody(b, suite.PublicKey())
-			req, err := http.NewRequest(test.args.method, ts.URL+constant.UpdatesRoute, b)
+			req, err := http.NewRequest(test.args.method, "http://"+suite.Cfg().Address+constant.UpdatesRoute, b)
 			require.NoError(t, err)
 
 			for k, v := range test.args.headers {
@@ -1486,10 +1432,6 @@ func testHashKey(suite HandlerTestSuite) {
 
 func testPing(suite HandlerTestSuite) {
 	t := suite.T()
-	ts := httptest.NewServer(suite.App())
-	defer func() {
-		ts.Close()
-	}()
 
 	type want struct {
 		headers     map[string]string
@@ -1530,7 +1472,7 @@ func testPing(suite HandlerTestSuite) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 
-			req, err := http.NewRequest(test.args.method, ts.URL+"/ping", nil)
+			req, err := http.NewRequest(test.args.method, "http://"+suite.Cfg().Address+"/ping", nil)
 			require.NoError(t, err)
 
 			for k, v := range test.args.headers {

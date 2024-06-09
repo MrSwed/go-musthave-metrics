@@ -1,20 +1,15 @@
 package server_test
 
 import (
-	"bytes"
 	"context"
 	"crypto/rsa"
 	"errors"
 	"fmt"
-	"go-musthave-metrics/internal/server/handler/rest"
-	"io"
+	"go-musthave-metrics/internal/server/domain"
 	"math/rand"
 	"net"
-	"net/http"
 	"os"
-	"os/signal"
-	"strconv"
-	"syscall"
+	"path/filepath"
 	"testing"
 
 	"go-musthave-metrics/internal/server/app"
@@ -23,20 +18,18 @@ import (
 	"go-musthave-metrics/internal/server/repository"
 	"go-musthave-metrics/internal/server/service"
 
+	"log"
+	"time"
+
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
-
-	"log"
-	"time"
 )
 
 func CreatePostgresContainer(ctx context.Context) (*postgres.PostgresContainer, error) {
@@ -60,22 +53,16 @@ func CreatePostgresContainer(ctx context.Context) (*postgres.PostgresContainer, 
 type HandlerDBTestSuite struct {
 	suite.Suite
 	ctx    context.Context
-	app    http.Handler
+	stop   context.CancelFunc
 	srv    *service.Service
 	cfg    *config.Config
+	a      *app.App
 	db     *sqlx.DB
 	pgCont *postgres.PostgresContainer
 }
 
-func (suite *HandlerDBTestSuite) App() http.Handler {
-	return suite.app
-}
 func (suite *HandlerDBTestSuite) Srv() *service.Service {
 	return suite.srv
-}
-
-func (suite *HandlerDBTestSuite) DBx() *sqlx.DB {
-	return suite.db
 }
 func (suite *HandlerDBTestSuite) Cfg() *config.Config {
 	return suite.cfg
@@ -86,11 +73,11 @@ func (suite *HandlerDBTestSuite) PublicKey() *rsa.PublicKey {
 
 func (suite *HandlerDBTestSuite) SetupSuite() {
 	var (
-		err    error
-		logger *zap.Logger
+		err error
 	)
 	suite.cfg = config.NewConfig()
-	suite.ctx = context.Background()
+	suite.ctx, suite.stop = context.WithCancel(context.Background())
+
 	suite.pgCont, err = CreatePostgresContainer(suite.ctx)
 	if err != nil {
 		log.Fatal(err)
@@ -115,15 +102,26 @@ func (suite *HandlerDBTestSuite) SetupSuite() {
 		log.Fatal(err)
 	}
 
+	suite.cfg.StorageConfig.FileStoragePath = filepath.Join(suite.T().TempDir(), fmt.Sprintf("store-data-%d.json", rand.Intn(200000)))
+	suite.cfg.Address = net.JoinHostPort("localhost", fmt.Sprintf("%d", rand.Intn(200)+20000))
+	suite.cfg.GRPCAddress = net.JoinHostPort("", fmt.Sprintf("%d", rand.Intn(200)+30000))
+
 	repo := repository.NewRepository(&suite.cfg.StorageConfig, suite.db)
 
 	suite.srv = service.NewService(repo, &suite.cfg.StorageConfig)
-	logger, err = zap.NewDevelopment()
-	if err != nil {
-		panic(err)
-	}
 
-	suite.app = rest.NewHandler(suite.srv, suite.cfg, logger).Handler()
+	ctx := context.Background()
+	require.NoError(suite.T(), suite.Srv().SetGauge(ctx, "testGauge-1", domain.Gauge(1.0001)))
+	require.NoError(suite.T(), suite.Srv().IncreaseCounter(ctx, "testCounter-1", domain.Counter(1)))
+
+	_, err = suite.srv.SaveToFile(ctx)
+	require.NoError(suite.T(), err)
+
+	suite.a = app.NewApp(suite.ctx, suite.stop,
+		app.BuildMetadata{Version: "testing..", Date: time.Now().String(), Commit: ""},
+		suite.cfg, zap.NewNop())
+
+	go suite.a.Run()
 }
 
 func (suite *HandlerDBTestSuite) TearDownSuite() {
@@ -131,6 +129,8 @@ func (suite *HandlerDBTestSuite) TearDownSuite() {
 		log.Fatalf("error terminating postgres container: %s", err)
 	}
 	require.NoError(suite.T(), os.RemoveAll(suite.T().TempDir()))
+	suite.stop()
+	suite.a.Stop()
 }
 
 func TestHandlersDB(t *testing.T) {
@@ -141,132 +141,7 @@ func TestHandlersDB(t *testing.T) {
 // migrate call at setup suite, so no test run without first migrate
 // this is just for test cover
 func (suite *HandlerDBTestSuite) TestMigrate() {
-	testMigrate(suite)
-}
-
-func (suite *HandlerDBTestSuite) TestApp() {
-	t := suite.T()
-
-	type fields struct {
-		ctx   context.Context
-		stop  context.CancelFunc
-		cfg   *config.Config
-		build app.BuildMetadata
-	}
-	tests := []struct {
-		name             string
-		fields           fields
-		wantStrings      []string
-		doNotWantStrings []string
-	}{
-		{
-			name: "Server app run. default",
-			fields: func() fields {
-				ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-				return fields{
-					ctx:  ctx,
-					stop: cancel,
-					cfg: func() *config.Config {
-						cfg := suite.cfg
-						cfg.Address = ":" + strconv.Itoa(rand.Intn(65000)+1000)
-						// cfg.FileStoragePath = filepath.Join(t.TempDir(), fmt.Sprintf("metrict-db-%d.json", rand.Int()))
-						return cfg
-					}(),
-					build: app.BuildMetadata{
-						Version: "1.0-testing",
-						Date:    "24.05.24",
-						Commit:  "444333",
-					},
-				}
-			}(),
-			wantStrings: []string{
-				`"Init app"`,
-				`"Build version":"1.0-testing"`,
-				`"Build date":"24.05.24"`,
-				`"Build commit":"444333"`,
-				`Start server`,
-				`http server started`,
-				`grpc server started`,
-				`Shutting down server gracefully`,
-				`Store save on interval finished`,
-				`Storage saved`,
-				`Server stopped`,
-			},
-			doNotWantStrings: []string{
-				`"error"`,
-			},
-		},
-		{
-			name: "Server app run. port busy",
-			fields: func() fields {
-				cfg := config.NewConfig()
-				cfg.Address = ":" + strconv.Itoa(rand.Intn(65000)+1000)
-
-				portUse, err := net.Listen("tcp", cfg.Address)
-				require.NoError(t, err)
-
-				ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-				return fields{
-					ctx: ctx,
-					stop: func() {
-						_ = portUse.Close()
-						cancel()
-					},
-					cfg: cfg,
-					build: app.BuildMetadata{
-						Version: "1.0-testing",
-						Date:    "24.05.24",
-						Commit:  "444333",
-					},
-				}
-			}(),
-			wantStrings: []string{
-				`"Init app"`,
-				`"Build version":"1.0-testing"`,
-				`"Build date":"24.05.24"`,
-				`"Build commit":"444333"`,
-				`Start server`,
-				`Shutting down server gracefully`,
-				`"error"`,
-				`listen tcp`,
-				`bind: address already in use`,
-			},
-			doNotWantStrings: []string{},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ctx, stop := signal.NotifyContext(tt.fields.ctx, os.Interrupt, syscall.SIGTERM)
-			defer stop()
-			defer tt.fields.stop()
-
-			tt.fields.cfg = tt.fields.cfg.CleanSchemes()
-
-			var buf bytes.Buffer
-			logger := zap.New(func(pipeTo io.Writer) zapcore.Core {
-				return zapcore.NewCore(
-					zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()),
-					zap.CombineWriteSyncers(os.Stderr, zapcore.AddSync(pipeTo)),
-					zapcore.InfoLevel,
-				)
-			}(&buf))
-			// flag.
-
-			appHandler := app.NewApp(ctx, stop, tt.fields.build, tt.fields.cfg, logger)
-
-			appHandler.Run()
-			appHandler.Stop()
-
-			t.Log(buf.String())
-			for i := 0; i < len(tt.wantStrings); i++ {
-				assert.Contains(t, buf.String(), tt.wantStrings[i], fmt.Sprintf("%s is expected at log out", tt.wantStrings[i]))
-			}
-			for i := 0; i < len(tt.doNotWantStrings); i++ {
-				assert.NotContains(t, buf.String(), tt.doNotWantStrings[i], fmt.Sprintf("%s is not expected at log out", tt.doNotWantStrings[i]))
-			}
-		})
-	}
+	testMigrate(suite, suite.db)
 }
 
 func (suite *HandlerDBTestSuite) TestGetMetric() {

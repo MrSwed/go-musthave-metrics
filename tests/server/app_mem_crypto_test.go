@@ -9,13 +9,15 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"go-musthave-metrics/internal/server/handler/rest"
+	"go-musthave-metrics/internal/server/app"
 	"io"
 	"math/rand"
+	"net"
 	"net/http"
-	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"testing"
+	"time"
 
 	"go-musthave-metrics/internal/server/config"
 	"go-musthave-metrics/internal/server/constant"
@@ -25,7 +27,6 @@ import (
 	testHelpers "go-musthave-metrics/tests"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/jmoiron/sqlx"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -35,9 +36,10 @@ import (
 type HandlerMemCryptoTestSuite struct {
 	suite.Suite
 	ctx        context.Context
-	app        http.Handler
+	stop       context.CancelFunc
 	srv        *service.Service
 	cfg        *config.Config
+	a          *app.App
 	publicKey  *rsa.PublicKey
 	publicFile string
 }
@@ -69,11 +71,15 @@ func (suite *HandlerMemCryptoTestSuite) loadCerts() {
 
 func (suite *HandlerMemCryptoTestSuite) SetupSuite() {
 	var (
-		err    error
-		logger *zap.Logger
+		err error
 	)
+
 	suite.cfg = config.NewConfig()
-	suite.ctx = context.Background()
+	suite.ctx, suite.stop = context.WithCancel(context.Background())
+	suite.cfg.StorageConfig.FileStoragePath = filepath.Join(suite.T().TempDir(), fmt.Sprintf("store-data-%d.json", rand.Intn(200000)))
+	suite.cfg.Address = net.JoinHostPort("localhost", fmt.Sprintf("%d", rand.Intn(200)+20000))
+	suite.cfg.GRPCAddress = net.JoinHostPort("", fmt.Sprintf("%d", rand.Intn(200)+30000))
+
 	suite.cfg.CryptoKey = "/tmp/testPrivate.key"
 	suite.publicFile = "/tmp/testPublic.key"
 	testHelpers.CreateCertificates(suite.cfg.CryptoKey, suite.publicFile)
@@ -81,25 +87,31 @@ func (suite *HandlerMemCryptoTestSuite) SetupSuite() {
 
 	repo := repository.NewRepository(&suite.cfg.StorageConfig, nil)
 	suite.srv = service.NewService(repo, &suite.cfg.StorageConfig)
-	logger, err = zap.NewDevelopment()
-	if err != nil {
-		suite.Fail(err.Error())
-	}
 
-	suite.app = rest.NewHandler(suite.srv, suite.cfg, logger).Handler()
+	ctx := context.Background()
+	require.NoError(suite.T(), suite.Srv().SetGauge(ctx, "testGauge-1", domain.Gauge(1.0001)))
+	require.NoError(suite.T(), suite.Srv().IncreaseCounter(ctx, "testCounter-1", domain.Counter(1)))
+
+	_, err = suite.srv.SaveToFile(ctx)
+	require.NoError(suite.T(), err)
+
+	// clear OS ARGS
+	// os.Args = make([]string, 0)
+
+	suite.a = app.NewApp(suite.ctx, suite.stop,
+		app.BuildMetadata{Version: "testing..", Date: time.Now().String(), Commit: ""},
+		suite.cfg, zap.NewNop())
+
+	go suite.a.Run()
 }
 func (suite *HandlerMemCryptoTestSuite) TearDownSuite() {
 	require.NoError(suite.T(), os.RemoveAll(suite.T().TempDir()))
+	suite.stop()
+	suite.a.Stop()
 }
 
-func (suite *HandlerMemCryptoTestSuite) App() http.Handler {
-	return suite.app
-}
 func (suite *HandlerMemCryptoTestSuite) Srv() *service.Service {
 	return suite.srv
-}
-func (suite *HandlerMemCryptoTestSuite) DBx() *sqlx.DB {
-	return nil
 }
 func (suite *HandlerMemCryptoTestSuite) Cfg() *config.Config {
 	return suite.cfg
@@ -131,9 +143,6 @@ func (suite *HandlerMemCryptoTestSuite) TestHashKey() {
 func (suite *HandlerMemCryptoTestSuite) TestUpdateMetricsNoCrypt() {
 
 	t := suite.T()
-
-	ts := httptest.NewServer(suite.App())
-	defer ts.Close()
 
 	testCounterName := fmt.Sprintf("testCounter%d", rand.Int())
 
@@ -211,7 +220,7 @@ func (suite *HandlerMemCryptoTestSuite) TestUpdateMetricsNoCrypt() {
 			err := json.NewEncoder(b).Encode(test.args.body)
 			require.NoError(t, err)
 
-			req, err := http.NewRequest(test.args.method, ts.URL+test.args.path, b)
+			req, err := http.NewRequest(test.args.method, "http://"+suite.Cfg().Address+test.args.path, b)
 			require.NoError(t, err)
 
 			res, err := http.DefaultClient.Do(req)
