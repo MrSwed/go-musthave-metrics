@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"fmt"
 	"go-musthave-metrics/internal/server/app"
+	"go-musthave-metrics/internal/server/domain"
 	"math/rand"
 	"net"
 	"os"
@@ -17,6 +18,7 @@ import (
 	"go-musthave-metrics/internal/server/service"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
@@ -86,5 +88,42 @@ func (suite *HandlerFileStoreTestSuite) TestRestoreFromFile() {
 	t.Run("Restore from file", func(t *testing.T) {
 		_, err := suite.srv.RestoreFromFile(suite.ctx)
 		require.NoError(t, err)
+	})
+	t.Run("Restore from file Err", func(t *testing.T) {
+		sp := suite.Cfg().FileStoragePath
+		suite.Cfg().FileStoragePath = ""
+		defer func() {
+			suite.Cfg().FileStoragePath = sp
+		}()
+		_, err := suite.srv.RestoreFromFile(suite.ctx)
+		assert.EqualError(t, err, "no storage file provided")
+	})
+}
+
+func (suite *HandlerMemTestSuite) TestSaveToFile() {
+
+	t := suite.T()
+	testCounter := domain.Counter(1)
+	testGauge := domain.Gauge(1.0001)
+	testGaugeName := fmt.Sprintf("testGauge%d", rand.Int())
+	testCounterName := fmt.Sprintf("testCounter%d", rand.Int())
+	// save some values
+	ctx := context.Background()
+	_ = suite.Srv().SetGauge(ctx, testGaugeName, testGauge)
+	_ = suite.Srv().IncreaseCounter(ctx, testCounterName, testCounter)
+
+	t.Run("Save file", func(t *testing.T) {
+		_, err := suite.Srv().SaveToFile(suite.ctx)
+		require.NoError(t, err)
+	})
+
+	t.Run("Save file Error", func(t *testing.T) {
+		sp := suite.Cfg().FileStoragePath
+		suite.Cfg().FileStoragePath = ""
+		defer func() {
+			suite.Cfg().FileStoragePath = sp
+		}()
+		_, err := suite.Srv().SaveToFile(suite.ctx)
+		assert.EqualError(t, err, "no storage file provided")
 	})
 }

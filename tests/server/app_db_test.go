@@ -172,10 +172,6 @@ func (suite *HandlerDBTestSuite) TestPing() {
 	testPing(suite)
 }
 
-func (suite *HandlerDBTestSuite) TestSaveToFile() {
-	testSaveToFile(suite, suite.ctx)
-}
-
 func (suite *HandlerDBTestSuite) TestGRPCGetMetric() {
 	testGRPCGetMetric(suite)
 }

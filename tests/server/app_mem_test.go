@@ -99,10 +99,6 @@ func (suite *HandlerMemTestSuite) TestPing() {
 	testPing(suite)
 }
 
-func (suite *HandlerMemTestSuite) TestSaveToFile() {
-	testSaveToFile(suite, suite.ctx)
-}
-
 func (suite *HandlerMemTestSuite) TestGRPCGetMetric() {
 	testGRPCGetMetric(suite)
 }
