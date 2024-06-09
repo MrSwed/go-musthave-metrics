@@ -229,6 +229,13 @@ func testGRPCGetMetrics(suite HandlerTestSuite) {
 			wantErr: status.Error(codes.Unauthenticated, "missing token"),
 		},
 		{
+			name: "try get wit invalid token",
+			headers: map[string]string{
+				"token": "invalid token",
+			},
+			wantErr: status.Error(codes.Unauthenticated, "invalid token"),
+		},
+		{
 			name: "grpc app metric get html",
 			headers: map[string]string{
 				"token": suite.Cfg().GRPCToken,

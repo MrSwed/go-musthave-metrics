@@ -109,12 +109,12 @@ func (c *Config) maybeLoadConfig() (ok bool, err error) {
 	}
 	var confFile *os.File
 	confFile, err = os.Open(c.Config)
-	defer func() {
-		err = errors.Join(err, confFile.Close())
-	}()
 	if err != nil {
 		return
 	}
+	defer func() {
+		err = errors.Join(err, confFile.Close())
+	}()
 	jsonParser := json.NewDecoder(confFile)
 	err = jsonParser.Decode(c)
 	if err != nil {
