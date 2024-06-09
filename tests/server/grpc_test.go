@@ -128,6 +128,10 @@ func testGRPCGetMetric(suite HandlerTestSuite) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+
+			require.NotEmpty(t, tt.args.in.GetMetric()) // more cover proto
+			require.NotEmpty(t, tt.args.in.String())    // more cover proto
+
 			ctx, stop := context.WithTimeout(context.Background(), 2*time.Second)
 			defer stop()
 			ctx, conn, g, callOpt, err := testGRPCDial(suite, ctx, tt.headers)
@@ -141,8 +145,18 @@ func testGRPCGetMetric(suite HandlerTestSuite) {
 				return
 			}
 
-			if tt.wantOut != nil && (gotOut == nil || !reflect.DeepEqual(gotOut.Metric, tt.wantOut.Metric)) {
-				t.Errorf("GetMetric() gotOut.Metric = %v, want.Metric %v", gotOut.Metric, tt.wantOut.Metric)
+			if tt.wantOut != nil && (gotOut == nil || !reflect.DeepEqual(gotOut.GetMetric(), tt.wantOut.GetMetric())) {
+				t.Errorf("GetMetric() gotOut.GetMetric() = %v, want.Metric %v", gotOut.GetMetric(), tt.wantOut.GetMetric())
+				return
+			}
+
+			if tt.wantOut != nil && gotOut != nil { // more cover  protos
+				require.Equal(t, gotOut.GetMetric().GetId(), tt.wantOut.GetMetric().GetId())
+				require.Equal(t, gotOut.GetMetric().GetValue(), tt.wantOut.GetMetric().GetValue())
+				require.Equal(t, gotOut.GetMetric().GetDelta(), tt.wantOut.GetMetric().GetDelta())
+				require.Equal(t, gotOut.GetMetric().GetMtype(), tt.wantOut.GetMetric().GetMtype())
+				require.Equal(t, gotOut.GetMetric().String(), tt.wantOut.GetMetric().String())
+				require.Equal(t, gotOut.String(), tt.wantOut.String())
 			}
 		})
 	}
@@ -192,6 +206,7 @@ func testGRPCGetMetrics(suite HandlerTestSuite) {
 			}
 			for _, rc := range tt.want.responseContain {
 				assert.Contains(t, string(gotOut.GetHtml()), rc)
+				assert.Contains(t, gotOut.String(), rc)
 			}
 		})
 	}
@@ -339,6 +354,10 @@ func testGRPCSetMetric(suite HandlerTestSuite) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+
+			require.NotEmpty(t, tt.args.in.GetMetric()) // more cover proto
+			require.NotEmpty(t, tt.args.in.String())    // more cover proto
+
 			ctx, stop := context.WithTimeout(context.Background(), 2*time.Second)
 			defer stop()
 			ctx, conn, g, callOpt, err := testGRPCDial(suite, ctx, tt.headers)
@@ -351,8 +370,14 @@ func testGRPCSetMetric(suite HandlerTestSuite) {
 				t.Errorf("SetMetric() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if tt.wantOut != nil && (gotOut == nil || !reflect.DeepEqual(gotOut.Metric, tt.wantOut.Metric)) {
-				t.Errorf("SetMetric() gotOut.Metric = %v, want.Metric %v", gotOut.Metric, tt.wantOut.Metric)
+			if tt.wantOut != nil && (gotOut == nil || !reflect.DeepEqual(gotOut.GetMetric(), tt.wantOut.GetMetric())) {
+				t.Errorf("SetMetric() gotOut.GetMetric() = %v, want.Metric %v", gotOut.GetMetric(), tt.wantOut.GetMetric())
+			}
+			if tt.wantErr == nil {
+				require.Equal(t, gotOut.GetMetric().GetId(), tt.args.in.GetMetric().GetId())
+				require.Equal(t, gotOut.GetMetric().GetMtype(), tt.args.in.GetMetric().GetMtype())
+				require.Equal(t, gotOut.String(), tt.wantOut.String())
+				require.Equal(t, gotOut.GetMetric().String(), tt.wantOut.GetMetric().String())
 			}
 		})
 	}
@@ -482,6 +507,9 @@ func testGRPCSetMetrics(suite HandlerTestSuite) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			require.NotEmpty(t, tt.args.in.GetMetric()) // more cover proto
+			require.NotEmpty(t, tt.args.in.String())    // more cover proto
+
 			ctx, stop := context.WithTimeout(context.Background(), 2*time.Second)
 			defer stop()
 			ctx, conn, g, callOpt, err := testGRPCDial(suite, ctx, tt.headers)
@@ -494,8 +522,11 @@ func testGRPCSetMetrics(suite HandlerTestSuite) {
 				t.Errorf("SetMetrics() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if tt.wantOut != nil && (gotOut == nil || !reflect.DeepEqual(gotOut.Metric, tt.wantOut.Metric)) {
-				t.Errorf("SetMetrics() gotOut.Metric = %v, want.Metric %v", gotOut.Metric, tt.wantOut.Metric)
+			if tt.wantOut != nil && (gotOut == nil || !reflect.DeepEqual(gotOut.GetMetric(), tt.wantOut.GetMetric())) {
+				t.Errorf("SetMetrics() gotOut.GetMetric() = %v, want.Metric %v", gotOut.GetMetric(), tt.wantOut.GetMetric())
+			}
+			if tt.wantErr == nil {
+				require.Equal(t, gotOut.String(), tt.wantOut.String())
 			}
 		})
 	}
