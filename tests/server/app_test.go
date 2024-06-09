@@ -36,6 +36,15 @@ type HandlerTestSuite interface {
 	PublicKey() *rsa.PublicKey
 }
 
+func testData(suite HandlerTestSuite) {
+	ctx := context.Background()
+	require.NoError(suite.T(), suite.Srv().SetGauge(ctx, "testGauge-1", domain.Gauge(1.0001)))
+	require.NoError(suite.T(), suite.Srv().IncreaseCounter(ctx, "testCounter-1", domain.Counter(1)))
+
+	_, err := suite.Srv().SaveToFile(ctx)
+	require.NoError(suite.T(), err)
+}
+
 func testMigrate(suite HandlerTestSuite, db *sqlx.DB) {
 	t := suite.T()
 	t.Run("Migrate", func(t *testing.T) {

@@ -70,10 +70,6 @@ func (suite *HandlerMemCryptoTestSuite) loadCerts() {
 }
 
 func (suite *HandlerMemCryptoTestSuite) SetupSuite() {
-	var (
-		err error
-	)
-
 	suite.cfg = config.NewConfig()
 	suite.ctx, suite.stop = context.WithCancel(context.Background())
 	suite.cfg.StorageConfig.FileStoragePath = filepath.Join(suite.T().TempDir(), fmt.Sprintf("store-data-%d.json", rand.Intn(200000)))
@@ -88,15 +84,7 @@ func (suite *HandlerMemCryptoTestSuite) SetupSuite() {
 	repo := repository.NewRepository(&suite.cfg.StorageConfig, nil)
 	suite.srv = service.NewService(repo, &suite.cfg.StorageConfig)
 
-	ctx := context.Background()
-	require.NoError(suite.T(), suite.Srv().SetGauge(ctx, "testGauge-1", domain.Gauge(1.0001)))
-	require.NoError(suite.T(), suite.Srv().IncreaseCounter(ctx, "testCounter-1", domain.Counter(1)))
-
-	_, err = suite.srv.SaveToFile(ctx)
-	require.NoError(suite.T(), err)
-
-	// clear OS ARGS
-	// os.Args = make([]string, 0)
+	testData(suite)
 
 	suite.a = app.NewApp(suite.ctx, suite.stop,
 		app.BuildMetadata{Version: "testing..", Date: time.Now().String(), Commit: ""},

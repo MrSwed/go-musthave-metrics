@@ -5,7 +5,6 @@ import (
 	"crypto/rsa"
 	"fmt"
 	"go-musthave-metrics/internal/server/app"
-	"go-musthave-metrics/internal/server/domain"
 	"go-musthave-metrics/internal/server/repository"
 	"math/rand"
 	"net"
@@ -53,15 +52,7 @@ func (suite *HandlerMemTestSuite) SetupSuite() {
 	repo := repository.NewRepository(&suite.cfg.StorageConfig, nil)
 	suite.srv = service.NewService(repo, &suite.cfg.StorageConfig)
 
-	ctx := context.Background()
-	require.NoError(suite.T(), suite.Srv().SetGauge(ctx, "testGauge-1", domain.Gauge(1.0001)))
-	require.NoError(suite.T(), suite.Srv().IncreaseCounter(ctx, "testCounter-1", domain.Counter(1)))
-
-	_, err := suite.srv.SaveToFile(ctx)
-	require.NoError(suite.T(), err)
-
-	// clear OS ARGS
-	// os.Args = make([]string, 0)
+	testData(suite)
 
 	suite.a = app.NewApp(suite.ctx, suite.stop,
 		app.BuildMetadata{Version: "testing..", Date: time.Now().String(), Commit: ""},
