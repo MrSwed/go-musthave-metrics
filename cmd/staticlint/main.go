@@ -83,8 +83,8 @@ import (
 	"honnef.co/go/tools/staticcheck"
 )
 
-func main() {
-	checks := []*analysis.Analyzer{
+func analyzers() (checks []*analysis.Analyzer) {
+	checks = []*analysis.Analyzer{
 		// all passes analyzers
 		appends.Analyzer,
 		asmdecl.Analyzer,
@@ -151,7 +151,11 @@ func main() {
 			checks = append(checks, v.Analyzer)
 		}
 	}
+	return
+}
+
+func main() {
 	multichecker.Main(
-		checks...,
+		analyzers()...,
 	)
 }
