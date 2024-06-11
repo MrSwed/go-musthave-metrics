@@ -100,15 +100,9 @@ func (suite *ConfigTestSuite) setConfigFromMap(m map[string]any, sc ...*config.C
 func (suite *ConfigTestSuite) TestInit() {
 	t := suite.T()
 
-	osArgs := make([]string, len(os.Args))
-	copy(osArgs, os.Args)
-	// do not use t.Parallel with one config file
+	oldArgs := os.Args
+	defer func() { os.Args = oldArgs }()
 	cnfFile := filepath.Join(t.TempDir(), "config.json")
-
-	defer func() {
-		_ = os.Remove(cnfFile)
-		copy(os.Args, osArgs)
-	}()
 
 	tests := []struct {
 		config  any
@@ -302,9 +296,8 @@ func (suite *ConfigTestSuite) TestInit() {
 
 	for _, test := range tests {
 		flag.CommandLine = flag.NewFlagSet(test.name, flag.ContinueOnError)
-		// clean args
 		os.Args = make([]string, len(test.flag)+1)
-		os.Args[0] = osArgs[0]
+		os.Args[0] = oldArgs[0]
 
 		wantCfg := config.NewConfig()
 

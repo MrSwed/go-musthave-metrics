@@ -5,6 +5,8 @@ import (
 	"errors"
 	"net"
 	"net/http"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"go-musthave-metrics/internal/server/closer"
@@ -48,17 +50,45 @@ type App struct {
 	db         *sqlx.DB
 	closer     *closer.Closer
 	lockDB     chan struct{}
-	build      BuildMetadata
 	isNewStore bool
 }
 
-func NewApp(c context.Context, stop context.CancelFunc,
-	metadata BuildMetadata, cfg *config.Config, log *zap.Logger) *App {
+func RunApp(ctx context.Context, cfg *config.Config, log *zap.Logger, buildData BuildMetadata) {
+	var (
+		err  error
+		stop context.CancelFunc
+	)
+	ctx, stop = signal.NotifyContext(ctx, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	defer stop()
+	if cfg == nil {
+		cfg, err = config.NewConfig().Init()
+		if err != nil {
+			panic(err)
+		}
+	}
+	if log == nil {
+		log, err = zap.NewDevelopment()
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	appHandler := NewApp(ctx, stop, cfg, log)
+
+	appHandler.log.Info("Init app", zap.Any(`Build info`, map[string]string{
+		`Build version`: buildInfo(buildData.Version),
+		`Build date`:    buildInfo(buildData.Date),
+		`Build commit`:  buildInfo(buildData.Commit)}))
+
+	appHandler.Run()
+	appHandler.Stop()
+}
+
+func NewApp(c context.Context, stop context.CancelFunc, cfg *config.Config, log *zap.Logger) *App {
 	eg, ctx := errgroup.WithContext(c)
 	a := App{
 		ctx:        ctx,
 		stop:       stop,
-		build:      metadata,
 		cfg:        cfg,
 		eg:         eg,
 		isNewStore: true,
@@ -66,11 +96,6 @@ func NewApp(c context.Context, stop context.CancelFunc,
 		log:        log,
 		lockDB:     make(chan struct{}),
 	}
-
-	a.log.Info("Init app", zap.Any(`Build info`, map[string]string{
-		`Build version`: buildInfo(a.build.Version),
-		`Build date`:    buildInfo(a.build.Date),
-		`Build commit`:  buildInfo(a.build.Commit)}))
 
 	a.maybeConnectDB()
 

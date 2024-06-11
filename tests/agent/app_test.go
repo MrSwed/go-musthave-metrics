@@ -23,6 +23,7 @@ import (
 )
 
 func Test_app_Run(t *testing.T) {
+	oldArgs := os.Args[:]
 
 	type fields struct {
 		cfg       *config.Config
@@ -211,8 +212,7 @@ func Test_app_Run(t *testing.T) {
 			defer cancel()
 
 			flag.CommandLine = flag.NewFlagSet(tt.name, flag.ContinueOnError)
-			oldArgs := os.Args
-			os.Args = os.Args[:1]
+			os.Args = oldArgs[:1]
 			defer func() { os.Args = oldArgs }()
 
 			require.NoError(t, tt.fields.cfg.Init())

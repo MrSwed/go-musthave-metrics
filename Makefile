@@ -23,7 +23,7 @@ build_app: clean_app
 	go build -ldflags "-X 'main.buildVersion=${version} (${buildVersion})' -X 'main.buildDate=${buildDate}' -X 'main.buildCommit=${buildCommit}'" -o "./bin/${APP_NAME}" ./cmd/${APP_NAME}/*.go
 
 build_agent: clean_agent
-	go build -ldflags "-X 'main.buildVersion=${version} (${buildVersion})' -X 'main.buildDate=${buildDate}' -X 'main.buildCommit=${buildCommit}'" -o "./bin/${AGENT_NAME}" ./cmd/${AGENT_NAME}/*.go
+	go build -ldflags "-X 'app.buildVersion=${version} (${buildVersion})' -X 'app.buildDate=${buildDate}' -X 'app.buildCommit=${buildCommit}'" -o "./bin/${AGENT_NAME}" ./cmd/${AGENT_NAME}/*.go
 
 build_staticlint: clean_staticlint
 	go build -o "./bin/${STATICLINT}" ./cmd/${STATICLINT}/*.go
