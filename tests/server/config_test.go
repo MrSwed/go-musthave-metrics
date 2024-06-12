@@ -32,6 +32,7 @@ func (suite *ConfigTestSuite) SetupSuite() {
 }
 
 func (suite *ConfigTestSuite) TearDownSuite() {
+	require.NoError(suite.T(), os.RemoveAll(suite.T().TempDir()))
 }
 
 func TestConfigs(t *testing.T) {

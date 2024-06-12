@@ -31,7 +31,9 @@ func (suite *ConfigTestSuite) SetupSuite() {
 	helper.CreateCertificates(suite.privateKey, suite.publicKey)
 }
 
-func (suite *ConfigTestSuite) TearDownSuite() {}
+func (suite *ConfigTestSuite) TearDownSuite() {
+	require.NoError(suite.T(), os.RemoveAll(suite.T().TempDir()))
+}
 
 func TestConfigs(t *testing.T) {
 	suite.Run(t, new(ConfigTestSuite))

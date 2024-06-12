@@ -10,6 +10,7 @@ import (
 	"go-musthave-metrics/internal/server/service"
 	"math/rand"
 	"net"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -59,6 +60,7 @@ func (suite *HandlerMemTestSuite) SetupSuite() {
 }
 
 func (suite *HandlerMemTestSuite) TearDownSuite() {
+	require.NoError(suite.T(), os.RemoveAll(suite.T().TempDir()))
 	suite.stop()
 }
 
