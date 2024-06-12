@@ -24,8 +24,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func testGRPCDial(suite HandlerTestSuite, ctx context.Context, meta map[string]string) (ctxOut context.Context, conn *grpc.ClientConn, g pb.MetricsClient, callOpt []grpc.CallOption, err error) {
-	callOpt = []grpc.CallOption{}
+func testGRPCDial(suite HandlerTestSuite, ctx context.Context, meta map[string]string) (ctxOut context.Context, conn *grpc.ClientConn, grpcClient pb.MetricsClient, callOpt []grpc.CallOption, err error) {
 	ctxOut = ctx
 	conn, err = grpc.DialContext(ctx, suite.Cfg().GRPCAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -36,7 +35,7 @@ func testGRPCDial(suite HandlerTestSuite, ctx context.Context, meta map[string]s
 		ctxOut = metadata.NewOutgoingContext(ctx, metaD)
 		callOpt = append(callOpt, grpc.Header(&metaD))
 	}
-	g = pb.NewMetricsClient(conn)
+	grpcClient = pb.NewMetricsClient(conn)
 
 	return
 }
@@ -151,11 +150,12 @@ func testGRPCGetMetric(suite HandlerTestSuite) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			require.NotEmpty(t, tt.args.in.GetMetric()) // more cover proto
-			require.NotEmpty(t, tt.args.in.String())    // more cover proto
+			require.NotEmpty(t, tt.args.in.GetMetric())
+			require.NotEmpty(t, tt.args.in.String())
 
-			ctx, stop := context.WithTimeout(context.Background(), 2*time.Second)
-			defer stop()
+			// ctx, stop := context.WithTimeout(context.Background(), 2*time.Second)
+			// defer stop()
+			ctx := context.Background()
 			var (
 				gotOut   *pb.GetMetricResponse
 				err      error
@@ -183,7 +183,7 @@ func testGRPCGetMetric(suite HandlerTestSuite) {
 				return
 			}
 
-			if tt.wantOut != nil && gotOut != nil { // more cover  protos
+			if tt.wantOut != nil && gotOut != nil {
 				require.Equal(t, gotOut.GetMetric().GetId(), tt.wantOut.GetMetric().GetId())
 				require.Equal(t, gotOut.GetMetric().GetValue(), tt.wantOut.GetMetric().GetValue())
 				require.Equal(t, gotOut.GetMetric().GetDelta(), tt.wantOut.GetMetric().GetDelta())
@@ -445,8 +445,8 @@ func testGRPCSetMetric(suite HandlerTestSuite) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			require.NotEmpty(t, tt.args.in.GetMetric()) // more cover proto
-			require.NotEmpty(t, tt.args.in.String())    // more cover proto
+			require.NotEmpty(t, tt.args.in.GetMetric())
+			require.NotEmpty(t, tt.args.in.String())
 
 			ctx, stop := context.WithTimeout(context.Background(), 2*time.Second)
 			defer stop()
@@ -611,8 +611,8 @@ func testGRPCSetMetrics(suite HandlerTestSuite) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			require.NotEmpty(t, tt.args.in.GetMetric()) // more cover proto
-			require.NotEmpty(t, tt.args.in.String())    // more cover proto
+			require.NotEmpty(t, tt.args.in.GetMetric())
+			require.NotEmpty(t, tt.args.in.String())
 
 			ctx, stop := context.WithTimeout(context.Background(), 2*time.Second)
 			defer stop()

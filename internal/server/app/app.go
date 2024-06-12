@@ -73,7 +73,7 @@ func RunApp(ctx context.Context, cfg *config.Config, log *zap.Logger, buildData 
 		}
 	}
 
-	appHandler := NewApp(ctx, stop, cfg, log)
+	appHandler := newApp(ctx, stop, cfg, log)
 
 	appHandler.log.Info("Init app", zap.Any(`Build info`, map[string]string{
 		`Build version`: buildInfo(buildData.Version),
@@ -84,7 +84,7 @@ func RunApp(ctx context.Context, cfg *config.Config, log *zap.Logger, buildData 
 	appHandler.Stop()
 }
 
-func NewApp(c context.Context, stop context.CancelFunc, cfg *config.Config, log *zap.Logger) *App {
+func newApp(c context.Context, stop context.CancelFunc, cfg *config.Config, log *zap.Logger) *App {
 	eg, ctx := errgroup.WithContext(c)
 	a := App{
 		ctx:        ctx,

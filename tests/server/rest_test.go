@@ -6,14 +6,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"go-musthave-metrics/internal/server/constant"
+	"go-musthave-metrics/internal/server/domain"
 	"go-musthave-metrics/internal/server/handler/rest"
 	"io"
 	"math/rand"
 	"net/http"
 	"testing"
-
-	"go-musthave-metrics/internal/server/constant"
-	"go-musthave-metrics/internal/server/domain"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/stretchr/testify/assert"

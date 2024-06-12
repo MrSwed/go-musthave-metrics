@@ -55,7 +55,6 @@ type HandlerDBTestSuite struct {
 	stop   context.CancelFunc
 	srv    *service.Service
 	cfg    *config.Config
-	a      *app.App
 	db     *sqlx.DB
 	pgCont *postgres.PostgresContainer
 }
@@ -111,11 +110,10 @@ func (suite *HandlerDBTestSuite) SetupSuite() {
 
 	testData(suite)
 
-	suite.a = app.NewApp(suite.ctx, suite.stop,
-		app.BuildMetadata{Version: "testing..", Date: time.Now().String(), Commit: ""},
-		suite.cfg, zap.NewNop())
-
-	go suite.a.Run()
+	go app.RunApp(suite.ctx, suite.cfg, zap.NewNop(),
+		app.BuildMetadata{Version: "test", Date: time.Now().Format(time.RFC3339), Commit: "test"})
+	require.NoError(suite.T(), WaitHTTPPort(suite.ctx, suite))
+	require.NoError(suite.T(), WaitGRPCPort(suite.ctx, suite))
 }
 
 func (suite *HandlerDBTestSuite) TearDownSuite() {
@@ -124,7 +122,6 @@ func (suite *HandlerDBTestSuite) TearDownSuite() {
 	}
 	require.NoError(suite.T(), os.RemoveAll(suite.T().TempDir()))
 	suite.stop()
-	suite.a.Stop()
 }
 
 func TestHandlersDB(t *testing.T) {

@@ -224,10 +224,8 @@ func Test_app_Run(t *testing.T) {
 			}()
 			var sApp *servApp.App
 			if tt.fields.sCfg != nil {
-				sApp = servApp.NewApp(ctx, cancel,
-					servApp.BuildMetadata{Version: "testing..", Date: time.Now().String(), Commit: ""},
-					tt.fields.sCfg, zap.NewNop())
-				go sApp.Run()
+				go servApp.RunApp(ctx, tt.fields.sCfg,
+					zap.NewNop(), servApp.BuildMetadata{Version: "testing..", Date: time.Now().String(), Commit: ""})
 			}
 
 			appHandler := app.NewApp(ctx, tt.fields.cfg, tt.fields.buildInfo)

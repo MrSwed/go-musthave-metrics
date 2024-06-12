@@ -10,6 +10,12 @@ import (
 	"errors"
 	"fmt"
 	"go-musthave-metrics/internal/server/app"
+	"go-musthave-metrics/internal/server/config"
+	"go-musthave-metrics/internal/server/constant"
+	"go-musthave-metrics/internal/server/domain"
+	"go-musthave-metrics/internal/server/repository"
+	"go-musthave-metrics/internal/server/service"
+	testHelpers "go-musthave-metrics/tests"
 	"io"
 	"math/rand"
 	"net"
@@ -18,13 +24,6 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
-
-	"go-musthave-metrics/internal/server/config"
-	"go-musthave-metrics/internal/server/constant"
-	"go-musthave-metrics/internal/server/domain"
-	"go-musthave-metrics/internal/server/repository"
-	"go-musthave-metrics/internal/server/service"
-	testHelpers "go-musthave-metrics/tests"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/stretchr/testify/assert"
@@ -39,7 +38,6 @@ type HandlerMemCryptoTestSuite struct {
 	stop       context.CancelFunc
 	srv        *service.Service
 	cfg        *config.Config
-	a          *app.App
 	publicKey  *rsa.PublicKey
 	publicFile string
 }
@@ -86,16 +84,15 @@ func (suite *HandlerMemCryptoTestSuite) SetupSuite() {
 
 	testData(suite)
 
-	suite.a = app.NewApp(suite.ctx, suite.stop,
-		app.BuildMetadata{Version: "testing..", Date: time.Now().String(), Commit: ""},
-		suite.cfg, zap.NewNop())
+	go app.RunApp(suite.ctx, suite.cfg, zap.NewNop(),
+		app.BuildMetadata{Version: "test", Date: time.Now().Format(time.RFC3339), Commit: "test"})
 
-	go suite.a.Run()
+	require.NoError(suite.T(), WaitHTTPPort(suite.ctx, suite))
+	require.NoError(suite.T(), WaitGRPCPort(suite.ctx, suite))
 }
 func (suite *HandlerMemCryptoTestSuite) TearDownSuite() {
 	require.NoError(suite.T(), os.RemoveAll(suite.T().TempDir()))
 	suite.stop()
-	suite.a.Stop()
 }
 
 func (suite *HandlerMemCryptoTestSuite) Srv() *service.Service {
