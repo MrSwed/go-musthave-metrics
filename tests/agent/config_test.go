@@ -26,8 +26,8 @@ type ConfigTestSuite struct {
 
 func (suite *ConfigTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
-	suite.privateKey = filepath.Join(suite.T().TempDir(), "/testPrivate.key")
-	suite.publicKey = filepath.Join(suite.T().TempDir(), "/testPublic.crt")
+	suite.privateKey = filepath.Join(suite.T().TempDir(), "testPrivate.key")
+	suite.publicKey = filepath.Join(suite.T().TempDir(), "testPublic.crt")
 	helper.CreateCertificates(suite.privateKey, suite.publicKey)
 }
 

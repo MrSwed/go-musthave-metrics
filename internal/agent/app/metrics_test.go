@@ -82,8 +82,8 @@ func TestMetricsCollects_SendMetrics(t *testing.T) {
 
 func TestMetricsCollects_SendMetricsCrypto(t *testing.T) {
 	c := config.NewConfig()
-	privateKey := filepath.Join(t.TempDir(), "/testPrivate.key")
-	c.CryptoKey = filepath.Join(t.TempDir(), "/testPublic.crt")
+	privateKey := filepath.Join(t.TempDir(), "testPrivate.key")
+	c.CryptoKey = filepath.Join(t.TempDir(), "testPublic.crt")
 	testhelpers.CreateCertificates(privateKey, c.CryptoKey)
 	err := c.LoadPublicKey()
 	require.NoError(t, err)
