@@ -60,8 +60,8 @@ func (suite *HandlerMemTestSuite) SetupSuite() {
 }
 
 func (suite *HandlerMemTestSuite) TearDownSuite() {
-	require.NoError(suite.T(), os.RemoveAll(suite.T().TempDir()))
 	suite.stop()
+	require.NoError(suite.T(), os.RemoveAll(suite.T().TempDir()))
 }
 
 func TestHandlersMem(t *testing.T) {
@@ -110,4 +110,8 @@ func (suite *HandlerMemTestSuite) TestGRPCSetMetric() {
 
 func (suite *HandlerMemTestSuite) TestGRPCSetMetrics() {
 	testGRPCSetMetrics(suite)
+}
+
+func (suite *HandlerMemTestSuite) TestGRPCProto() {
+	testGRPCProto(suite)
 }

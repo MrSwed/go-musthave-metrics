@@ -53,8 +53,8 @@ func (suite *HandlerFileStoreTestSuite) SetupSuite() {
 }
 
 func (suite *HandlerFileStoreTestSuite) TearDownSuite() {
-	require.NoError(suite.T(), os.RemoveAll(suite.T().TempDir()))
 	suite.stop()
+	require.NoError(suite.T(), os.RemoveAll(suite.T().TempDir()))
 }
 
 func (suite *HandlerFileStoreTestSuite) Srv() *service.Service {

@@ -40,6 +40,22 @@ func testGRPCDial(suite HandlerTestSuite, ctx context.Context, meta map[string]s
 	return
 }
 
+func testGRPCProto(suite HandlerTestSuite) {
+	t := suite.T()
+	t.Run("generated grpc proto not implemented", func(t *testing.T) {
+		g := myGrpc.NewMetricsServer(suite.Srv(), suite.Cfg(), zap.NewNop())
+		ctx := context.Background()
+		_, err := g.UnimplementedMetricsServer.GetMetrics(ctx, nil)
+		assert.Error(t, err, status.Errorf(codes.Unimplemented, "method GetMetrics not implemented"))
+		_, err = g.UnimplementedMetricsServer.GetMetric(ctx, nil)
+		assert.Error(t, err, status.Errorf(codes.Unimplemented, "method GetMetric not implemented"))
+		_, err = g.UnimplementedMetricsServer.SetMetrics(ctx, nil)
+		assert.Error(t, err, status.Errorf(codes.Unimplemented, "method SetMetrics not implemented"))
+		_, err = g.UnimplementedMetricsServer.SetMetric(ctx, nil)
+		assert.Error(t, err, status.Errorf(codes.Unimplemented, "method SetMetric not implemented"))
+	})
+}
+
 func testGRPCGetMetric(suite HandlerTestSuite) {
 	t := suite.T()
 
@@ -152,9 +168,10 @@ func testGRPCGetMetric(suite HandlerTestSuite) {
 
 			require.NotEmpty(t, tt.args.in.GetMetric())
 			require.NotEmpty(t, tt.args.in.String())
+			db, di := tt.args.in.Descriptor()
+			require.NotEmpty(t, db)
+			require.NotEmpty(t, di)
 
-			// ctx, stop := context.WithTimeout(context.Background(), 2*time.Second)
-			// defer stop()
 			ctx := context.Background()
 			var (
 				gotOut   *pb.GetMetricResponse
@@ -190,21 +207,15 @@ func testGRPCGetMetric(suite HandlerTestSuite) {
 				require.Equal(t, gotOut.GetMetric().GetMtype(), tt.wantOut.GetMetric().GetMtype())
 				require.Equal(t, gotOut.GetMetric().String(), tt.wantOut.GetMetric().String())
 				require.Equal(t, gotOut.String(), tt.wantOut.String())
+				db, di = gotOut.GetMetric().Descriptor()
+				require.NotEmpty(t, db)
+				require.NotEmpty(t, di)
+				db, di = gotOut.Descriptor()
+				require.NotEmpty(t, db)
+				require.NotEmpty(t, di)
 			}
 		})
 	}
-	t.Run("generated grpc proto not implemented", func(t *testing.T) {
-		g := myGrpc.NewMetricsServer(suite.Srv(), suite.Cfg(), zap.NewNop())
-		ctx := context.Background()
-		_, err := g.UnimplementedMetricsServer.GetMetrics(ctx, nil)
-		assert.Error(t, err, status.Errorf(codes.Unimplemented, "method GetMetrics not implemented"))
-		_, err = g.UnimplementedMetricsServer.GetMetric(ctx, nil)
-		assert.Error(t, err, status.Errorf(codes.Unimplemented, "method GetMetric not implemented"))
-		_, err = g.UnimplementedMetricsServer.SetMetrics(ctx, nil)
-		assert.Error(t, err, status.Errorf(codes.Unimplemented, "method SetMetrics not implemented"))
-		_, err = g.UnimplementedMetricsServer.SetMetric(ctx, nil)
-		assert.Error(t, err, status.Errorf(codes.Unimplemented, "method SetMetric not implemented"))
-	})
 }
 
 func testGRPCGetMetrics(suite HandlerTestSuite) {
@@ -447,6 +458,9 @@ func testGRPCSetMetric(suite HandlerTestSuite) {
 
 			require.NotEmpty(t, tt.args.in.GetMetric())
 			require.NotEmpty(t, tt.args.in.String())
+			db, di := tt.args.in.Descriptor()
+			require.NotEmpty(t, db)
+			require.NotEmpty(t, di)
 
 			ctx, stop := context.WithTimeout(context.Background(), 2*time.Second)
 			defer stop()
@@ -481,6 +495,9 @@ func testGRPCSetMetric(suite HandlerTestSuite) {
 				require.Equal(t, gotOut.GetMetric().GetMtype(), tt.args.in.GetMetric().GetMtype())
 				require.Equal(t, gotOut.String(), tt.wantOut.String())
 				require.Equal(t, gotOut.GetMetric().String(), tt.wantOut.GetMetric().String())
+				db, di := gotOut.Descriptor()
+				require.NotEmpty(t, db)
+				require.NotEmpty(t, di)
 			}
 		})
 	}
@@ -613,6 +630,9 @@ func testGRPCSetMetrics(suite HandlerTestSuite) {
 		t.Run(tt.name, func(t *testing.T) {
 			require.NotEmpty(t, tt.args.in.GetMetric())
 			require.NotEmpty(t, tt.args.in.String())
+			db, di := tt.args.in.Descriptor()
+			require.NotEmpty(t, db)
+			require.NotEmpty(t, di)
 
 			ctx, stop := context.WithTimeout(context.Background(), 2*time.Second)
 			defer stop()
@@ -644,6 +664,9 @@ func testGRPCSetMetrics(suite HandlerTestSuite) {
 			}
 			if tt.wantErr == nil {
 				require.Equal(t, gotOut.String(), tt.wantOut.String())
+				db, di := gotOut.Descriptor()
+				require.NotEmpty(t, db)
+				require.NotEmpty(t, di)
 			}
 		})
 	}

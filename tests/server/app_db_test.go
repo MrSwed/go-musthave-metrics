@@ -120,8 +120,8 @@ func (suite *HandlerDBTestSuite) TearDownSuite() {
 	if err := suite.pgCont.Terminate(suite.ctx); err != nil {
 		log.Fatalf("error terminating postgres container: %s", err)
 	}
-	require.NoError(suite.T(), os.RemoveAll(suite.T().TempDir()))
 	suite.stop()
+	require.NoError(suite.T(), os.RemoveAll(suite.T().TempDir()))
 }
 
 func TestHandlersDB(t *testing.T) {
