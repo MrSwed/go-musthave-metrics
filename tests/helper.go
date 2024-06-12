@@ -8,7 +8,6 @@ import (
 	"crypto/x509/pkix"
 	"encoding/json"
 	"encoding/pem"
-	"errors"
 	"log"
 	"math/big"
 	"net"
@@ -73,14 +72,6 @@ func CreateCertificates(privateFile, publicFile string) {
 // CreateConfigFile
 // create come json config file. if config is string or byte, it will be saved "as is"
 func CreateConfigFile(configFile string, config any) (err error) {
-	var file *os.File
-	file, err = os.Create(configFile)
-	if err != nil {
-		return
-	}
-	defer func() {
-		err = errors.Join(err, file.Close())
-	}()
 	var b []byte
 	switch c := config.(type) {
 	case []byte:
@@ -89,11 +80,9 @@ func CreateConfigFile(configFile string, config any) (err error) {
 		b = []byte(c)
 	default:
 		b, err = json.Marshal(config)
+		if err != nil {
+			return err
+		}
 	}
-	if err != nil {
-		return err
-	}
-
-	_, err = file.Write(b)
-	return
+	return os.WriteFile(configFile, b, 0644)
 }
