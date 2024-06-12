@@ -218,11 +218,11 @@ func testGRPCGetMetrics(suite HandlerTestSuite) {
 	}
 
 	tests := []struct {
-		args    args
+		headers map[string]string
 		name    string
 		wantErr error
-		headers map[string]string
 		want    want
+		args    args
 	}{
 		{
 			name:    "try get without token",

@@ -155,7 +155,5 @@ func analyzers() (checks []*analysis.Analyzer) {
 }
 
 func main() {
-	multichecker.Main(
-		analyzers()...,
-	)
+	multichecker.Main(analyzers()...)
 }

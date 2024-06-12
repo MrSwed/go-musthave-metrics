@@ -91,7 +91,6 @@ func (suite *HandlerMemCryptoTestSuite) SetupSuite() {
 	require.NoError(suite.T(), WaitGRPCPort(suite.ctx, suite))
 }
 func (suite *HandlerMemCryptoTestSuite) TearDownSuite() {
-	require.NoError(suite.T(), os.RemoveAll(suite.T().TempDir()))
 	suite.stop()
 }
 

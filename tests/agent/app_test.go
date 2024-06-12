@@ -5,14 +5,15 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	servApp "go-musthave-metrics/internal/server/app"
-	servConfig "go-musthave-metrics/internal/server/config"
 	"log"
 	"math/rand"
 	"net"
 	"os"
 	"testing"
 	"time"
+
+	servApp "go-musthave-metrics/internal/server/app"
+	servConfig "go-musthave-metrics/internal/server/config"
 
 	"go-musthave-metrics/internal/agent/app"
 	"go-musthave-metrics/internal/agent/config"
@@ -22,13 +23,16 @@ import (
 	"go.uber.org/zap"
 )
 
+const waitPortInterval = 100 * time.Millisecond
+const waitPortConnTimeout = 50 * time.Millisecond
+
 func Test_app_Run(t *testing.T) {
 	oldArgs := os.Args[:]
 
 	type fields struct {
 		cfg       *config.Config
-		buildInfo app.BuildMetadata
 		sCfg      *servConfig.Config
+		buildInfo app.BuildMetadata
 	}
 	tests := []struct {
 		name             string
@@ -208,7 +212,7 @@ func Test_app_Run(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 			defer cancel()
 
 			flag.CommandLine = flag.NewFlagSet(tt.name, flag.ContinueOnError)
@@ -222,23 +226,59 @@ func Test_app_Run(t *testing.T) {
 			defer func() {
 				log.SetOutput(os.Stderr)
 			}()
-			var sApp *servApp.App
 			if tt.fields.sCfg != nil {
 				go servApp.RunApp(ctx, tt.fields.sCfg,
 					zap.NewNop(), servApp.BuildMetadata{Version: "testing..", Date: time.Now().String(), Commit: ""})
-			}
+				require.NoError(t, WaitHTTPPort(ctx, tt.fields.sCfg.Address))
+				require.NoError(t, WaitGRPCPort(ctx, tt.fields.sCfg.GRPCAddress))
 
-			appHandler := app.NewApp(ctx, tt.fields.cfg, tt.fields.buildInfo)
-			appHandler.Run()
-			appHandler.Stop()
-
-			if sApp != nil {
-				sApp.Stop()
 			}
+			app.RunApp(ctx, tt.fields.cfg, tt.fields.buildInfo)
+
 			t.Log(buf.String())
 			for i := 0; i < len(tt.wantStrings); i++ {
 				assert.Contains(t, buf.String(), tt.wantStrings[i], fmt.Sprintf("%s is expected at log out", tt.wantStrings[i]))
 			}
 		})
+	}
+}
+
+func WaitHTTPPort(ctx context.Context, addr string) error {
+	if addr == "" {
+		return nil
+	}
+	ticker := time.NewTicker(waitPortInterval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+			conn, _ := net.DialTimeout("tcp", addr, waitPortConnTimeout)
+			if conn != nil {
+				_ = conn.Close()
+				return nil
+			}
+		}
+	}
+}
+
+func WaitGRPCPort(ctx context.Context, addr string) error {
+	if addr == "" {
+		return nil
+	}
+	ticker := time.NewTicker(waitPortInterval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+			conn, _ := net.DialTimeout("tcp", addr, waitPortConnTimeout)
+			if conn != nil {
+				_ = conn.Close()
+				return nil
+			}
+		}
 	}
 }

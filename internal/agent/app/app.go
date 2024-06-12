@@ -6,7 +6,10 @@ import (
 	"go-musthave-metrics/internal/agent/constant"
 	"log"
 	"net/url"
+	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 
 	"go-musthave-metrics/internal/agent/config"
@@ -19,21 +22,73 @@ type BuildMetadata struct {
 }
 
 type app struct {
-	wg    *sync.WaitGroup
-	ctx   context.Context
-	cfg   *config.Config
-	m     *MetricsCollects
-	build BuildMetadata
+	wg  *sync.WaitGroup
+	ctx context.Context
+	cfg *config.Config
+	m   *MetricsCollects
 }
 
-func NewApp(ctx context.Context, cfg *config.Config, metadata BuildMetadata) *app {
+func newApp(ctx context.Context, cfg *config.Config) *app {
 	return &app{
-		ctx:   ctx,
-		build: metadata,
-		cfg:   cfg,
-		m:     NewMetricsCollects(cfg),
-		wg:    &sync.WaitGroup{},
+		ctx: ctx,
+		cfg: cfg,
+		m:   NewMetricsCollects(cfg),
+		wg:  &sync.WaitGroup{},
 	}
+}
+
+func RunApp(ctx context.Context, cfg *config.Config, buildMetadata BuildMetadata) {
+	var (
+		err  error
+		stop context.CancelFunc
+	)
+	if cfg == nil {
+		cfg = config.NewConfig()
+		err = cfg.Init()
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	ctx, stop = signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	a := newApp(ctx, cfg)
+
+	log.Printf(`Started with build info:
+  BuildVersion: %s
+  BuildDate: %s
+  BuildCommit: %s
+With config:
+  Url for collect metric: %s%s
+  Report interval: %d
+  Poll interval: %d
+  Rate limit: %d
+  Number of metrics at once: %d
+  Key: %s
+  CryptoKey: %s
+  GRPCAddres: %s
+  Metric names count: %d
+`,
+		buildInfo(buildMetadata.Version),
+		buildInfo(buildMetadata.Date),
+		buildInfo(buildMetadata.Commit),
+		a.cfg.Address, constant.BaseURL, a.cfg.ReportInterval, a.cfg.PollInterval,
+		a.cfg.RateLimit, a.cfg.SendSize, a.cfg.Key, a.cfg.CryptoKey, a.cfg.GRPCAddress,
+		len(a.cfg.GaugesList)+len(a.cfg.CountersList))
+
+	// collect runtime metrics
+	a.collectRuntime()
+
+	// collect psutil metrics
+	a.collectPSUtil()
+
+	// send metrics
+	a.sender()
+
+	a.wg.Wait()
+	log.Println("Agent stopped")
+
 }
 
 func (a *app) collectRuntime() {
@@ -115,42 +170,4 @@ func (a *app) sender() {
 		}
 	}()
 
-}
-
-func (a *app) Run() {
-	log.Printf(`Started with build info:
-  BuildVersion: %s
-  BuildDate: %s
-  BuildCommit: %s
-With config:
-  Url for collect metric: %s%s
-  Report interval: %d
-  Poll interval: %d
-  Rate limit: %d
-  Number of metrics at once: %d
-  Key: %s
-  CryptoKey: %s
-  GRPCAddres: %s
-  Metric names count: %d
-`,
-		buildInfo(a.build.Version),
-		buildInfo(a.build.Date),
-		buildInfo(a.build.Commit),
-		a.cfg.Address, constant.BaseURL, a.cfg.ReportInterval, a.cfg.PollInterval,
-		a.cfg.RateLimit, a.cfg.SendSize, a.cfg.Key, a.cfg.CryptoKey, a.cfg.GRPCAddress,
-		len(a.cfg.GaugesList)+len(a.cfg.CountersList))
-
-	// collect runtime metrics
-	a.collectRuntime()
-
-	// collect psutil metrics
-	a.collectPSUtil()
-
-	// send metrics
-	a.sender()
-}
-
-func (a *app) Stop() {
-	a.wg.Wait()
-	log.Println("Agent stopped")
 }

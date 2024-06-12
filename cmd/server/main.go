@@ -13,9 +13,6 @@ var buildDate string
 var buildCommit string
 
 func main() {
-	app.RunApp(context.Background(), nil, nil, app.BuildMetadata{
-		Version: buildVersion,
-		Date:    buildDate,
-		Commit:  buildCommit,
-	})
+	app.RunApp(context.Background(), nil, nil,
+		app.BuildMetadata{Version: buildVersion, Date: buildDate, Commit: buildCommit})
 }

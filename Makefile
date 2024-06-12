@@ -60,7 +60,7 @@ run_go_cover_treemap:
 
 .PHONY: cover
 cover: install_go_cover_treemap
-	go test -v -coverpkg=./... -coverprofile=coverage.out -covermode=count ./...
+	go test -v -count=1 -coverpkg=./... -coverprofile=coverage.out -covermode=count ./...
 	go tool cover -func coverage.out
 	go-cover-treemap -coverprofile coverage.out > coverage.out.svg
 
