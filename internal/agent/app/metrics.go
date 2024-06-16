@@ -297,7 +297,7 @@ func (m *MetricsCollects) grpcRequest(metrics []*Metric) (err error) {
 			Mtype: metrics[i].MType,
 		}
 		if metrics[i].Delta != nil {
-			reqM[i].Delta = int64(*metrics[i].Delta)
+			reqM[i].Delta = *metrics[i].Delta
 		}
 		if metrics[i].Value != nil {
 			reqM[i].Value = float32(*metrics[i].Value)
