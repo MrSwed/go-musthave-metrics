@@ -49,18 +49,18 @@ func (s *MetricsService) IncreaseCounter(ctx context.Context, k string, v domain
 	var prev domain.Counter
 	if prev, err = s.r.GetCounter(ctx, k); err != nil && !errors.Is(err, myErr.ErrNotExist) {
 		return
-	} else {
-		if err = s.r.SetCounter(ctx, k, prev+v); err != nil {
-			return
-		}
-		if s.c.FileStoragePath != "" && s.c.FileStoreInterval == 0 {
-			if _, err = s.SaveToFile(ctx); errors.Is(err, myErr.ErrNotMemMode) {
-				err = nil
-			}
-		}
+	}
 
+	if err = s.r.SetCounter(ctx, k, prev+v); err != nil {
 		return
 	}
+	if s.c.FileStoragePath != "" && s.c.FileStoreInterval == 0 {
+		if _, err = s.SaveToFile(ctx); errors.Is(err, myErr.ErrNotMemMode) {
+			err = nil
+		}
+	}
+
+	return
 }
 
 // GetMetric
@@ -68,19 +68,17 @@ func (s *MetricsService) IncreaseCounter(ctx context.Context, k string, v domain
 func (s *MetricsService) GetMetric(ctx context.Context, mType, id string) (v domain.Metric, err error) {
 	switch mType {
 	case constant.MetricTypeGauge:
-		if gauge, er := s.r.GetGauge(ctx, id); er != nil {
-			err = er
+		var val domain.Gauge
+		if val, err = s.r.GetGauge(ctx, id); err != nil {
 			return
-		} else {
-			v.Value = &gauge
 		}
+		v.Value = &val
 	case constant.MetricTypeCounter:
-		if count, er := s.r.GetCounter(ctx, id); er != nil {
-			err = er
+		var val domain.Counter
+		if val, err = s.r.GetCounter(ctx, id); err != nil {
 			return
-		} else {
-			v.Delta = &count
 		}
+		v.Delta = &val
 	default:
 		err = myErr.ErrNotExist
 		return
@@ -108,9 +106,8 @@ func (s *MetricsService) SetMetric(ctx context.Context, metric domain.Metric) (r
 		var count domain.Counter
 		if count, err = s.r.GetCounter(ctx, metric.ID); err != nil {
 			return
-		} else {
-			metric.Delta = &count
 		}
+		metric.Delta = &count
 	}
 	rm = metric
 	if s.c.FileStoragePath != "" && s.c.FileStoreInterval == 0 {

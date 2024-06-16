@@ -138,35 +138,35 @@ func (h *Handler) UpdateMetric() func(w http.ResponseWriter, r *http.Request) {
 		action, metricKey, metricValStr := chi.URLParam(r, constant.MetricTypeParam), chi.URLParam(r, constant.MetricNameParam), chi.URLParam(r, constant.MetricValueParam)
 		ctx, cancel := context.WithTimeout(r.Context(), constant.ServerOperationTimeout*time.Second)
 		defer cancel()
-
+		var err error
 		switch action {
 		case constant.MetricTypeGauge:
-			if v, err := domain.ParseGauge(metricValStr); err != nil {
+			var v domain.Gauge
+			if v, err = domain.ParseGauge(metricValStr); err != nil {
 				w.WriteHeader(http.StatusBadRequest)
 				if _, er := w.Write([]byte("Bad metric value")); er != nil {
 					h.log.Error("Error return answer", zap.Error(er))
 				}
 				return
-			} else {
-				if err = h.s.SetGauge(ctx, metricKey, v); err != nil {
-					w.WriteHeader(http.StatusInternalServerError)
-					h.log.Error("Error set gauge", zap.Error(err))
-					return
-				}
+			}
+			if err = h.s.SetGauge(ctx, metricKey, v); err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				h.log.Error("Error set gauge", zap.Error(err))
+				return
 			}
 		case constant.MetricTypeCounter:
-			if v, er := domain.ParseCounter(metricValStr); er != nil {
+			var v domain.Counter
+			if v, err = domain.ParseCounter(metricValStr); err != nil {
 				w.WriteHeader(http.StatusBadRequest)
 				if _, err := w.Write([]byte("Bad metric value")); err != nil {
 					h.log.Error("Error return answer", zap.Error(err))
 				}
 				return
-			} else {
-				if er = h.s.IncreaseCounter(ctx, metricKey, v); er != nil {
-					w.WriteHeader(http.StatusInternalServerError)
-					h.log.Error("Error set counter", zap.Error(er))
-					return
-				}
+			}
+			if err = h.s.IncreaseCounter(ctx, metricKey, v); err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				h.log.Error("Error set counter", zap.Error(err))
+				return
 			}
 		default:
 			w.WriteHeader(http.StatusBadRequest)
