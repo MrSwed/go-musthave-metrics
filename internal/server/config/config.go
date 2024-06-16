@@ -58,7 +58,6 @@ func NewConfig() *Config {
 		},
 		GRPC: GRPC{
 			GRPCAddress: constant.GRPCAddress,
-			GRPCToken:   constant.GRPCToken,
 		},
 	}
 }

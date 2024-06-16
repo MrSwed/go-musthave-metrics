@@ -23,14 +23,12 @@ type BuildMetadata struct {
 
 type app struct {
 	wg  *sync.WaitGroup
-	ctx context.Context
 	cfg *config.Config
 	m   *MetricsCollects
 }
 
-func newApp(ctx context.Context, cfg *config.Config) *app {
+func newApp(cfg *config.Config) *app {
 	return &app{
-		ctx: ctx,
 		cfg: cfg,
 		m:   NewMetricsCollects(cfg),
 		wg:  &sync.WaitGroup{},
@@ -53,7 +51,7 @@ func RunApp(ctx context.Context, cfg *config.Config, buildMetadata BuildMetadata
 	ctx, stop = signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	a := newApp(ctx, cfg)
+	a := newApp(cfg)
 
 	log.Printf(`Started with build info:
   BuildVersion: %s
@@ -78,20 +76,20 @@ With config:
 		len(a.cfg.GaugesList)+len(a.cfg.CountersList))
 
 	// collect runtime metrics
-	a.collectRuntime()
+	a.collectRuntime(ctx)
 
 	// collect psutil metrics
-	a.collectPSUtil()
+	a.collectPSUtil(ctx)
 
 	// send metrics
-	a.sender()
+	a.sender(ctx)
 
 	a.wg.Wait()
 	log.Println("Agent stopped")
 
 }
 
-func (a *app) collectRuntime() {
+func (a *app) collectRuntime(ctx context.Context) {
 	// collect runtime metrics
 	log.Printf("daemon started: collect runtime metrics with interval %v", a.cfg.PollInterval)
 
@@ -103,7 +101,7 @@ func (a *app) collectRuntime() {
 			case <-time.After(time.Duration(a.cfg.PollInterval) * time.Second):
 				log.Println("Collect runtime metrics")
 				a.m.GetMetrics()
-			case <-a.ctx.Done():
+			case <-ctx.Done():
 				log.Println("Runtime metrics collector is stopped")
 				return
 			}
@@ -111,7 +109,7 @@ func (a *app) collectRuntime() {
 	}()
 }
 
-func (a *app) collectPSUtil() {
+func (a *app) collectPSUtil(ctx context.Context) {
 	// collect psutil metrics
 	log.Printf("daemon started: collect psutil metrics with interval %v", a.cfg.PollInterval)
 
@@ -125,7 +123,7 @@ func (a *app) collectPSUtil() {
 				if err := a.m.GetGopMetrics(); err != nil {
 					log.Println("Error", err.Error())
 				}
-			case <-a.ctx.Done():
+			case <-ctx.Done():
 				log.Println("PSUtil metrics collector is stopped")
 				return
 			}
@@ -133,7 +131,7 @@ func (a *app) collectPSUtil() {
 	}()
 }
 
-func (a *app) sender() {
+func (a *app) sender(ctx context.Context) {
 	a.wg.Add(1)
 	log.Printf("daemon started: send metrics interval %v", a.cfg.ReportInterval)
 	go func() {
@@ -143,7 +141,7 @@ func (a *app) sender() {
 			select {
 			case <-time.After(time.Duration(a.cfg.ReportInterval) * time.Second):
 				for i := 0; i <= len(config.Backoff); i++ {
-					if n, err := a.m.SendMetrics(a.ctx); err != nil {
+					if n, err := a.m.SendMetrics(ctx); err != nil {
 						if !errors.As(err, &urlErr) {
 							log.Println(err)
 							break
@@ -152,7 +150,7 @@ func (a *app) sender() {
 						if i < len(config.Backoff) {
 							log.Printf("wait %d second before next try", config.Backoff[i]/time.Second)
 							select {
-							case <-a.ctx.Done():
+							case <-ctx.Done():
 								log.Print("ctx done, do not try more")
 								return
 							case <-time.After(config.Backoff[i]):
@@ -163,7 +161,7 @@ func (a *app) sender() {
 						break
 					}
 				}
-			case <-a.ctx.Done():
+			case <-ctx.Done():
 				log.Println("Metrics sender is stopped")
 				return
 			}

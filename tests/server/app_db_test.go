@@ -103,6 +103,7 @@ func (suite *HandlerDBTestSuite) SetupSuite() {
 	suite.cfg.StorageConfig.FileStoragePath = filepath.Join(suite.T().TempDir(), fmt.Sprintf("store-data-%d.json", rand.Intn(200000)))
 	suite.cfg.Address = net.JoinHostPort("localhost", fmt.Sprintf("%d", rand.Intn(200)+20000))
 	suite.cfg.GRPCAddress = net.JoinHostPort("", fmt.Sprintf("%d", rand.Intn(200)+30000))
+	suite.cfg.GRPCToken = "#GRPCSomeTokenString#"
 
 	repo := repository.NewRepository(&suite.cfg.StorageConfig, suite.db)
 

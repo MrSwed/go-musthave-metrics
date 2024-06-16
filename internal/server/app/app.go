@@ -39,7 +39,6 @@ type BuildMetadata struct {
 }
 
 type App struct {
-	ctx        context.Context
 	stop       context.CancelFunc
 	cfg        *config.Config
 	eg         *errgroup.Group
@@ -80,14 +79,13 @@ func RunApp(ctx context.Context, cfg *config.Config, log *zap.Logger, buildData 
 		`Build date`:    buildInfo(buildData.Date),
 		`Build commit`:  buildInfo(buildData.Commit)}))
 
-	appHandler.Run()
+	appHandler.Run(ctx)
 	appHandler.Stop()
 }
 
 func newApp(c context.Context, stop context.CancelFunc, cfg *config.Config, log *zap.Logger) *App {
 	eg, ctx := errgroup.WithContext(c)
 	a := App{
-		ctx:        ctx,
 		stop:       stop,
 		cfg:        cfg,
 		eg:         eg,
@@ -101,8 +99,8 @@ func newApp(c context.Context, stop context.CancelFunc, cfg *config.Config, log 
 
 	a.srv = service.NewService(repository.NewRepository(&a.cfg.StorageConfig, a.db), &a.cfg.StorageConfig)
 
-	a.maybeRestoreStore()
-	a.maybeRunStoreSaver()
+	a.maybeRestoreStore(ctx)
+	a.maybeRunStoreSaver(ctx)
 
 	h := rest.NewHandler(a.srv, a.cfg, a.log)
 	g := hgrpc.NewServer(a.srv, a.cfg, a.log)
@@ -139,10 +137,10 @@ func (a *App) maybeConnectDB() {
 	}
 }
 
-func (a *App) maybeRestoreStore() {
+func (a *App) maybeRestoreStore(ctx context.Context) {
 	if a.cfg.FileStoragePath != "" && a.cfg.StorageRestore {
 		if a.isNewStore {
-			if n, er := a.srv.RestoreFromFile(a.ctx); er != nil {
+			if n, er := a.srv.RestoreFromFile(ctx); er != nil {
 				a.log.Error("File storage restore", zap.Error(er))
 			} else {
 				a.log.Info("File storage restored success", zap.Any("records", n))
@@ -153,18 +151,18 @@ func (a *App) maybeRestoreStore() {
 	}
 }
 
-func (a *App) maybeRunStoreSaver() {
+func (a *App) maybeRunStoreSaver(ctx context.Context) {
 	if a.cfg.FileStoragePath != "" && a.cfg.FileStoreInterval > 0 {
 		a.eg.Go(func() error {
 			for {
 				select {
 				case <-time.After(time.Duration(a.cfg.FileStoreInterval) * time.Second):
-					if n, er := a.srv.SaveToFile(a.ctx); er != nil {
+					if n, er := a.srv.SaveToFile(ctx); er != nil {
 						a.log.Error("Storage save", zap.Error(er))
 					} else {
 						a.log.Info("Storage saved", zap.Any("records", n))
 					}
-				case <-a.ctx.Done():
+				case <-ctx.Done():
 					a.log.Info("Store save on interval finished")
 					return nil
 				}
@@ -200,7 +198,7 @@ func (a *App) grpcShutdown(_ context.Context) error {
 	return nil
 }
 
-func (a *App) Run() {
+func (a *App) Run(ctx context.Context) {
 	a.log.Info("Start server", zap.Any("Config", a.cfg))
 
 	a.closer.Add("WEB", a.http.Shutdown)
@@ -237,7 +235,7 @@ func (a *App) Run() {
 		}()
 		a.log.Info("grpc server started")
 	}
-	<-a.ctx.Done()
+	<-ctx.Done()
 }
 
 func (a *App) Stop() {

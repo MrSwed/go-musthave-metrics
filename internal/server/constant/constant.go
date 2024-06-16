@@ -15,7 +15,6 @@ const (
 	StorageRestore  = true
 
 	GRPCAddress = ":3200"
-	GRPCToken   = "#GRPCSomeTokenString#"
 
 	UpdateRoute      = "/update"
 	UpdatesRoute     = "/updates"
