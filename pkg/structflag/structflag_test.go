@@ -71,55 +71,55 @@ func TestLoadTo(t *testing.T) {
 	}
 
 	testCases := []testCase{
-		testCase{
+		{
 			Name: "bool",
 			Args: []string{"--prefix-bool"},
 			In:   config{},
 			Out:  config{Bool: true},
 		},
-		testCase{
+		{
 			Name: "duration",
 			Args: []string{"--prefix-duration=5m"},
 			In:   config{},
 			Out:  config{Duration: 5 * time.Minute},
 		},
-		testCase{
+		{
 			Name: "float",
 			Args: []string{"--prefix-float=3.14"},
 			In:   config{},
 			Out:  config{Float: 3.14},
 		},
-		testCase{
+		{
 			Name: "int",
 			Args: []string{"--prefix-int=42"},
 			In:   config{},
 			Out:  config{Int: 42},
 		},
-		testCase{
+		{
 			Name: "int64",
 			Args: []string{"--prefix-int64=42"},
 			In:   config{},
 			Out:  config{Int64: 42},
 		},
-		testCase{
+		{
 			Name: "uint",
 			Args: []string{"--prefix-uint=42"},
 			In:   config{},
 			Out:  config{Uint: 42},
 		},
-		testCase{
+		{
 			Name: "uint64",
 			Args: []string{"--prefix-uint64=42"},
 			In:   config{},
 			Out:  config{Uint64: 42},
 		},
-		testCase{
+		{
 			Name: "embedded struct",
 			Args: []string{"--prefix-embed-foo=xxx", "--prefix-embed-bar-baz=yyy"},
 			In:   config{},
 			Out:  config{EmbeddedStruct: configEmbed{Foo: "xxx", Bar: configEmbedBar{Baz: "yyy"}}},
 		},
-		testCase{
+		{
 			Name: "anonymous embedded struct",
 			Args: []string{"--prefix-anon-quux=xxx"},
 			In:   config{},
