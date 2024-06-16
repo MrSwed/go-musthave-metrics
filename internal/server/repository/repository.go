@@ -3,12 +3,11 @@ package repository
 import (
 	"context"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/server/config"
-	"github.com/MrSwed/go-musthave-metrics/internal/server/domain"
+	"go-musthave-metrics/internal/server/config"
+	"go-musthave-metrics/internal/server/domain"
+
 	"github.com/jmoiron/sqlx"
 )
-
-//go:generate  mockgen -destination=../mock/repository/repository.go -package=mock "github.com/MrSwed/go-musthave-metrics/internal/server/repository" Repository
 
 // DataStorage methods
 type DataStorage interface {
@@ -42,14 +41,14 @@ type Storage struct {
 }
 
 // NewRepository return repository of database or memory if no db set
-func NewRepository(c *config.StorageConfig, db *sqlx.DB) (s Storage) {
+func NewRepository(c *config.StorageConfig, db *sqlx.DB) (s *Storage) {
 	if db != nil {
-		s = Storage{
+		s = &Storage{
 			DataStorage: NewDBStorageRepository(db),
 			FileStorage: NewFileStorageRepository(c),
 		}
 	} else {
-		s = Storage{
+		s = &Storage{
 			DataStorage: NewMemRepository(),
 			FileStorage: NewFileStorageRepository(c),
 		}

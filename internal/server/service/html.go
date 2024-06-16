@@ -3,14 +3,14 @@ package service
 import (
 	"context"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/server/constant"
-	"github.com/MrSwed/go-musthave-metrics/internal/server/domain"
-	"github.com/MrSwed/go-musthave-metrics/internal/server/helper"
-	"github.com/MrSwed/go-musthave-metrics/internal/server/repository"
+	"go-musthave-metrics/internal/server/constant"
+	"go-musthave-metrics/internal/server/domain"
+	"go-musthave-metrics/internal/server/helper"
+	"go-musthave-metrics/internal/server/repository"
 )
 
 type MetricsHTML interface {
-	GetCountersHTMLPage(ctx context.Context) ([]byte, error)
+	GetMetricsHTMLPage(ctx context.Context) ([]byte, error)
 }
 
 type MetricsHTMLService struct {
@@ -21,8 +21,8 @@ func NewMetricsHTMLService(r repository.Repository) *MetricsHTMLService {
 	return &MetricsHTMLService{r: r}
 }
 
-// GetCountersHTMLPage get html page with all metrics
-func (s *MetricsHTMLService) GetCountersHTMLPage(ctx context.Context) (html []byte, err error) {
+// GetMetricsHTMLPage get html page with all metrics
+func (s *MetricsHTMLService) GetMetricsHTMLPage(ctx context.Context) (html []byte, err error) {
 	type lItem struct {
 		MValue interface{}
 		MType  string

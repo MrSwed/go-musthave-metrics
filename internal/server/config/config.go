@@ -7,11 +7,13 @@ import (
 	"encoding/pem"
 	"errors"
 	"flag"
+	"net"
 	"os"
 	"strings"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/server/constant"
-	"github.com/MrSwed/go-musthave-metrics/pkg/structflag"
+	"go-musthave-metrics/internal/server/constant"
+	"go-musthave-metrics/pkg/structflag"
+
 	"github.com/caarlos0/env/v11"
 )
 
@@ -24,9 +26,15 @@ type StorageConfig struct {
 
 // WEB  config
 type WEB struct {
-	cryptoKey *rsa.PrivateKey
-	Key       string `env:"KEY" json:"key" flag:"k" usage:"Private theKey"`
-	CryptoKey string `env:"CRYPTO_KEY"  json:"crypto_key" flag:"crypto-key" usage:"Provide the private server key for decryption"`
+	cryptoKey     *rsa.PrivateKey
+	Key           string `env:"KEY" json:"key" flag:"k" usage:"Private theKey"`
+	CryptoKey     string `env:"CRYPTO_KEY" json:"crypto_key" flag:"crypto-key" usage:"Provide the private server key for decryption"`
+	TrustedSubnet string `env:"TRUSTED_SUBNET" json:"trusted_subnet" flag:"t" usage:"Provide the trusted subnet"`
+}
+
+type GRPC struct {
+	GRPCAddress string `env:"GRPC_ADDRESS" json:"grpc_address"  flag:"g" usage:"Provide the grpc service address"`
+	GRPCToken   string `env:"GRPC_TOKEN" json:"grpc_token"  flag:"grpc_token" usage:"Provide the grpc service token"`
 }
 
 // Config all configs
@@ -36,6 +44,7 @@ type Config struct {
 	Config      string `json:"-" env:"CONFIG" flag:"config" usage:"Provide file with config"`
 	Config2     string `json:"-" env:"-" flag:"c" usage:"same as -config"` // ?
 	WEB
+	GRPC
 	StorageConfig
 }
 
@@ -46,6 +55,9 @@ func NewConfig() *Config {
 			FileStoreInterval: constant.StoreInterval,
 			FileStoragePath:   constant.FileStoragePath,
 			StorageRestore:    constant.StorageRestore,
+		},
+		GRPC: GRPC{
+			GRPCAddress: constant.GRPCAddress,
 		},
 	}
 }
@@ -64,6 +76,11 @@ func (c *Config) Init() (*Config, error) {
 		)
 	} else {
 		err = errors.Join(err, er)
+	}
+	if c.TrustedSubnet != "" {
+		if _, _, er := net.ParseCIDR(c.TrustedSubnet); er != nil {
+			err = errors.Join(err, er)
+		}
 	}
 
 	err = errors.Join(err, c.LoadPrivateKey())
@@ -91,12 +108,12 @@ func (c *Config) maybeLoadConfig() (ok bool, err error) {
 	}
 	var confFile *os.File
 	confFile, err = os.Open(c.Config)
-	defer func() {
-		err = errors.Join(err, confFile.Close())
-	}()
 	if err != nil {
 		return
 	}
+	defer func() {
+		err = errors.Join(err, confFile.Close())
+	}()
 	jsonParser := json.NewDecoder(confFile)
 	err = jsonParser.Decode(c)
 	if err != nil {

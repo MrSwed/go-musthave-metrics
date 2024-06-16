@@ -7,10 +7,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/agent/config"
-	testhelpers "github.com/MrSwed/go-musthave-metrics/tests"
+	"go-musthave-metrics/internal/agent/config"
+	testhelpers "go-musthave-metrics/tests"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func TestMetricsCollects_getMetrics(t *testing.T) {
@@ -79,8 +82,8 @@ func TestMetricsCollects_SendMetrics(t *testing.T) {
 
 func TestMetricsCollects_SendMetricsCrypto(t *testing.T) {
 	c := config.NewConfig()
-	privateKey := filepath.Join(t.TempDir(), "/testPrivate.key")
-	c.CryptoKey = filepath.Join(t.TempDir(), "/testPublic.crt")
+	privateKey := filepath.Join(t.TempDir(), "testPrivate.key")
+	c.CryptoKey = filepath.Join(t.TempDir(), "testPublic.crt")
 	testhelpers.CreateCertificates(privateKey, c.CryptoKey)
 	err := c.LoadPublicKey()
 	require.NoError(t, err)
@@ -107,6 +110,29 @@ func TestMetricsCollects_SendMetricsKey(t *testing.T) {
 		var allowErr *net.OpError
 		if assert.Error(t, err) && !errors.As(err, &allowErr) {
 			require.NoError(t, err)
+		}
+		assert.NotEmpty(t, n)
+	})
+}
+
+func TestMetricsCollects_SendMetricsGrpc(t *testing.T) {
+	c := config.NewConfig()
+	c.GRPCAddress = ":3200"
+	c.GRPCToken = "#GRPCSomeTokenString#"
+	m := NewMetricsCollects(c)
+
+	t.Run("Send Metrics with grpc Header key", func(t *testing.T) {
+		n, err := m.SendMetrics(context.TODO())
+
+		if assert.Error(t, err) {
+			if e, ok := status.FromError(err); ok {
+				switch e.Code() {
+				case codes.Unavailable:
+					// pass
+				default:
+					require.NoError(t, err)
+				}
+			}
 		}
 		assert.NotEmpty(t, n)
 	})

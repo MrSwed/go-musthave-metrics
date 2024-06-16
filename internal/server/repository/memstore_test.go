@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/server/domain"
+	"go-musthave-metrics/internal/server/domain"
 )
 
 func BenchmarkMemStorageRepo_SetMetrics(b *testing.B) {

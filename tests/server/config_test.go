@@ -10,8 +10,9 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/server/config"
-	helper "github.com/MrSwed/go-musthave-metrics/tests"
+	"go-musthave-metrics/internal/server/config"
+	helper "go-musthave-metrics/tests"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -25,8 +26,8 @@ type ConfigTestSuite struct {
 
 func (suite *ConfigTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
-	suite.privateKey = filepath.Join(suite.T().TempDir(), "/testPrivate.key")
-	suite.publicKey = filepath.Join(suite.T().TempDir(), "/testPublic.crt")
+	suite.privateKey = filepath.Join(suite.T().TempDir(), "testPrivate.key")
+	suite.publicKey = filepath.Join(suite.T().TempDir(), "testPublic.crt")
 	helper.CreateCertificates(suite.privateKey, suite.publicKey)
 }
 
@@ -71,7 +72,8 @@ func (suite *ConfigTestSuite) setConfigFromMap(m map[string]any, sc ...*config.C
 			case "config2", "-c":
 				c.Config = v
 				c.Config2 = v
-
+			case "trusted_subnet", "TRUSTED_SUBNET", "-t":
+				c.TrustedSubnet = v
 			}
 		case bool:
 			switch k {
@@ -93,15 +95,10 @@ func (suite *ConfigTestSuite) setConfigFromMap(m map[string]any, sc ...*config.C
 
 func (suite *ConfigTestSuite) TestInit() {
 	t := suite.T()
+	osArgs := os.Args
+	defer func() { os.Args = osArgs }()
 
-	osArgs := make([]string, len(os.Args))
-	copy(osArgs, os.Args)
-	// do not use t.Parallel with one config file
 	cnfFile := filepath.Join(t.TempDir(), "config.json")
-	defer func() {
-		_ = os.Remove(cnfFile)
-		copy(os.Args, osArgs)
-	}()
 
 	tests := []struct {
 		config  any
@@ -301,45 +298,89 @@ func (suite *ConfigTestSuite) TestInit() {
 			}`,
 			wantErr: true,
 		},
+		{
+			name: "TrustedSubnet config",
+			config: map[string]any{
+				"config":         cnfFile,
+				"trusted_subnet": "10.10.10.0/8",
+			},
+			wantErr: false,
+		},
+		{
+			name: "TrustedSubnet config, bad trusted_subnet",
+			config: map[string]any{
+				"trusted_subnet": "10.10.10.588",
+			},
+			wantErr: true,
+		},
+
+		{
+			name: "TrustedSubnet flag",
+			flag: map[string]any{
+				"t": "10.10.10.0/8",
+			},
+			wantErr: false,
+		},
+		{
+			name: "TrustedSubnet flag, bad trusted_subnet",
+			flag: map[string]any{
+				"-t": "10.10.10.588",
+			},
+			wantErr: true,
+		},
+
+		{
+			name: "TrustedSubnet env",
+			env: map[string]any{
+				"TRUSTED_SUBNET": "10.10.10.0/8",
+			},
+			wantErr: false,
+		},
+		{
+			name: "TrustedSubnet env, bad trusted_subnet",
+			env: map[string]any{
+				"TRUSTED_SUBNET": "10.10.10.588",
+			},
+			wantErr: true,
+		},
 	}
 
 	for _, test := range tests {
-		flag.CommandLine = flag.NewFlagSet(test.name, flag.ContinueOnError)
-		// clean args
-		os.Args = make([]string, len(test.flag)+1)
-		os.Args[0] = osArgs[0]
+		t.Run(test.name, func(t *testing.T) {
+			flag.CommandLine = flag.NewFlagSet(test.name, flag.ContinueOnError)
+			os.Args = make([]string, len(test.flag)+1)
+			os.Args[0] = osArgs[0]
 
-		wantCfg := config.NewConfig()
+			wantCfg := config.NewConfig()
 
-		if test.config != nil {
-			// prepare config file for test
-			err := helper.CreateConfigFile(cnfFile, test.config)
-			require.NoError(t, err)
-			if !test.wantErr {
-				wantCfg = suite.setConfigFromMap(test.config.(map[string]any), wantCfg)
-			}
-		}
-		if test.flag != nil {
-			// prepare flag for test
-			var i int
-			for k, v := range test.flag {
-				i++
-				os.Args[i] = fmt.Sprintf(`%s=%v`, k, v)
-			}
-
-			wantCfg = suite.setConfigFromMap(test.flag, wantCfg)
-		}
-		if test.env != nil {
-			// prepare env sets
-			for k, v := range test.env {
-				if v, ok := v.(string); ok {
-					er := os.Setenv(k, v)
-					require.NoError(t, er)
+			if test.config != nil {
+				// prepare config file for test
+				err := helper.CreateConfigFile(cnfFile, test.config)
+				require.NoError(t, err)
+				if !test.wantErr {
+					wantCfg = suite.setConfigFromMap(test.config.(map[string]any), wantCfg)
 				}
 			}
-			wantCfg = suite.setConfigFromMap(test.env, wantCfg)
-		}
-		t.Run(test.name, func(t *testing.T) {
+			if test.flag != nil {
+				// prepare flag for test
+				var i int
+				for k, v := range test.flag {
+					i++
+					os.Args[i] = fmt.Sprintf(`%s=%v`, k, v)
+				}
+
+				wantCfg = suite.setConfigFromMap(test.flag, wantCfg)
+			}
+			if test.env != nil {
+				// prepare env sets
+				for k, v := range test.env {
+					if v, ok := v.(string); ok {
+						er := os.Setenv(k, v)
+						require.NoError(t, er)
+					}
+				}
+				wantCfg = suite.setConfigFromMap(test.env, wantCfg)
+			}
 			var err error
 			cfg := config.NewConfig()
 			if test.config != nil {

@@ -14,13 +14,7 @@ const (
 	FileStoragePath = "/tmp/metrics-db.json"
 	StorageRestore  = true
 
-	EnvNameServerAddress   = "ADDRESS"
-	EnvNameFileStoragePath = "FILE_STORAGE_PATH"
-	EnvNameStoreInterval   = "STORE_INTERVAL"
-	EnvNameRestore         = "RESTORE"
-	EnvNameDBDSN           = "DATABASE_DSN"
-	EnvNameKey             = "KEY"
-	EnvNameCryptoKey       = "CRYPTO_KEY"
+	GRPCAddress = ":3200"
 
 	UpdateRoute      = "/update"
 	UpdatesRoute     = "/updates"
@@ -36,6 +30,7 @@ const (
 	DBTableNameCounters = "counters"
 
 	HeaderSignKey = "HashSHA256"
+	HeaderXRealIP = "X-Real-IP"
 )
 
 var (

@@ -1,48 +1,26 @@
-package handler
+package server_test
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"go-musthave-metrics/internal/server/constant"
+	"go-musthave-metrics/internal/server/domain"
+	"go-musthave-metrics/internal/server/handler/rest"
 	"io"
+	"math/rand"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/server/config"
-	"github.com/MrSwed/go-musthave-metrics/internal/server/constant"
-	"github.com/MrSwed/go-musthave-metrics/internal/server/domain"
-	"github.com/MrSwed/go-musthave-metrics/internal/server/errors"
-	mocks "github.com/MrSwed/go-musthave-metrics/internal/server/mock/repository"
-	"github.com/MrSwed/go-musthave-metrics/internal/server/service"
-	"github.com/go-chi/chi/v5"
-
-	"github.com/golang/mock/gomock"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 )
 
-func TestMockGetMetric(t *testing.T) {
-	conf := config.NewConfig()
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	repo := mocks.NewMockRepository(ctrl)
-
-	s := service.NewService(repo, &conf.StorageConfig)
-
-	logger, _ := zap.NewDevelopment()
-	h := NewHandler(chi.NewRouter(), s, &conf.WEB, logger).Handler()
-	ts := httptest.NewServer(h)
-	defer ts.Close()
-
-	testCounter := domain.Counter(1)
-	testGauge := domain.Gauge(1.0001)
-
-	_ = repo.EXPECT().GetCounter(gomock.Any(), "testCounter").Return(testCounter, nil)
-	_ = repo.EXPECT().GetGauge(gomock.Any(), "testGauge").Return(testGauge, nil)
-	_ = repo.EXPECT().GetGauge(gomock.Any(), gomock.Any()).Return(domain.Gauge(0), errors.ErrNotExist)
-	_ = repo.EXPECT().GetCounter(gomock.Any(), gomock.Any()).Return(domain.Counter(0), errors.ErrNotExist)
+func testGetMetric(suite HandlerTestSuite) {
+	t := suite.T()
 
 	type want struct {
 		response    string
@@ -62,11 +40,11 @@ func TestMockGetMetric(t *testing.T) {
 			name: "Get counter. Ok",
 			args: args{
 				method: http.MethodGet,
-				path:   "/value/counter/testCounter",
+				path:   "/value/counter/" + "testCounter-1",
 			},
 			want: want{
 				code:        http.StatusOK,
-				response:    fmt.Sprint(testCounter),
+				response:    fmt.Sprint(1),
 				contentType: "text/plain; charset=utf-8",
 			},
 		},
@@ -74,11 +52,11 @@ func TestMockGetMetric(t *testing.T) {
 			name: "Get gauge. Ok",
 			args: args{
 				method: http.MethodGet,
-				path:   "/value/gauge/testGauge",
+				path:   "/value/gauge/" + "testGauge-1",
 			},
 			want: want{
 				code:        http.StatusOK,
-				response:    fmt.Sprint(testGauge),
+				response:    fmt.Sprint(1.0001),
 				contentType: "text/plain; charset=utf-8",
 			},
 		},
@@ -86,7 +64,7 @@ func TestMockGetMetric(t *testing.T) {
 			name: "Bad method",
 			args: args{
 				method: http.MethodPost,
-				path:   "/value/gauge/testGauge",
+				path:   "/value/gauge/" + "testGauge-1",
 			},
 			want: want{
 				code: http.StatusMethodNotAllowed,
@@ -137,11 +115,11 @@ func TestMockGetMetric(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 
-			req, err := http.NewRequest(test.args.method, ts.URL+test.args.path, nil)
+			req, err := http.NewRequest(test.args.method, "http://"+suite.Cfg().Address+test.args.path, nil)
 			require.NoError(t, err)
 
 			res, err := http.DefaultClient.Do(req)
-			require.NoError(t, err, "request error")
+			require.NoError(t, err)
 			var resBody []byte
 
 			// проверяем код ответа
@@ -163,25 +141,8 @@ func TestMockGetMetric(t *testing.T) {
 	}
 }
 
-func TestMockGetListMetrics(t *testing.T) {
-	conf := config.NewConfig()
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	repo := mocks.NewMockRepository(ctrl)
-
-	s := service.NewService(repo, &conf.StorageConfig)
-
-	logger, _ := zap.NewDevelopment()
-	h := NewHandler(chi.NewRouter(), s, &conf.WEB, logger).Handler()
-
-	ts := httptest.NewServer(h)
-	defer ts.Close()
-
-	testCounter := domain.Counter(1)
-	testGauge := domain.Gauge(1.0001)
-
-	_ = repo.EXPECT().GetAllCounters(gomock.Any()).Return(domain.Counters{"testCounter": testCounter}, nil)
-	_ = repo.EXPECT().GetAllGauges(gomock.Any()).Return(domain.Gauges{"testGauge": testGauge}, nil)
+func testGetListMetrics(suite HandlerTestSuite) {
+	t := suite.T()
 
 	type want struct {
 		responseContain string
@@ -224,7 +185,7 @@ func TestMockGetListMetrics(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 
-			req, err := http.NewRequest(test.args.method, ts.URL+test.args.path, nil)
+			req, err := http.NewRequest(test.args.method, "http://"+suite.Cfg().Address+test.args.path, nil)
 			require.NoError(t, err)
 
 			res, err := http.DefaultClient.Do(req)
@@ -252,26 +213,8 @@ func TestMockGetListMetrics(t *testing.T) {
 	}
 }
 
-func TestMockGetMetricJson(t *testing.T) {
-	conf := config.NewConfig()
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	repo := mocks.NewMockRepository(ctrl)
-
-	s := service.NewService(repo, &conf.StorageConfig)
-
-	logger, _ := zap.NewDevelopment()
-	h := NewHandler(chi.NewRouter(), s, &conf.WEB, logger).Handler()
-	ts := httptest.NewServer(h)
-	defer ts.Close()
-
-	testCounter := domain.Counter(1)
-	testGauge := domain.Gauge(1.0001)
-
-	_ = repo.EXPECT().GetCounter(gomock.Any(), "testCounter").Return(testCounter, nil)
-	_ = repo.EXPECT().GetGauge(gomock.Any(), "testGauge").Return(testGauge, nil)
-	_ = repo.EXPECT().GetGauge(gomock.Any(), gomock.Any()).Return(domain.Gauge(0), errors.ErrNotExist)
-	_ = repo.EXPECT().GetCounter(gomock.Any(), gomock.Any()).Return(domain.Counter(0), errors.ErrNotExist)
+func testGetMetricJSON(suite HandlerTestSuite) {
+	t := suite.T()
 
 	type want struct {
 		response    domain.Metric
@@ -292,13 +235,13 @@ func TestMockGetMetricJson(t *testing.T) {
 			args: args{
 				method: http.MethodPost,
 				body: map[string]interface{}{
-					"id":   "testCounter",
+					"id":   "testCounter-1",
 					"type": "counter",
 				},
 			},
 			want: want{
 				code:        http.StatusOK,
-				response:    domain.Metric{ID: "testCounter", MType: "counter", Delta: &[]domain.Counter{1}[0]},
+				response:    domain.Metric{ID: "testCounter-1", MType: "counter", Delta: &[]domain.Counter{1}[0]},
 				contentType: "application/json; charset=utf-8",
 			},
 		},
@@ -307,13 +250,13 @@ func TestMockGetMetricJson(t *testing.T) {
 			args: args{
 				method: http.MethodPost,
 				body: map[string]interface{}{
-					"id":   "testGauge",
+					"id":   "testGauge-1",
 					"type": "gauge",
 				},
 			},
 			want: want{
 				code:        http.StatusOK,
-				response:    domain.Metric{ID: "testGauge", MType: "gauge", Value: &[]domain.Gauge{1.0001}[0]},
+				response:    domain.Metric{ID: "testGauge-1", MType: "gauge", Value: &[]domain.Gauge{1.0001}[0]},
 				contentType: "application/json; charset=utf-8",
 			},
 		},
@@ -322,7 +265,7 @@ func TestMockGetMetricJson(t *testing.T) {
 			args: args{
 				method: http.MethodGet,
 				body: map[string]interface{}{
-					"id":   "testGauge",
+					"id":   "testGauge-1",
 					"type": "gauge",
 				},
 			},
@@ -335,7 +278,7 @@ func TestMockGetMetricJson(t *testing.T) {
 			args: args{
 				method: http.MethodPut,
 				body: map[string]interface{}{
-					"id":   "testGauge",
+					"id":   "testGauge-1",
 					"type": "gauge",
 				},
 			},
@@ -399,7 +342,7 @@ func TestMockGetMetricJson(t *testing.T) {
 			args: args{
 				method: http.MethodPost,
 				body: map[string]interface{}{
-					"id": "testCounter",
+					"id": "testCounter-1",
 				},
 			},
 			want: want{
@@ -414,7 +357,8 @@ func TestMockGetMetricJson(t *testing.T) {
 			err := json.NewEncoder(b).Encode(test.args.body)
 			require.NoError(t, err)
 
-			req, err := http.NewRequest(test.args.method, ts.URL+constant.ValueRoute, b)
+			maybeCryptBody(b, suite.PublicKey())
+			req, err := http.NewRequest(test.args.method, "http://"+suite.Cfg().Address+constant.ValueRoute, b)
 			require.NoError(t, err)
 
 			res, err := http.DefaultClient.Do(req)
@@ -443,25 +387,8 @@ func TestMockGetMetricJson(t *testing.T) {
 	}
 }
 
-func TestMockUpdateMetric(t *testing.T) {
-	conf := config.NewConfig()
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	repo := mocks.NewMockRepository(ctrl)
-
-	s := service.NewService(repo, &conf.StorageConfig)
-	logger, _ := zap.NewDevelopment()
-	h := NewHandler(chi.NewRouter(), s, &conf.WEB, logger).Handler()
-	ts := httptest.NewServer(h)
-	defer ts.Close()
-
-	testCounter := domain.Counter(1)
-	testGauge := domain.Gauge(1.0001)
-
-	_ = repo.EXPECT().SetGauge(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-	_ = repo.EXPECT().SetCounter(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-	_ = repo.EXPECT().GetCounter(gomock.Any(), gomock.Any()).Return(testCounter, nil).AnyTimes()
-	_ = repo.EXPECT().GetGauge(gomock.Any(), gomock.Any()).Return(testGauge, nil).AnyTimes()
+func testUpdateMetric(suite HandlerTestSuite) {
+	t := suite.T()
 
 	type want struct {
 		response    string
@@ -478,7 +405,7 @@ func TestMockUpdateMetric(t *testing.T) {
 		want want
 	}{
 		{
-			name: "SaveToFile counter. Ok",
+			name: "Save counter. Ok",
 			args: args{
 				method: http.MethodPost,
 				path:   "/update/counter/testCounter/1",
@@ -490,7 +417,7 @@ func TestMockUpdateMetric(t *testing.T) {
 			},
 		},
 		{
-			name: "SaveToFile gauge. Ok",
+			name: "Save gauge. Ok",
 			args: args{
 				method: http.MethodPost,
 				path:   "/update/gauge/testGauge/1.1",
@@ -502,7 +429,7 @@ func TestMockUpdateMetric(t *testing.T) {
 			},
 		},
 		{
-			name: "SaveToFile gauge 2. Ok",
+			name: "Save gauge 2. Ok",
 			args: args{
 				method: http.MethodPost,
 				path:   "/update/gauge/testGauge/0.0001",
@@ -618,7 +545,7 @@ func TestMockUpdateMetric(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 
-			req, err := http.NewRequest(test.args.method, ts.URL+test.args.path, nil)
+			req, err := http.NewRequest(test.args.method, "http://"+suite.Cfg().Address+test.args.path, nil)
 			require.NoError(t, err)
 
 			res, err := http.DefaultClient.Do(req)
@@ -644,32 +571,15 @@ func TestMockUpdateMetric(t *testing.T) {
 	}
 }
 
-func TestMockUpdateMetricJson(t *testing.T) {
-	conf := config.NewConfig()
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	repo := mocks.NewMockRepository(ctrl)
+func testUpdateMetricJSON(suite HandlerTestSuite) {
+	t := suite.T()
 
-	s := service.NewService(repo, &conf.StorageConfig)
-	logger, _ := zap.NewDevelopment()
-	h := NewHandler(chi.NewRouter(), s, &conf.WEB, logger).Handler()
-	ts := httptest.NewServer(h)
-	defer ts.Close()
-
-	testCounter := domain.Counter(1)
-	testGauge := domain.Gauge(1.0001)
-
-	_ = repo.EXPECT().SetGauge(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-	_ = repo.EXPECT().SetCounter(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-	_ = repo.EXPECT().GetCounter(gomock.Any(), gomock.Any()).Return(testCounter, nil).AnyTimes()
-	_ = repo.EXPECT().GetGauge(gomock.Any(), gomock.Any()).Return(testGauge, nil).AnyTimes()
-
+	testCounterName := fmt.Sprintf("testCounter%d", rand.Int())
 	type want struct {
 		response    domain.Metric
 		contentType string
 		code        int
 	}
-
 	type args struct {
 		body   interface{}
 		method string
@@ -680,50 +590,50 @@ func TestMockUpdateMetricJson(t *testing.T) {
 		want want
 	}{
 		{
-			name: "SaveToFile counter. Ok",
+			name: "Save counter. Ok",
 			args: args{
 				method: http.MethodPost,
 				body: map[string]interface{}{
-					"id":    "testCounter",
+					"id":    testCounterName,
 					"type":  "counter",
-					"delta": testCounter,
+					"delta": 1,
 				},
 			},
 			want: want{
 				code:        http.StatusOK,
-				response:    domain.Metric{ID: "testCounter", MType: "counter", Delta: &[]domain.Counter{1}[0]},
+				response:    domain.Metric{ID: testCounterName, MType: "counter", Delta: &[]domain.Counter{1}[0]},
 				contentType: "application/json; charset=utf-8",
 			},
 		},
 		{
-			name: "SaveToFile gauge. Ok",
+			name: "Save gauge. Ok",
 			args: args{
 				method: http.MethodPost,
 				body: map[string]interface{}{
 					"id":    "testGauge",
 					"type":  "gauge",
-					"value": testGauge,
+					"value": 1.1,
 				},
 			},
 			want: want{
 				code:        http.StatusOK,
-				response:    domain.Metric{ID: "testGauge", MType: "gauge", Value: &[]domain.Gauge{testGauge}[0]},
+				response:    domain.Metric{ID: "testGauge", MType: "gauge", Value: &[]domain.Gauge{1.1}[0]},
 				contentType: "application/json; charset=utf-8",
 			},
 		},
 		{
-			name: "SaveToFile gauge 2. Ok",
+			name: "Save gauge 2. Ok",
 			args: args{
 				method: http.MethodPost,
 				body: map[string]interface{}{
 					"id":    "testGauge2",
 					"type":  "gauge",
-					"value": testGauge,
+					"value": 0.0001,
 				},
 			},
 			want: want{
 				code:        http.StatusOK,
-				response:    domain.Metric{ID: "testGauge2", MType: "gauge", Value: &[]domain.Gauge{testGauge}[0]},
+				response:    domain.Metric{ID: "testGauge2", MType: "gauge", Value: &[]domain.Gauge{0.0001}[0]},
 				contentType: "application/json; charset=utf-8",
 			},
 		},
@@ -760,7 +670,7 @@ func TestMockUpdateMetricJson(t *testing.T) {
 			args: args{
 				method: http.MethodPost,
 				body: map[string]interface{}{
-					"id":    "testCounter",
+					"id":    testCounterName,
 					"type":  "counter",
 					"delta": "ccc",
 				},
@@ -774,7 +684,7 @@ func TestMockUpdateMetricJson(t *testing.T) {
 			args: args{
 				method: http.MethodPost,
 				body: map[string]interface{}{
-					"id":    "testCounter",
+					"id":    testCounterName,
 					"delta": 100,
 				},
 			},
@@ -787,7 +697,7 @@ func TestMockUpdateMetricJson(t *testing.T) {
 			args: args{
 				method: http.MethodPost,
 				body: map[string]interface{}{
-					"id":    "testCounter",
+					"id":    testCounterName,
 					"type":  "counter",
 					"delta": 1.1,
 				},
@@ -801,7 +711,7 @@ func TestMockUpdateMetricJson(t *testing.T) {
 			args: args{
 				method: http.MethodPost,
 				body: map[string]interface{}{
-					"id":    "testCounter",
+					"id":    testCounterName,
 					"type":  "unknown",
 					"delta": 122,
 				},
@@ -859,7 +769,8 @@ func TestMockUpdateMetricJson(t *testing.T) {
 			err := json.NewEncoder(b).Encode(test.args.body)
 			require.NoError(t, err)
 
-			req, err := http.NewRequest(test.args.method, ts.URL+constant.UpdateRoute, b)
+			maybeCryptBody(b, suite.PublicKey())
+			req, err := http.NewRequest(test.args.method, "http://"+suite.Cfg().Address+constant.UpdateRoute, b)
 			require.NoError(t, err)
 
 			res, err := http.DefaultClient.Do(req)
@@ -887,36 +798,10 @@ func TestMockUpdateMetricJson(t *testing.T) {
 	}
 }
 
-func TestMockUpdateMetrics(t *testing.T) {
-	conf := config.NewConfig()
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	repo := mocks.NewMockRepository(ctrl)
+func testUpdateMetrics(suite HandlerTestSuite) {
+	t := suite.T()
 
-	s := service.NewService(repo, &conf.StorageConfig)
-	logger, _ := zap.NewDevelopment()
-	h := NewHandler(chi.NewRouter(), s, &conf.WEB, logger).Handler()
-
-	ts := httptest.NewServer(h)
-	defer ts.Close()
-
-	testCounter := domain.Counter(1)
-	testGauge := domain.Gauge(100.0015)
-
-	metrics := []domain.Metric{
-		{
-			ID:    "testCounter",
-			MType: "counter",
-			Delta: &testCounter,
-		},
-		{
-			ID:    "testGauge",
-			MType: "gauge",
-			Value: &testGauge,
-		},
-	}
-
-	_ = repo.EXPECT().SetMetrics(gomock.Any(), metrics).Return(metrics, nil).AnyTimes()
+	testCounterName := fmt.Sprintf("testCounter%d", rand.Int())
 
 	type want struct {
 		contentType string
@@ -939,7 +824,7 @@ func TestMockUpdateMetrics(t *testing.T) {
 				method: http.MethodPost,
 				body: []map[string]interface{}{
 					{
-						"id":    "testCounter",
+						"id":    testCounterName,
 						"type":  "counter",
 						"delta": 1,
 					},
@@ -952,7 +837,7 @@ func TestMockUpdateMetrics(t *testing.T) {
 			},
 			want: want{
 				code:        http.StatusOK,
-				response:    []domain.Metric{{ID: "testCounter", MType: "counter", Delta: &[]domain.Counter{1}[0]}, {ID: "testGauge", MType: "gauge", Value: &[]domain.Gauge{100.0015}[0]}},
+				response:    []domain.Metric{{ID: testCounterName, MType: "counter", Delta: &[]domain.Counter{1}[0]}, {ID: "testGauge", MType: "gauge", Value: &[]domain.Gauge{100.0015}[0]}},
 				contentType: "application/json; charset=utf-8",
 			},
 		},
@@ -962,7 +847,7 @@ func TestMockUpdateMetrics(t *testing.T) {
 				method: http.MethodPost,
 				body: []map[string]interface{}{
 					{
-						"id":    "testCounter",
+						"id":    testCounterName,
 						"type":  "unknownType",
 						"delta": 1,
 					},
@@ -983,7 +868,7 @@ func TestMockUpdateMetrics(t *testing.T) {
 				method: http.MethodPost,
 				body: []map[string]interface{}{
 					{
-						"id":    "testCounter",
+						"id":    testCounterName,
 						"delta": 1,
 					},
 					{
@@ -1003,7 +888,7 @@ func TestMockUpdateMetrics(t *testing.T) {
 				method: http.MethodPost,
 				body: []map[string]interface{}{
 					{
-						"id":    "testCounter",
+						"id":    testCounterName,
 						"type":  "unknownType",
 						"delta": 1.1,
 					},
@@ -1024,7 +909,7 @@ func TestMockUpdateMetrics(t *testing.T) {
 				method: http.MethodPost,
 				body: []map[string]interface{}{
 					{
-						"id":    "testCounter",
+						"id":    testCounterName,
 						"type":  "unknownType",
 						"delta": "ddd",
 					},
@@ -1045,7 +930,7 @@ func TestMockUpdateMetrics(t *testing.T) {
 				method: http.MethodPost,
 				body: []map[string]interface{}{
 					{
-						"id":    "testCounter",
+						"id":    testCounterName,
 						"type":  "gauge",
 						"delta": 1,
 					},
@@ -1067,7 +952,8 @@ func TestMockUpdateMetrics(t *testing.T) {
 			err := json.NewEncoder(b).Encode(test.args.body)
 			require.NoError(t, err)
 
-			req, err := http.NewRequest(test.args.method, ts.URL+constant.UpdatesRoute, b)
+			maybeCryptBody(b, suite.PublicKey())
+			req, err := http.NewRequest(test.args.method, "http://"+suite.Cfg().Address+constant.UpdatesRoute, b)
 			require.NoError(t, err)
 
 			res, err := http.DefaultClient.Do(req)
@@ -1089,6 +975,519 @@ func TestMockUpdateMetrics(t *testing.T) {
 				err = json.Unmarshal(resBody, &data)
 				assert.NoError(t, err)
 				assert.Equal(t, test.want.response, data)
+				assert.Equal(t, test.want.contentType, res.Header.Get("Content-Type"))
+			}
+		})
+	}
+}
+
+func testGzip(suite HandlerTestSuite) {
+	t := suite.T()
+
+	testCounterName1 := fmt.Sprintf("testCounter%d", rand.Int())
+	testCounterName2 := fmt.Sprintf("testCounter%d", rand.Int())
+	testCounterName3 := fmt.Sprintf("testCounter%d", rand.Int())
+	testCounterName4 := fmt.Sprintf("testCounter%d", rand.Int())
+
+	type want struct {
+		headers     map[string]string
+		contentType string
+		response    []domain.Metric
+		code        int
+	}
+	type args struct {
+		body    interface{}
+		headers map[string]string
+		method  string
+		noGzip  bool
+	}
+	tests := []struct {
+		args args
+		name string
+		want want
+	}{
+		{
+			name: "Gzip compress answer at save json. Ok",
+			args: args{
+				method: http.MethodPost,
+				body: []map[string]interface{}{
+					{
+						"id":    testCounterName1,
+						"type":  "counter",
+						"delta": 1,
+					},
+					{
+						"id":    "testGauge",
+						"type":  "gauge",
+						"value": 100.0015,
+					},
+				},
+				headers: map[string]string{
+					"Accept-Encoding": "gzip",
+				},
+			},
+			want: want{
+				code:        http.StatusOK,
+				response:    []domain.Metric{{ID: testCounterName1, MType: "counter", Delta: &[]domain.Counter{1}[0]}, {ID: "testGauge", MType: "gauge", Value: &[]domain.Gauge{100.0015}[0]}},
+				contentType: "application/json; charset=utf-8",
+				headers: map[string]string{
+					"Content-Encoding": "gzip",
+				},
+			},
+		},
+		{
+			name: "Gzip send header, but no compress, StatusOk",
+			args: args{
+				noGzip: true,
+				method: http.MethodPost,
+				body: []map[string]interface{}{
+					{
+						"id":    testCounterName4,
+						"type":  "counter",
+						"delta": 1,
+					},
+					{
+						"id":    "testGauge",
+						"type":  "gauge",
+						"value": 100.0015,
+					},
+				},
+				headers: map[string]string{
+					"Content-Encoding": "gzip",
+					"Accept-Encoding":  "gzip",
+				},
+			},
+			want: want{
+				code:        http.StatusOK,
+				response:    []domain.Metric{{ID: testCounterName4, MType: "counter", Delta: &[]domain.Counter{1}[0]}, {ID: "testGauge", MType: "gauge", Value: &[]domain.Gauge{100.0015}[0]}},
+				contentType: "application/json; charset=utf-8",
+				headers: map[string]string{
+					"Content-Encoding": "gzip",
+				},
+			},
+		},
+		{
+			name: "Gzip decompress request save json. Ok",
+			args: args{
+				method: http.MethodPost,
+				body: []map[string]interface{}{
+					{
+						"id":    testCounterName2,
+						"type":  "counter",
+						"delta": 1,
+					},
+					{
+						"id":    "testGauge",
+						"type":  "gauge",
+						"value": 100.0015,
+					},
+				},
+				headers: map[string]string{
+					"Content-Encoding": "gzip",
+				},
+			},
+			want: want{
+				code:        http.StatusOK,
+				response:    []domain.Metric{{ID: testCounterName2, MType: "counter", Delta: &[]domain.Counter{1}[0]}, {ID: "testGauge", MType: "gauge", Value: &[]domain.Gauge{100.0015}[0]}},
+				contentType: "application/json; charset=utf-8",
+			},
+		},
+		{
+			name: "Gzip compress/decompress answer/request save json. Ok",
+			args: args{
+				method: http.MethodPost,
+				body: []map[string]interface{}{
+					{
+						"id":    testCounterName3,
+						"type":  "counter",
+						"delta": 1,
+					},
+					{
+						"id":    "testGauge",
+						"type":  "gauge",
+						"value": 100.0015,
+					},
+				},
+				headers: map[string]string{
+					"Accept-Encoding":  "gzip",
+					"Content-Encoding": "gzip",
+				},
+			},
+			want: want{
+				code:        http.StatusOK,
+				response:    []domain.Metric{{ID: testCounterName3, MType: "counter", Delta: &[]domain.Counter{1}[0]}, {ID: "testGauge", MType: "gauge", Value: &[]domain.Gauge{100.0015}[0]}},
+				contentType: "application/json; charset=utf-8",
+				headers: map[string]string{
+					"Content-Encoding": "gzip",
+				},
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			b := new(bytes.Buffer)
+			err := json.NewEncoder(b).Encode(test.args.body)
+			require.NoError(t, err)
+			if len(test.args.headers) > 0 && test.args.headers["Content-Encoding"] == "gzip" && !test.args.noGzip {
+				compB := new(bytes.Buffer)
+				w := gzip.NewWriter(compB)
+				_, err = w.Write(b.Bytes())
+				b = compB
+				require.NoError(t, err)
+
+				err = w.Flush()
+				require.NoError(t, err)
+
+				err = w.Close()
+				require.NoError(t, err)
+			}
+
+			maybeCryptBody(b, suite.PublicKey())
+			req, err := http.NewRequest(test.args.method, "http://"+suite.Cfg().Address+constant.UpdatesRoute, b)
+			require.NoError(t, err)
+
+			for k, v := range test.args.headers {
+				req.Header.Add(k, v)
+			}
+
+			res, err := http.DefaultClient.Do(req)
+			require.NoError(t, err)
+			defer func() {
+				err = res.Body.Close()
+				require.NoError(t, err)
+			}()
+
+			var resBody []byte
+
+			// проверяем код ответа
+			require.Equal(t, test.want.code, res.StatusCode)
+			resBody, err = io.ReadAll(res.Body)
+			require.NoError(t, err)
+
+			for k, v := range test.want.headers {
+				assert.True(t, res.Header.Get(k) == v,
+					fmt.Sprintf("expected %v header: %s actual: %s", k, v, res.Header.Get(k)))
+			}
+
+			if len(test.want.response) > 0 {
+				assert.True(t, len(resBody) > 0)
+				if len(test.args.headers) > 0 && test.args.headers["Accept-Encoding"] == "gzip" {
+					b := bytes.NewBuffer(resBody)
+					var r *gzip.Reader
+					r, err = gzip.NewReader(b)
+					if !errors.Is(err, io.EOF) {
+						require.NoError(t, err)
+					}
+					var resB bytes.Buffer
+					_, err = resB.ReadFrom(r)
+					require.NoError(t, err)
+
+					resBody = resB.Bytes()
+					err = r.Close()
+					require.NoError(t, err)
+				}
+				var data []domain.Metric
+				err = json.Unmarshal(resBody, &data)
+				assert.NoError(t, err)
+				assert.Equal(t, test.want.response, data)
+			}
+
+			if test.want.contentType != "" {
+				assert.Equal(t, test.want.contentType, res.Header.Get("Content-Type"))
+			}
+		})
+	}
+}
+
+func testHashKey(suite HandlerTestSuite) {
+	t := suite.T()
+	suite.Cfg().Key = "secretKey"
+
+	data1 := []domain.Metric{{ID: fmt.Sprintf("testCounter%d", rand.Int()), MType: "counter", Delta: &[]domain.Counter{1}[0]}, {ID: "testGauge", MType: "gauge", Value: &[]domain.Gauge{100.0015}[0]}}
+	dataBody1, err := json.Marshal(data1)
+	require.NoError(t, err)
+
+	data2 := []domain.Metric{{ID: fmt.Sprintf("testCounter%d", rand.Int()), MType: "counter", Delta: &[]domain.Counter{1}[0]}, {ID: "testGauge", MType: "gauge", Value: &[]domain.Gauge{100.0015}[0]}}
+	dataBody2, err := json.Marshal(data2)
+	require.NoError(t, err)
+
+	data3 := []domain.Metric{{ID: fmt.Sprintf("testCounter%d", rand.Int()), MType: "counter", Delta: &[]domain.Counter{1}[0]}, {ID: "testGauge", MType: "gauge", Value: &[]domain.Gauge{100.0015}[0]}}
+	dataBody3, err := json.Marshal(data3)
+	require.NoError(t, err)
+
+	type want struct {
+		headers     map[string]string
+		contentType string
+		response    []domain.Metric
+		code        int
+	}
+	type args struct {
+		method  string
+		headers map[string]string
+		body    []byte
+	}
+	tests := []struct {
+		name string
+		args args
+		want want
+	}{
+		{
+			name: "Save json right secret key. Ok",
+			args: args{
+				method: http.MethodPost,
+				body:   dataBody1,
+				headers: map[string]string{
+					constant.HeaderSignKey: rest.SignData(suite.Cfg().Key, dataBody1),
+				},
+			},
+			want: want{
+				code:        http.StatusOK,
+				response:    data1,
+				contentType: "application/json; charset=utf-8",
+				headers: map[string]string{
+					constant.HeaderSignKey: rest.SignData(suite.Cfg().Key, dataBody1),
+				},
+			},
+		},
+		{
+			name: "Save json right secret key (gzip). Ok",
+			args: args{
+				method: http.MethodPost,
+				body:   dataBody2,
+				headers: map[string]string{
+					"Accept-Encoding":      "gzip",
+					"Content-Encoding":     "gzip",
+					constant.HeaderSignKey: rest.SignData(suite.Cfg().Key, dataBody2),
+				},
+			},
+			want: want{
+				code:        http.StatusOK,
+				response:    data2,
+				contentType: "application/json; charset=utf-8",
+				headers: map[string]string{
+					"Content-Encoding":     "gzip",
+					constant.HeaderSignKey: rest.SignData(suite.Cfg().Key, dataBody2),
+				},
+			},
+		},
+		{
+			name: "Save json. WRONG secret key. ",
+			args: args{
+				method: http.MethodPost,
+				body:   dataBody1,
+				headers: map[string]string{
+					constant.HeaderSignKey: rest.SignData("wrong secret key", dataBody1),
+				},
+			},
+			want: want{
+				code: http.StatusBadRequest,
+			},
+		},
+		{
+			name: "Save json. BAD secret key. ",
+			args: args{
+				method: http.MethodPost,
+				body:   dataBody1,
+				headers: map[string]string{
+					constant.HeaderSignKey: "bad secret data key",
+				},
+			},
+			want: want{
+				code: http.StatusBadRequest,
+			},
+		},
+		{
+			name: "Save json, WRONG secret key (gzip).",
+			args: args{
+				method: http.MethodPost,
+				body:   dataBody2,
+				headers: map[string]string{
+					"Accept-Encoding":      "gzip",
+					"Content-Encoding":     "gzip",
+					constant.HeaderSignKey: rest.SignData("wrong secret key", dataBody2),
+				},
+			},
+			want: want{
+				code: http.StatusBadRequest,
+			},
+		},
+		{
+			name: "Save json, NO secret key (gzip).",
+			args: args{
+				method: http.MethodPost,
+				body:   dataBody3,
+				headers: map[string]string{
+					"Accept-Encoding":  "gzip",
+					"Content-Encoding": "gzip",
+				},
+			},
+			want: want{
+				code:        http.StatusOK,
+				response:    data3,
+				contentType: "application/json; charset=utf-8",
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			b := new(bytes.Buffer)
+			b.Write(test.args.body)
+			if len(test.args.headers) > 0 && test.args.headers["Content-Encoding"] == "gzip" {
+				compB := new(bytes.Buffer)
+				w := gzip.NewWriter(compB)
+				_, err = w.Write(b.Bytes())
+				b = compB
+				require.NoError(t, err)
+
+				err = w.Flush()
+				require.NoError(t, err)
+
+				err = w.Close()
+				require.NoError(t, err)
+			}
+
+			maybeCryptBody(b, suite.PublicKey())
+			req, err := http.NewRequest(test.args.method, "http://"+suite.Cfg().Address+constant.UpdatesRoute, b)
+			require.NoError(t, err)
+
+			for k, v := range test.args.headers {
+				req.Header.Add(k, v)
+			}
+			res, err := http.DefaultClient.Do(req)
+			require.NoError(t, err)
+			defer func() {
+				err = res.Body.Close()
+				require.NoError(t, err)
+			}()
+
+			var resBody []byte
+
+			// проверяем код ответа
+			require.Equal(t, test.want.code, res.StatusCode)
+			resBody, err = io.ReadAll(res.Body)
+			require.NoError(t, err)
+
+			for k, v := range test.want.headers {
+				assert.True(t, res.Header.Get(k) == v, fmt.Sprintf("want %s, get %s", v, res.Header.Get(k)))
+			}
+
+			if len(test.want.response) > 0 {
+				assert.True(t, len(resBody) > 0)
+				if len(test.args.headers) > 0 && test.args.headers["Accept-Encoding"] == "gzip" {
+					b := bytes.NewBuffer(resBody)
+					var r *gzip.Reader
+					r, err = gzip.NewReader(b)
+					if !errors.Is(err, io.EOF) {
+						require.NoError(t, err)
+					}
+					var resB bytes.Buffer
+					_, err = resB.ReadFrom(r)
+					require.NoError(t, err)
+
+					resBody = resB.Bytes()
+					err = r.Close()
+					require.NoError(t, err)
+				}
+				var data []domain.Metric
+				err = json.Unmarshal(resBody, &data)
+				assert.NoError(t, err)
+				assert.Equal(t, test.want.response, data)
+			}
+
+			if test.want.contentType != "" {
+				assert.Equal(t, test.want.contentType, res.Header.Get("Content-Type"))
+			}
+		})
+	}
+}
+
+func testPing(suite HandlerTestSuite) {
+	t := suite.T()
+
+	type want struct {
+		headers     map[string]string
+		contentType string
+		response    []byte
+		code        int
+	}
+	type args struct {
+		headers map[string]string
+		method  string
+	}
+	tests := []struct {
+		name string
+		args args
+		want want
+	}{
+		{
+			name: "Ping",
+			args: args{
+				method: http.MethodGet,
+			},
+			want: want{
+				code:        http.StatusOK,
+				response:    []byte("Status: ok"),
+				contentType: "text/plain; charset=utf-8",
+			},
+		},
+		{
+			name: "Ping, wrong method",
+			args: args{
+				method: http.MethodPost,
+			},
+			want: want{
+				code: http.StatusMethodNotAllowed,
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+
+			req, err := http.NewRequest(test.args.method, "http://"+suite.Cfg().Address+"/ping", nil)
+			require.NoError(t, err)
+
+			for k, v := range test.args.headers {
+				req.Header.Add(k, v)
+			}
+			res, err := http.DefaultClient.Do(req)
+			require.NoError(t, err)
+			defer func() {
+				err = res.Body.Close()
+				require.NoError(t, err)
+			}()
+
+			var resBody []byte
+
+			// проверяем код ответа
+			require.Equal(t, test.want.code, res.StatusCode)
+			resBody, err = io.ReadAll(res.Body)
+			require.NoError(t, err)
+
+			for k, v := range test.want.headers {
+				assert.True(t, res.Header.Get(k) == v, fmt.Sprintf("want %s, get %s", v, res.Header.Get(k)))
+			}
+
+			if len(test.want.response) > 0 {
+				assert.True(t, len(resBody) > 0)
+				if len(test.args.headers) > 0 && test.args.headers["Accept-Encoding"] == "gzip" {
+					b := bytes.NewBuffer(resBody)
+					var r *gzip.Reader
+					r, err = gzip.NewReader(b)
+					if !errors.Is(err, io.EOF) {
+						require.NoError(t, err)
+					}
+					var resB bytes.Buffer
+					_, err = resB.ReadFrom(r)
+					require.NoError(t, err)
+
+					resBody = resB.Bytes()
+					err = r.Close()
+					require.NoError(t, err)
+				}
+				assert.Equal(t, test.want.response, resBody)
+			}
+
+			if test.want.contentType != "" {
 				assert.Equal(t, test.want.contentType, res.Header.Get("Content-Type"))
 			}
 		})

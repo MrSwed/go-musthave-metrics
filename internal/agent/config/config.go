@@ -12,7 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/MrSwed/go-musthave-metrics/pkg/structflag"
+	"go-musthave-metrics/pkg/structflag"
+
 	"github.com/caarlos0/env/v11"
 )
 
@@ -28,12 +29,18 @@ type Config struct {
 	CryptoKey string `json:"crypto_key" env:"CRYPTO_KEY" flag:"crypto-key" usage:"Provide the public server key for encryption"`
 	Config    string `json:"-" env:"CONFIG" flag:"config" usage:"Provide file with config"`
 	Config2   string `json:"-" env:"-" flag:"c" usage:"same as -config"`
+	GRPC
 	cryptoKey *rsa.PublicKey
 	MetricLists
 	ReportInterval int `json:"report_interval" env:"REPORT_INTERVAL" flag:"r" usage:"Provide the interval in seconds for send report metrics"`
 	PollInterval   int `json:"poll_interval" env:"POLL_INTERVAL" flag:"p" usage:"Provide the interval in seconds for update metrics"`
 	RateLimit      int `json:"rate_limit" env:"RATE_LIMIT" flag:"l" usage:"Provide the rate limit - number of concurrent outgoing requests"`
 	SendSize       int `json:"send_size" env:"SEND_SIZE" flag:"s" usage:"Provide the number of metrics send at once. 0 - send all"`
+}
+
+type GRPC struct {
+	GRPCAddress string `env:"GRPC_ADDRESS" json:"grpc_address"  flag:"g" usage:"Provide the grpc service address"`
+	GRPCToken   string `env:"GRPC_TOKEN" json:"grpc_token"  flag:"token" usage:"Provide the grpc service token"`
 }
 
 type MetricLists struct {

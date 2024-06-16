@@ -3,7 +3,8 @@ package app
 import (
 	"testing"
 
-	myErr "github.com/MrSwed/go-musthave-metrics/internal/agent/error"
+	myErr "go-musthave-metrics/internal/agent/error"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

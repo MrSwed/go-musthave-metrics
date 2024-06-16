@@ -16,19 +16,25 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"os"
 	"reflect"
 	"runtime"
 	"strconv"
 	"sync"
 	"time"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/agent/config"
-	"github.com/MrSwed/go-musthave-metrics/internal/agent/constant"
-	myErr "github.com/MrSwed/go-musthave-metrics/internal/agent/error"
+	"go-musthave-metrics/internal/agent/config"
+	"go-musthave-metrics/internal/agent/constant"
+	myErr "go-musthave-metrics/internal/agent/error"
+	pb "go-musthave-metrics/internal/grpc/proto"
 
+	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/mem"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 )
 
 // MetricsCollects metrics collection
@@ -167,7 +173,11 @@ func (m *MetricsCollects) SendMetrics(ctx context.Context) (n int, err error) {
 				semaphore.Acquire()
 				defer wg.Done()
 				defer semaphore.Release()
-				err = m.request(metrics)
+				if m.c.GRPCAddress == "" {
+					err = m.httpRequest(metrics)
+				} else {
+					err = m.grpcRequest(metrics)
+				}
 			}(metrics[start:finish])
 			return err
 		})
@@ -178,7 +188,7 @@ func (m *MetricsCollects) SendMetrics(ctx context.Context) (n int, err error) {
 	return
 }
 
-func (m *MetricsCollects) request(metrics []*Metric) (err error) {
+func (m *MetricsCollects) httpRequest(metrics []*Metric) (err error) {
 	var er error
 
 	// data to json body
@@ -216,12 +226,14 @@ func (m *MetricsCollects) request(metrics []*Metric) (err error) {
 		bodyBuf.Write(cipherBody)
 	}
 
-	// prepare request
+	// prepare httpRequest
 	var req *http.Request
 	if req, er = http.NewRequest("POST", urlStr, bodyBuf); er != nil {
 		err = errors.Join(err, myErr.ErrWrap(er))
 		return
 	}
+	var ip = GetLocalIP()
+	req.Header.Set(constant.HeaderXRealIP, ip)
 	req.Header.Set("Content-Encoding", "gzip")
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 
@@ -235,7 +247,7 @@ func (m *MetricsCollects) request(metrics []*Metric) (err error) {
 		req.Header.Set(constant.HeaderSignKey, hex.EncodeToString(h.Sum(nil)))
 	}
 
-	// do request
+	// do httpRequest
 	var res *http.Response
 	if res, er = http.DefaultClient.Do(req); er != nil {
 		err = errors.Join(err, myErr.ErrWrap(er))
@@ -251,8 +263,82 @@ func (m *MetricsCollects) request(metrics []*Metric) (err error) {
 		err = errors.Join(err, myErr.ErrWrap(er))
 	}
 	if res.StatusCode != http.StatusOK {
-		err = errors.Join(err, fmt.Errorf("post to %s with body: %s. Get: statusCode: %d;  answer body: %s", urlStr, body, res.StatusCode, resultBody))
+		err = errors.Join(err, fmt.Errorf("post from %s to %s with body: %s. Get: statusCode: %d;  answer body: %s",
+			ip, urlStr, body, res.StatusCode, resultBody))
 	}
 
 	return
+}
+
+func (m *MetricsCollects) grpcRequest(metrics []*Metric) (err error) {
+	ctx := context.Background()
+	logger := log.New(os.Stderr, "", log.Ldate|log.Ltime|log.Lshortfile)
+	opts := []logging.Option{
+		logging.WithLogOnEvents(logging.FinishCall),
+	}
+	var conn *grpc.ClientConn
+	conn, err = grpc.DialContext(ctx, m.c.GRPCAddress,
+		grpc.WithChainUnaryInterceptor(
+			logging.UnaryClientInterceptor(interceptorLogger(logger), opts...),
+		),
+		grpc.WithTransportCredentials(insecure.NewCredentials()))
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer func() {
+		err = errors.Join(err, conn.Close())
+	}()
+
+	reqM := make([]*pb.Metric, len(metrics))
+	for i := 0; i < len(metrics); i++ {
+		reqM[i] = &pb.Metric{
+			Id:    metrics[i].ID,
+			Mtype: metrics[i].MType,
+		}
+		if metrics[i].Delta != nil {
+			reqM[i].Delta = *metrics[i].Delta
+		}
+		if metrics[i].Value != nil {
+			reqM[i].Value = float32(*metrics[i].Value)
+		}
+	}
+
+	var callOpt []grpc.CallOption
+
+	if m.c.GRPCToken != "" {
+		meta := metadata.New(map[string]string{"token": m.c.GRPCToken})
+		ctx = metadata.NewOutgoingContext(ctx, meta)
+		callOpt = append(callOpt, grpc.Header(&meta))
+	}
+
+	c := pb.NewMetricsClient(conn)
+	result, er := c.SetMetrics(ctx, &pb.SetMetricsRequest{
+		Metric: reqM,
+	}, callOpt...)
+	if er != nil {
+		err = errors.Join(err, myErr.ErrWrap(er))
+		return
+	}
+
+	log.Printf("grpc set metrics success len: %v", len(result.Metric))
+	return
+}
+
+func interceptorLogger(l *log.Logger) logging.Logger {
+	return logging.LoggerFunc(func(_ context.Context, lvl logging.Level, msg string, fields ...any) {
+		switch lvl {
+		case logging.LevelDebug:
+			msg = fmt.Sprintf("DEBUG :%v", msg)
+		case logging.LevelInfo:
+			msg = fmt.Sprintf("INFO :%v", msg)
+		case logging.LevelWarn:
+			msg = fmt.Sprintf("WARN :%v", msg)
+		case logging.LevelError:
+			msg = fmt.Sprintf("ERROR :%v", msg)
+		default:
+			panic(fmt.Sprintf("unknown level %v", lvl))
+		}
+		l.Println(append([]any{"msg", msg}, fields...))
+	})
 }

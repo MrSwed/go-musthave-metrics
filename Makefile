@@ -23,7 +23,7 @@ build_app: clean_app
 	go build -ldflags "-X 'main.buildVersion=${version} (${buildVersion})' -X 'main.buildDate=${buildDate}' -X 'main.buildCommit=${buildCommit}'" -o "./bin/${APP_NAME}" ./cmd/${APP_NAME}/*.go
 
 build_agent: clean_agent
-	go build -ldflags "-X 'main.buildVersion=${version} (${buildVersion})' -X 'main.buildDate=${buildDate}' -X 'main.buildCommit=${buildCommit}'" -o "./bin/${AGENT_NAME}" ./cmd/${AGENT_NAME}/*.go
+	go build -ldflags "-X 'app.buildVersion=${version} (${buildVersion})' -X 'app.buildDate=${buildDate}' -X 'app.buildCommit=${buildCommit}'" -o "./bin/${AGENT_NAME}" ./cmd/${AGENT_NAME}/*.go
 
 build_staticlint: clean_staticlint
 	go build -o "./bin/${STATICLINT}" ./cmd/${STATICLINT}/*.go
@@ -60,6 +60,12 @@ run_go_cover_treemap:
 
 .PHONY: cover
 cover: install_go_cover_treemap
-	go test -v -coverpkg=./... -coverprofile=coverage.out -covermode=count ./...
+	go test -v -count=1 -coverpkg=./... -coverprofile=coverage.out -covermode=count ./...
 	go tool cover -func coverage.out
 	go-cover-treemap -coverprofile coverage.out > coverage.out.svg
+
+proto:
+	protoc --go_out=. --go_opt=paths=source_relative \
+      --go-grpc_out=. --go-grpc_opt=paths=source_relative \
+      internal/grpc/proto/service.proto
+

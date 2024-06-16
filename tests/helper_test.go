@@ -25,7 +25,7 @@ func TestCreateConfigFile(t *testing.T) {
 		{
 			name: "test json content",
 			args: args{
-				configFile: filepath.Join(t.TempDir(), "/config.json"),
+				configFile: "config1.json",
 				config: map[string]any{
 					"string": "config_value",
 					"int":    float64(10),
@@ -38,7 +38,7 @@ func TestCreateConfigFile(t *testing.T) {
 		{
 			name: "test raw content, byte",
 			args: args{
-				configFile: filepath.Join(t.TempDir(), "/config.json"),
+				configFile: "config2.json",
 				config: []byte(`{
 					"string": "config_value",
 					"int":    10,
@@ -51,7 +51,7 @@ func TestCreateConfigFile(t *testing.T) {
 		{
 			name: "test raw content string",
 			args: args{
-				configFile: filepath.Join(t.TempDir(), "/config.json"),
+				configFile: "config3.json",
 				config: `{
 					"string": "config_value",
 					"int":    10,
@@ -77,11 +77,12 @@ func TestCreateConfigFile(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := CreateConfigFile(tt.args.configFile, tt.args.config); (err != nil) != tt.wantErr {
+			configFile := filepath.Join(t.TempDir(), tt.args.configFile)
+			if err := CreateConfigFile(configFile, tt.args.config); (err != nil) != tt.wantErr {
 				t.Errorf("CreateConfigFile() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if !tt.wantErr {
-				confFile, err := os.Open(tt.args.configFile)
+				confFile, err := os.Open(configFile)
 				require.NoError(t, err)
 				defer func() {
 					err = confFile.Close()
@@ -89,7 +90,6 @@ func TestCreateConfigFile(t *testing.T) {
 				}()
 				chekCfg := make(map[string]any)
 				require.NoError(t, json.NewDecoder(confFile).Decode(&chekCfg))
-				require.NoError(t, os.Remove(tt.args.configFile))
 
 				whantCfg := make(map[string]any)
 

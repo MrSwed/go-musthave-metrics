@@ -4,16 +4,22 @@ import (
 	"context"
 	"crypto/rsa"
 	"errors"
-	"net/http"
+	"fmt"
+	"math/rand"
+	"net"
 	"os"
+	"path/filepath"
 	"testing"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/server/config"
-	"github.com/MrSwed/go-musthave-metrics/internal/server/handler"
-	errM "github.com/MrSwed/go-musthave-metrics/internal/server/migrate"
-	"github.com/MrSwed/go-musthave-metrics/internal/server/repository"
-	"github.com/MrSwed/go-musthave-metrics/internal/server/service"
-	"github.com/go-chi/chi/v5"
+	"go-musthave-metrics/internal/server/app"
+	"go-musthave-metrics/internal/server/config"
+	errM "go-musthave-metrics/internal/server/migrate"
+	"go-musthave-metrics/internal/server/repository"
+	"go-musthave-metrics/internal/server/service"
+
+	"log"
+	"time"
+
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
@@ -23,9 +29,6 @@ import (
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
 	"go.uber.org/zap"
-
-	"log"
-	"time"
 )
 
 func CreatePostgresContainer(ctx context.Context) (*postgres.PostgresContainer, error) {
@@ -49,22 +52,15 @@ func CreatePostgresContainer(ctx context.Context) (*postgres.PostgresContainer, 
 type HandlerDBTestSuite struct {
 	suite.Suite
 	ctx    context.Context
-	app    http.Handler
+	stop   context.CancelFunc
 	srv    *service.Service
 	cfg    *config.Config
 	db     *sqlx.DB
 	pgCont *postgres.PostgresContainer
 }
 
-func (suite *HandlerDBTestSuite) App() http.Handler {
-	return suite.app
-}
 func (suite *HandlerDBTestSuite) Srv() *service.Service {
 	return suite.srv
-}
-
-func (suite *HandlerDBTestSuite) DBx() *sqlx.DB {
-	return suite.db
 }
 func (suite *HandlerDBTestSuite) Cfg() *config.Config {
 	return suite.cfg
@@ -75,11 +71,11 @@ func (suite *HandlerDBTestSuite) PublicKey() *rsa.PublicKey {
 
 func (suite *HandlerDBTestSuite) SetupSuite() {
 	var (
-		err    error
-		logger *zap.Logger
+		err error
 	)
 	suite.cfg = config.NewConfig()
-	suite.ctx = context.Background()
+	suite.ctx, suite.stop = context.WithCancel(context.Background())
+
 	suite.pgCont, err = CreatePostgresContainer(suite.ctx)
 	if err != nil {
 		log.Fatal(err)
@@ -104,21 +100,28 @@ func (suite *HandlerDBTestSuite) SetupSuite() {
 		log.Fatal(err)
 	}
 
+	suite.cfg.StorageConfig.FileStoragePath = filepath.Join(suite.T().TempDir(), fmt.Sprintf("store-data-%d.json", rand.Intn(200000)))
+	suite.cfg.Address = net.JoinHostPort("localhost", fmt.Sprintf("%d", rand.Intn(200)+20000))
+	suite.cfg.GRPCAddress = net.JoinHostPort("", fmt.Sprintf("%d", rand.Intn(200)+30000))
+	suite.cfg.GRPCToken = "#GRPCSomeTokenString#"
+
 	repo := repository.NewRepository(&suite.cfg.StorageConfig, suite.db)
 
 	suite.srv = service.NewService(repo, &suite.cfg.StorageConfig)
-	logger, err = zap.NewDevelopment()
-	if err != nil {
-		panic(err)
-	}
 
-	suite.app = handler.NewHandler(chi.NewRouter(), suite.srv, &suite.cfg.WEB, logger).Handler()
+	testData(suite)
+
+	go app.RunApp(suite.ctx, suite.cfg, zap.NewNop(),
+		app.BuildMetadata{Version: "test", Date: time.Now().Format(time.RFC3339), Commit: "test"})
+	require.NoError(suite.T(), WaitHTTPPort(suite.ctx, suite))
+	require.NoError(suite.T(), WaitGRPCPort(suite.ctx, suite))
 }
 
 func (suite *HandlerDBTestSuite) TearDownSuite() {
 	if err := suite.pgCont.Terminate(suite.ctx); err != nil {
 		log.Fatalf("error terminating postgres container: %s", err)
 	}
+	suite.stop()
 	require.NoError(suite.T(), os.RemoveAll(suite.T().TempDir()))
 }
 
@@ -130,8 +133,9 @@ func TestHandlersDB(t *testing.T) {
 // migrate call at setup suite, so no test run without first migrate
 // this is just for test cover
 func (suite *HandlerDBTestSuite) TestMigrate() {
-	testMigrate(suite)
+	testMigrate(suite, suite.db)
 }
+
 func (suite *HandlerDBTestSuite) TestGetMetric() {
 	testGetMetric(suite)
 }
@@ -158,4 +162,20 @@ func (suite *HandlerDBTestSuite) TestHashKey() {
 }
 func (suite *HandlerDBTestSuite) TestPing() {
 	testPing(suite)
+}
+
+func (suite *HandlerDBTestSuite) TestGRPCGetMetric() {
+	testGRPCGetMetric(suite)
+}
+
+func (suite *HandlerDBTestSuite) TestGRPCGetMetrics() {
+	testGRPCGetMetrics(suite)
+}
+
+func (suite *HandlerDBTestSuite) TestGRPCSetMetric() {
+	testGRPCSetMetric(suite)
+}
+
+func (suite *HandlerDBTestSuite) TestGRPCSetMetrics() {
+	testGRPCSetMetrics(suite)
 }

@@ -5,9 +5,9 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/server/constant"
-	"github.com/MrSwed/go-musthave-metrics/internal/server/domain"
-	myErr "github.com/MrSwed/go-musthave-metrics/internal/server/errors"
+	"go-musthave-metrics/internal/server/constant"
+	"go-musthave-metrics/internal/server/domain"
+	myErr "go-musthave-metrics/internal/server/errors"
 )
 
 // MemStorageCounter is counter storage

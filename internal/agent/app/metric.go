@@ -3,8 +3,8 @@ package app
 import (
 	"fmt"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/agent/constant"
-	myErr "github.com/MrSwed/go-musthave-metrics/internal/agent/error"
+	"go-musthave-metrics/internal/agent/constant"
+	myErr "go-musthave-metrics/internal/agent/error"
 )
 
 // Metric common metric structure for send

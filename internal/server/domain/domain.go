@@ -1,6 +1,9 @@
 package domain
 
-import "strconv"
+import (
+	"fmt"
+	"strconv"
+)
 
 type (
 	Counter  int64
@@ -15,6 +18,21 @@ type Metric struct {
 	Value *Gauge   `json:"value,omitempty" validate:"required_if=MType gauge,omitempty"`
 	ID    string   `json:"id" validate:"required"`
 	MType string   `json:"type" validate:"required,oneof=gauge counter"`
+}
+
+func (m Metric) String() (s string) {
+	switch m.MType {
+	case "counter":
+		if m.Delta != nil {
+			s = fmt.Sprintf("%v", *m.Delta)
+		}
+	case "gauge":
+		if m.Value != nil {
+			s = fmt.Sprintf("%v", *m.Value)
+		}
+	default:
+	}
+	return
 }
 
 // ValidateMetrics validate received metric collection data

@@ -6,4 +6,5 @@ const (
 	CounterType = "counter"
 
 	HeaderSignKey = "HashSHA256"
+	HeaderXRealIP = "X-Real-IP"
 )

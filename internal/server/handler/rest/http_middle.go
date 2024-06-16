@@ -1,4 +1,4 @@
-package middleware
+package rest
 
 import (
 	"bytes"
@@ -8,11 +8,16 @@ import (
 	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"time"
 
-	"github.com/MrSwed/go-musthave-metrics/internal/server/config"
-	"github.com/MrSwed/go-musthave-metrics/internal/server/constant"
+	"go-musthave-metrics/internal/server/config"
+	"go-musthave-metrics/internal/server/constant"
+
+	"github.com/go-chi/chi/v5/middleware"
 	"go.uber.org/zap"
 )
 
@@ -42,13 +47,20 @@ func Decompress(l *zap.Logger) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 			if r.Header.Get(`Content-Encoding`) == `gzip` {
-				gz, err := gzip.NewReader(r.Body)
+				body, err := io.ReadAll(r.Body)
+				if err != nil {
+					rw.WriteHeader(http.StatusInternalServerError)
+					l.Error(err.Error())
+					return
+				}
+				gz, err := gzip.NewReader(bytes.NewReader(body))
 				if err == nil {
 					r.Body = gz
 					err = gz.Close()
 				}
 				if err != nil {
-					l.Error("gzip", zap.Error(err))
+					r.Body = io.NopCloser(bytes.NewReader(body))
+					l.Warn("gzip", zap.Error(err))
 				}
 			}
 			next.ServeHTTP(rw, r)
@@ -107,6 +119,57 @@ func CheckSign(conf *config.WEB, l *zap.Logger) func(next http.Handler) http.Han
 				}
 			}
 			next.ServeHTTP(rw, r)
+		})
+	}
+}
+
+// CheckNetwork check allowed network
+func CheckNetwork(conf *config.WEB, l *zap.Logger) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+			if conf != nil && conf.TrustedSubnet != "" {
+				if r.Header.Get(constant.HeaderXRealIP) == "" {
+					rw.WriteHeader(http.StatusForbidden)
+				}
+				ip := net.ParseIP(r.Header.Get(constant.HeaderXRealIP))
+				_, addr, err := net.ParseCIDR(conf.TrustedSubnet)
+				if err != nil {
+					l.Error("Error parseCIDR", zap.Error(err))
+					rw.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+				if !addr.Contains(ip) {
+					rw.WriteHeader(http.StatusForbidden)
+					return
+				}
+			}
+			next.ServeHTTP(rw, r)
+		})
+	}
+}
+
+// Logger
+// middleware logger
+func Logger(l *zap.Logger) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
+			t1 := time.Now()
+			defer func() {
+				scheme := "http"
+				if r.TLS != nil {
+					scheme = "https"
+				}
+				l.Info("Served",
+					zap.Int("status", ww.Status()),
+					zap.String("method", r.Method),
+					zap.String("URI", fmt.Sprintf("%s://%s%s %s", scheme, r.Host, r.RequestURI, r.Proto)),
+					zap.Int("size", ww.BytesWritten()),
+					zap.Duration("time", time.Since(t1)),
+					zap.String("from", r.RemoteAddr),
+				)
+			}()
+			next.ServeHTTP(ww, r)
 		})
 	}
 }
